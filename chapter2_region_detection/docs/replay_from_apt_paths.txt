@@ -1,0 +1,19 @@
+How to split APT paths by Zone into per-region replay files (jsonl)
+
+1) Locate APT json files:
+   <apt_dir>/apt_attack_path_*.json
+
+2) Convert into data/raw/cc4_export_region{rid}.jsonl
+   python scripts/prepare_replay_from_apt_paths.py --apt_dir "<apt_dir>" --subset success
+
+3) Switch to replay mode:
+   edit configs/cc4.yaml: mode: replay
+
+4) Run replay deployment:
+   python experiments/run_deploy_region.py --region_id 0 --steps 200
+
+Notes:
+- region_id is the mapped subnet/zone.
+- subset=success uses files without *_1.json
+- subset=failure uses *_1.json only (for contrast)
+- subset=all uses both

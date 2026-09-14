@@ -1,0 +1,9 @@
+{
+  "candidate_fields": [
+    "command_line",
+    "url",
+    "process_name",
+    "dst_ip",
+    "user"
+  ]
+}

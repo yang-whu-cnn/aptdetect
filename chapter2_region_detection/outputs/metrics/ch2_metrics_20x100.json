@@ -1,0 +1,184 @@
+{
+  "mode": "chapter2",
+  "per_region": {
+    "region0": {
+      "episodes": 100,
+      "episode_mean_reward": -4.518480499323153,
+      "reward_std": 0.10735227213515046,
+      "episode_return_mean": -2259.2402496615755,
+      "episode_return_std": 53.67613606757525,
+      "clean_hosts_ratio": 1.0,
+      "non_escalated_hosts_ratio": 1.0,
+      "mean_time_to_recover": 0.0,
+      "useful_recoveries_tp": 0,
+      "wasted_recoveries_fp": 904,
+      "recovery_precision": 0.0,
+      "recovery_error": 1.0,
+      "red_impact_count": 0.0,
+      "red_impact_count_per_episode": 0.0,
+      "running_time_sec": null,
+      "mean_lead_time_to_escalation": 0.0,
+      "mean_lead_time_to_impact": 0.0,
+      "mean_lead_time_to_attack_end": 0.0,
+      "mean_detection_delay_from_attack_start": 0.0,
+      "early_warning_rate_before_escalation": 0.0,
+      "early_warning_rate_before_impact": 0.0,
+      "early_warning_rate_before_attack_end": 0.0,
+      "data_stats": {
+        "schema": "chapter2_region_jsonl",
+        "rows": 50000,
+        "episodes": 100,
+        "steps_total": 50000,
+        "steps_per_episode": [
+          500
+        ],
+        "region": "region0",
+        "jsonl_path": ".\\outputs\\local_online_deploy\\deploy_region0.jsonl"
+      }
+    },
+    "region1": {
+      "episodes": 100,
+      "episode_mean_reward": -4.525248124058823,
+      "reward_std": 0.1099397095721173,
+      "episode_return_mean": -2262.6240620294107,
+      "episode_return_std": 54.96985478605866,
+      "clean_hosts_ratio": 1.0,
+      "non_escalated_hosts_ratio": 1.0,
+      "mean_time_to_recover": 0.0,
+      "useful_recoveries_tp": 0,
+      "wasted_recoveries_fp": 870,
+      "recovery_precision": 0.0,
+      "recovery_error": 1.0,
+      "red_impact_count": 0.0,
+      "red_impact_count_per_episode": 0.0,
+      "running_time_sec": null,
+      "mean_lead_time_to_escalation": 0.0,
+      "mean_lead_time_to_impact": 0.0,
+      "mean_lead_time_to_attack_end": 0.0,
+      "mean_detection_delay_from_attack_start": 0.0,
+      "early_warning_rate_before_escalation": 0.0,
+      "early_warning_rate_before_impact": 0.0,
+      "early_warning_rate_before_attack_end": 0.0,
+      "data_stats": {
+        "schema": "chapter2_region_jsonl",
+        "rows": 50000,
+        "episodes": 100,
+        "steps_total": 50000,
+        "steps_per_episode": [
+          500
+        ],
+        "region": "region1",
+        "jsonl_path": ".\\outputs\\local_online_deploy\\deploy_region1.jsonl"
+      }
+    },
+    "region2": {
+      "episodes": 100,
+      "episode_mean_reward": -4.525248124058823,
+      "reward_std": 0.1099397095721173,
+      "episode_return_mean": -2262.6240620294107,
+      "episode_return_std": 54.96985478605866,
+      "clean_hosts_ratio": 1.0,
+      "non_escalated_hosts_ratio": 1.0,
+      "mean_time_to_recover": 0.0,
+      "useful_recoveries_tp": 0,
+      "wasted_recoveries_fp": 870,
+      "recovery_precision": 0.0,
+      "recovery_error": 1.0,
+      "red_impact_count": 0.0,
+      "red_impact_count_per_episode": 0.0,
+      "running_time_sec": null,
+      "mean_lead_time_to_escalation": 0.0,
+      "mean_lead_time_to_impact": 0.0,
+      "mean_lead_time_to_attack_end": 0.0,
+      "mean_detection_delay_from_attack_start": 0.0,
+      "early_warning_rate_before_escalation": 0.0,
+      "early_warning_rate_before_impact": 0.0,
+      "early_warning_rate_before_attack_end": 0.0,
+      "data_stats": {
+        "schema": "chapter2_region_jsonl",
+        "rows": 50000,
+        "episodes": 100,
+        "steps_total": 50000,
+        "steps_per_episode": [
+          500
+        ],
+        "region": "region2",
+        "jsonl_path": ".\\outputs\\local_online_deploy\\deploy_region2.jsonl"
+      }
+    },
+    "region3": {
+      "episodes": 100,
+      "episode_mean_reward": -4.525248124058823,
+      "reward_std": 0.1099397095721173,
+      "episode_return_mean": -2262.6240620294107,
+      "episode_return_std": 54.96985478605866,
+      "clean_hosts_ratio": 1.0,
+      "non_escalated_hosts_ratio": 1.0,
+      "mean_time_to_recover": 0.0,
+      "useful_recoveries_tp": 0,
+      "wasted_recoveries_fp": 870,
+      "recovery_precision": 0.0,
+      "recovery_error": 1.0,
+      "red_impact_count": 0.0,
+      "red_impact_count_per_episode": 0.0,
+      "running_time_sec": null,
+      "mean_lead_time_to_escalation": 0.0,
+      "mean_lead_time_to_impact": 0.0,
+      "mean_lead_time_to_attack_end": 0.0,
+      "mean_detection_delay_from_attack_start": 0.0,
+      "early_warning_rate_before_escalation": 0.0,
+      "early_warning_rate_before_impact": 0.0,
+      "early_warning_rate_before_attack_end": 0.0,
+      "data_stats": {
+        "schema": "chapter2_region_jsonl",
+        "rows": 50000,
+        "episodes": 100,
+        "steps_total": 50000,
+        "steps_per_episode": [
+          500
+        ],
+        "region": "region3",
+        "jsonl_path": ".\\outputs\\local_online_deploy\\deploy_region3.jsonl"
+      }
+    }
+  },
+  "overall": {
+    "episodes": 400,
+    "episode_mean_reward": -4.523556217874907,
+    "reward_std": 0.10933787097045336,
+    "episode_return_mean": -2261.7781089374535,
+    "episode_return_std": 54.6689354852267,
+    "clean_hosts_ratio": 1.0,
+    "non_escalated_hosts_ratio": 1.0,
+    "mean_time_to_recover": 0.0,
+    "useful_recoveries_tp": 0,
+    "wasted_recoveries_fp": 3514,
+    "recovery_precision": 0.0,
+    "recovery_error": 1.0,
+    "red_impact_count": 0.0,
+    "red_impact_count_per_episode": 0.0,
+    "running_time_sec": null,
+    "mean_lead_time_to_escalation": 0.0,
+    "mean_lead_time_to_impact": 0.0,
+    "mean_lead_time_to_attack_end": 0.0,
+    "mean_detection_delay_from_attack_start": 0.0,
+    "early_warning_rate_before_escalation": 0.0,
+    "early_warning_rate_before_impact": 0.0,
+    "early_warning_rate_before_attack_end": 0.0,
+    "data_stats": {
+      "schema": "chapter2_multi_region",
+      "jsonl_files": [
+        ".\\outputs\\local_online_deploy\\deploy_region0.jsonl",
+        ".\\outputs\\local_online_deploy\\deploy_region1.jsonl",
+        ".\\outputs\\local_online_deploy\\deploy_region2.jsonl",
+        ".\\outputs\\local_online_deploy\\deploy_region3.jsonl"
+      ],
+      "regions": [
+        "region0",
+        "region1",
+        "region2",
+        "region3"
+      ]
+    }
+  }
+}

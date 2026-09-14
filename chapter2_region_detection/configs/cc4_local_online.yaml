@@ -1,0 +1,94 @@
+# configs/cc4_local_online.yaml
+# 目的：在拿不到真实 CC4 在线环境 base_url / api_key 时，走“本地仿真 online”
+# 用法：mode=online + online.base_url=local 触发 OnlineCC4Client 的本地仿真分支
+
+seed: 0
+region_id: "region0"
+
+mode: "online"   # mock / replay / online
+
+paths:
+  ckpt_dir: "outputs/cc4/checkpoints"
+  log_dir: "outputs/cc4/logs"
+  replay_dir: "data/replays"
+  raw_dir: "data/raw"
+
+# online 模式配置（关键：base_url=local）
+online:
+  base_url: "local"
+  api_key: ""
+  timeout_sec: 30
+
+# replay 模式备用（不影响 online）
+replay:
+  jsonl_path: "data/replays/region0_seed0.jsonl"
+
+# mock 模式备用（不影响 online）
+mock:
+  episodes: 5
+  seed: 0
+
+# ====== 下面这些块是为了让“第二章整套训练/评估流水线”不缺 key ======
+summary:
+  window_size: 50
+  max_text_len: 512
+
+# 计划评分（对应 plan_eval.py 里用到的权重）
+plan_score:
+  gamma: 0.9
+  lambda_gain: 1.0
+  lambda_risk: 1.0
+  lambda_cost: 0.2
+  lambda_delay: 0.1
+  delay_scale: 1.0
+
+  # 兼容旧代码字段（建议一并保留，避免 KeyError）
+  lambda1_early: 1.0
+  lambda2_fprisk: 1.0
+  lambda3_cost: 0.2
+  lambda4_delay: 0.1
+
+# LLM 先验：本地仿真时用 dummy（不需要外部 key）
+llm_prior:
+  backend: "dummy"
+  k_candidates: 6
+  plan_horizon: 5
+  temperature: 0.7
+
+  # 下面这些即使 dummy 不用，也建议保留，避免别的代码 KeyError
+  hf_model_name: ""
+  max_new_tokens: 256
+  http_url: ""
+  http_timeout_sec: 30
+
+# 世界模型（env_region.py 会读取这些字段）
+world_model:
+  state_dim: 8
+  action_dim: 5
+  ensemble_size: 5
+  hidden_dim: 128
+  lr: 0.0003
+  batch_size: 256
+  epochs: 5
+  device: "cpu"
+
+# PPO（posterior 训练会读 ppo.train_steps；env_region.py 也会读其它 PPO 超参）
+ppo:
+  # ★关键：run_train_posterior.py 需要这个键
+  train_steps: 3000
+
+  lr: 0.0003
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  rollout_len: 128
+  minibatch_size: 64
+  update_epochs: 4
+  device: "cpu"
+
+train:
+  eval_every: 2000
+  warmup_random_steps: 500
+  max_episode_steps: 100

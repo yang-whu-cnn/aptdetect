@@ -1,0 +1,83 @@
+# configs/cc4.yaml
+# 第二章：单区域检测（多区域复用）—— 统一配置
+
+seed: 42
+
+# 运行模式：
+# - mock:   使用内置模拟CC4环境（无数据也能跑通）
+# - replay: 回放导出的CC4离线数据（jsonl）
+# - online: 在线对接CC4交互接口（需要你补全 OnlineCC4Client 的具体API调用）
+mode: replay
+
+# 多区域复用：每次运行指定 --region_id，或用 scripts/run_all_regions.py 批量跑
+regions: [0, 1, 2]
+
+paths:
+  data_dir: data
+  raw_dir: data/raw
+  replay_dir: data/replays
+  ckpt_dir: checkpoints
+  log_dir: runs
+
+# ---------- 状态摘要（滑窗 + 结构化+文本化） ----------
+summary:
+  window_size: 20          # 滑窗长度（步），用于聚合近期证据
+  max_text_len: 512        # 文本摘要最大长度（字符数，便于LLM输入）
+
+# ---------- 动作空间（高层动作离散化） ----------
+action_space:
+  # 强度阈值：用于误报风险惩罚（监测 < 补证 < 处置）
+  strong_intensity_threshold: 3
+  low_risk_threshold: 0.10
+  high_risk_threshold: 0.20
+
+# ---------- LLM先验生成（候选计划/评分/检查点） ----------
+llm_prior:
+  backend: dummy           # dummy | hf_local | http
+  k_candidates: 6          # 候选计划数量 N
+  plan_horizon: 4          # 每个候选计划长度 H（较小以控制前瞻计算）
+  temperature: 0.7         # 用于将LLM打分softmax的温度（越小越集中）
+  # 当 backend=hf_local 时：
+  hf_model_name: "Qwen/Qwen2.5-1.5B-Instruct"
+  max_new_tokens: 512
+  # 当 backend=http 时：
+  http_url: "http://127.0.0.1:8000/v1/chat/completions"
+  http_timeout_sec: 30
+
+# ---------- 世界模型（一步转移 + 集成不确定性） ----------
+world_model:
+  ensemble_size: 3
+  hidden_dim: 128
+  lr: 0.0005
+  batch_size: 256
+  epochs: 8
+  train_min_buffer: 2000   # 轨迹样本不足时先收集
+  rollout_horizon: 4       # 与 plan_horizon 一致
+  # 预测风险分数在状态向量中的位置（mock环境里我们把 risk_proxy 放在最后一维）
+  risk_index: -1
+
+# ---------- 计划评分（预测奖励累积） ----------
+plan_score:
+  gamma: 0.95
+  lambda1_early: 2.0
+  lambda2_fprisk: 0.5
+  lambda3_cost: 0.02
+
+# ---------- 后验选择（PPO：选择候选索引） ----------
+ppo:
+  lr: 0.0003
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  gae_lambda: 0.95
+  gamma: 0.99
+  train_steps: 4000
+  rollout_len: 128
+  minibatch_size: 256
+  update_epochs: 4
+
+# ---------- 训练/部署 ----------
+train:
+  warmup_random_steps: 800     # 用随机动作收集初始轨迹（mock里也作为“攻击起点”）
+  max_episode_steps: 8000
+  eval_every: 500

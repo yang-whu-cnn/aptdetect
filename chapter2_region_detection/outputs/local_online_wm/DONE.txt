@@ -1,0 +1,3 @@
+world model trained OK
+replay=data/replays/replay_region0.npz
+s=(3000, 8) a=(3000,) s2=(3000, 8)

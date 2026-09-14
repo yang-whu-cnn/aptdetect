@@ -1,0 +1,77 @@
+{
+  "feature_dim": 2072,
+  "field_slices": {
+    "severity": [
+      0,
+      4
+    ],
+    "risk_proxy": [
+      4,
+      8
+    ],
+    "risk": [
+      8,
+      12
+    ],
+    "reward": [
+      12,
+      16
+    ],
+    "done_flag": [
+      16,
+      20
+    ],
+    "t_step": [
+      20,
+      24
+    ],
+    "region_id": [
+      24,
+      280
+    ],
+    "src": [
+      280,
+      536
+    ],
+    "dst": [
+      536,
+      792
+    ],
+    "zone": [
+      792,
+      1048
+    ],
+    "action": [
+      1048,
+      1304
+    ],
+    "target_host": [
+      1304,
+      1560
+    ],
+    "success": [
+      1560,
+      1816
+    ],
+    "event_desc": [
+      1816,
+      2072
+    ]
+  },
+  "fields_order": [
+    "severity",
+    "risk_proxy",
+    "risk",
+    "reward",
+    "done_flag",
+    "t_step",
+    "region_id",
+    "src",
+    "dst",
+    "zone",
+    "action",
+    "target_host",
+    "success",
+    "event_desc"
+  ]
+}

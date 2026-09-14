@@ -1,0 +1,57 @@
+{
+  "feature_dim": 1552,
+  "field_slices": {
+    "bytes_in": [
+      0,
+      4
+    ],
+    "bytes_out": [
+      4,
+      8
+    ],
+    "duration": [
+      8,
+      12
+    ],
+    "packet_count": [
+      12,
+      16
+    ],
+    "src_ip": [
+      16,
+      272
+    ],
+    "dst_ip": [
+      272,
+      528
+    ],
+    "user": [
+      528,
+      784
+    ],
+    "process_name": [
+      784,
+      1040
+    ],
+    "command_line": [
+      1040,
+      1296
+    ],
+    "url": [
+      1296,
+      1552
+    ]
+  },
+  "fields_order": [
+    "bytes_in",
+    "bytes_out",
+    "duration",
+    "packet_count",
+    "src_ip",
+    "dst_ip",
+    "user",
+    "process_name",
+    "command_line",
+    "url"
+  ]
+}

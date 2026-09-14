@@ -1,0 +1,8 @@
+numpy
+pyyaml
+tqdm
+torch>=1.10
+
+# Optional dependencies (install whepip install -e .n needed):
+# transformers  # for local HF LLM backend
+# requests      # for HTTP LLM backend

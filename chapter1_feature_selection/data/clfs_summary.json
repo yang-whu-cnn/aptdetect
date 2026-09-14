@@ -1,0 +1,30 @@
+{
+  "windows_path": "D:\\paper\\chapter1_feature_selection\\data\\windows.pkl",
+  "num_windows": 6760,
+  "feature_dim": 2072,
+  "embed_dim": 128,
+  "candidate_fields": [
+    "t_step",
+    "reward",
+    "event_desc",
+    "done_flag",
+    "severity",
+    "risk_proxy",
+    "risk"
+  ],
+  "candidate_field_dims": {
+    "t_step": 4,
+    "reward": 4,
+    "event_desc": 256,
+    "done_flag": 4,
+    "severity": 4,
+    "risk_proxy": 4,
+    "risk": 4
+  },
+  "candidate_field_count": 7,
+  "candidate_dim": 280,
+  "compression_rate_clfs": 0.8648648648648649,
+  "y_pos": 3016,
+  "y_neg": 3744,
+  "y_pos_rate": 0.4461538461538462
+}

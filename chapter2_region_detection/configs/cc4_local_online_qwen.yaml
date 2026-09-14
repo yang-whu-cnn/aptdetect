@@ -1,0 +1,109 @@
+seed: 0
+region_id: region0
+mode: online
+
+paths:
+  ckpt_dir: outputs/cc4/checkpoints
+  log_dir: outputs/cc4/logs
+  replay_dir: data/replays
+  raw_dir: data/raw
+
+online:
+  base_url: local
+  api_key: ''
+  timeout_sec: 30
+
+replay:
+  jsonl_path: data/replays/region0_seed0.jsonl
+
+mock:
+  episodes: 5
+  seed: 0
+
+summary:
+  window_size: 50
+  max_text_len: 512
+
+plan_score:
+  gamma: 0.9
+  lambda_gain: 1.0
+  lambda_risk: 1.0
+  lambda_cost: 0.2
+  lambda_delay: 0.1
+  delay_scale: 1.0
+  lambda1_early: 1.0
+  lambda2_fprisk: 1.0
+  lambda3_cost: 0.2
+  lambda4_delay: 0.1
+
+llm_prior:
+  backend: http
+  k_candidates: 4
+  plan_horizon: 3
+  temperature: 0.2
+  hf_model_name: ''
+  max_new_tokens: 192
+  http_url: ''
+  http_timeout_sec: 20
+  model: qwen3.5-plus              # 最终实验这里改为qwen3.5-plus
+  api_key_env: DASHSCOPE_API_KEY
+  base_url: https://llm-92at0va9j0ni9t0c.cn-beijing.maas.aliyuncs.com/compatible-mode/v1
+  refresh_every: 5              # 每5步调用一次LLM，其余步复用缓存
+  trust_env: false              # 建议保留，避免隐式代理干扰
+
+world_model:
+  state_dim: 8
+  action_dim: 5
+  ensemble_size: 5
+  hidden_dim: 128
+  lr: 0.0003
+  batch_size: 256
+  epochs: 5
+  device: cpu
+
+ppo:
+  train_steps: 512              # 32 的整数倍，避免 leftover rollout
+  lr: 0.0003
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_eps: 0.2
+  entropy_coef: 0.01
+  value_coef: 0.5
+  rollout_len: 32
+  minibatch_size: 16
+  update_epochs: 2
+  device: cpu
+
+train:
+  eval_every: 32                # 和 rollout_len 对齐，日志更整齐
+  warmup_random_steps: 64
+  max_episode_steps: 100
+
+  ## ========== 完整流程 ==========
+  #
+  ## 1. 进入目录
+  #cd d:\python1\chapter2_region_detection
+  #
+  ## 2. 激活虚拟环境
+  #.venv\Scripts\Activate.ps1
+  #
+  ## 3. 设置千问 API Key（可选）
+  #$env:DASHSCOPE_API_KEY = "你的API密钥"
+  #
+  ## 4. 数据采集（可选，已有数据可跳过）
+  #python experiments/run_collect_random.py --region_id 0 --steps 3000
+  #
+  ## 5. 训练世界模型
+  #python experiments/run_train_world_model.py --region_id 0
+  #
+  ## 6. 训练 PPO 后验（自动记录排名统计）
+  #python experiments/run_train_posterior.py --region_id 0 --use_trained_world_model
+  #
+  ## 7. 部署推理（千问先验）
+  #python experiments/run_deploy_region.py --region_id 0 --cfg configs/cc4_local_online_qwen.yaml --steps 100 --episodes 3 --jsonl_path runs/deploy_qwen_region0.jsonl
+  #
+  ## 8. 查看训练统计
+  #Get-Content checkpoints/train_rank_stats_region0.jsonl
+  #
+  ## 9. 退出虚拟环境
+  #deactivate

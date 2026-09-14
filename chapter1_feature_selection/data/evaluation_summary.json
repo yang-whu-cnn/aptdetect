@@ -1,0 +1,32 @@
+{
+  "split_ratio": 0.7,
+  "num_train": 4732,
+  "num_test": 2028,
+  "logical_field_count": 14,
+  "window_feature_dim": 2072,
+  "candidate_field_count": 7,
+  "candidate_feature_dim": 280,
+  "avg_keep_dim_prfs": 181.9457593688363,
+  "avg_keep_ratio_prfs": 0.6498062834601296,
+  "compression_rate_clfs": 0.8648648648648649,
+  "compression_rate_prfs_from_full": 0.9121883400729555,
+  "compression_rate_prfs_from_candidate": 0.3501937165398704,
+  "candidate_fields": [
+    "t_step",
+    "reward",
+    "event_desc",
+    "done_flag",
+    "severity",
+    "risk_proxy",
+    "risk"
+  ],
+  "kept_dim_stats": {
+    "min": 150,
+    "max": 244,
+    "mean": 181.9457593688363,
+    "p10": 168.0,
+    "p50": 180.0,
+    "p90": 198.0
+  },
+  "note": "本文件以特征选择指标为主；代理分类指标不再作为正文主结果输出。"
+}

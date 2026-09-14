@@ -1,0 +1,11 @@
+{
+  "candidate_fields": [
+    "t_step",
+    "reward",
+    "event_desc",
+    "done_flag",
+    "severity",
+    "risk_proxy",
+    "risk"
+  ]
+}
