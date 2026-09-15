@@ -1494,36 +1494,36 @@ Gate A：
 
 # 30. 下一步固定要求
 
-A1R / A2R 已完成。
+A1R / A2R / A3.1 已完成。
 
-当前进入 A3。
+当前继续 A3：
 
-A3.1 先运行真实 CC4 wrapper probe，只围绕四动作：
+- [x] A3.1 CC4 wrapper contract probe
+- [~] A3.2 no_op -> Sleep
+- [~] A3.3 Analyse / Remove / Restore deterministic shared host resolver
+- [ ] A3.4 multi-tick duration / next-decision availability
+- [ ] A3.5 compromise/recovery + current incident host Host Work Fail bookkeeping
+- [ ] A3.6 multi-agent integration
 
-- Sleep
-- Analyse
-- Remove
-- Restore
+A3.2 / A3.3 冻结约束：
 
-必须同时记录：
+- 不写死 raw action index；
+- 先按 action_mask=True 过滤；
+- 再按 Sleep / Analyse / Remove / Restore family 解析；
+- host resolver 只能使用当前可观察信息；
+- deterministic tie-break；
+- 没有合法 target 时 fallback 到有效 Sleep；
+- 记录 requested / executed / target / fallback reason；
+- Ours / UG-CEM / CEM 共用同一个 resolver。
 
-- blue_agent_0..4；
-- action_labels；
-- action_mask；
-- hosts；
-- actions；
-- pad_spaces=False / True；
-- 不同 seeds 下 label/index 稳定性。
+A3.1 真实 probe 已确认：
 
-完成 A3.1 后，再继续：
-
-- A3.2 no_op -> Sleep；
-- A3.3 Analyse / Remove / Restore host target resolver；
-- A3.4 multi-tick duration / next-decision availability；
-- A3.5 compromise/recovery 与 current incident host Host Work Fail reward bookkeeping probe；
-- A3.6 multi-agent integration。
-
-probe 结果确认前，不冻结固定 action index。
+- blue_agent_0..3 在 pad=False 时为 Discrete(82)；
+- blue_agent_4 为 Discrete(242)；
+- pad=True 时统一到 Discrete(242)；
+- invalid host slots 的底层动作实际为 Sleep；
+- 不同 seed 的有效 host 数会变化；
+- 因此正式 adapter 禁止固定 raw index。
 
 旧五动作 replay / WM / PPO 不再具有正式兼容性。
 
