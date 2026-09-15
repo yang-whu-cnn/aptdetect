@@ -1466,8 +1466,8 @@ P2：
 
 Gate A：
 
-[~] A1R Four-Action Contract Revision  <- CURRENT
-[ ] A2R Local-online Adapter Revision
+[x] A1R Four-Action Contract Revision
+[~] A2R Local-online Adapter Revision  <- CURRENT
 [ ] A3  Official CybORG / CC4 Four-Action Adapter
 [ ] A4  Formal State / Replay / Bootstrap WM / Response Reward
 [ ] A5  Gate A Final Review
@@ -1494,17 +1494,13 @@ Gate A：
 
 # 30. 下一步固定要求
 
-当前不能直接继续原 A3。
+A1R 已完成。
 
-必须先：
+当前必须先完成 A2R：
 
-1. 修改 shared/action_contract.py：
-   A=4；
-2. 更新 A1 tests；
-3. 审核并记录 A1R；
-4. 删除 local adapter 中 control_traffic semantic；
-5. 更新 local client/tests 到四动作；
-6. 审核并记录 A2R；
+1. 删除 local adapter 中 control_traffic semantic；
+2. 更新 local client/tests 到四动作；
+3. 审核并记录 A2R；
 7. 然后重新运行 A3.1 CC4 wrapper probe，只围绕：
    - Sleep
    - Analyse
