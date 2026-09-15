@@ -1249,7 +1249,15 @@ Git diff 只包含 Step 2 文件（外加本任务书修订）
 
 ## Step 3 — UG Uncertainty
 
-状态：**下一步**。
+状态：**已完成（审核通过）**
+
+审核记录：
+
+```text
+chapter2_region_detection/docs/step3.md
+```
+
+最终结论：**PASS**
 
 文件：
 
@@ -1810,8 +1818,8 @@ feat(eval): add fair planner comparison harness
 ```text
 [x] Step 0  创建 ug-cem-apt 分支
 [x] Step 1  baseline scaffold + comparison config
-[ ] Step 2  Categorical CEM
-[ ] Step 3  UG uncertainty
+[x] Step 2  Categorical CEM
+[x] Step 3  UG uncertainty
 [ ] Gate A  冻结新动作 ID / 环境映射 / world-model 数据兼容性
 [ ] Step 4  Vectorized rollout evaluator
 [ ] Step 5  UGCEM planner
@@ -1827,7 +1835,7 @@ feat(eval): add fair planner comparison harness
 
 当前下一步：
 
-> **Step 2：只实现 Categorical CEM，不接 world model。**
+> **Gate A：冻结新动作数值 ID、local-online / CybORG 映射、action cost/delay 规则，并确认旧 replay / world-model checkpoint 与新动作语义是否兼容。Gate A 通过后再进入 Step 4。**
 
 ---
 
