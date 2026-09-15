@@ -1,150 +1,184 @@
-# UG-CEM-APT 复现、领域适配与公平对比总任务书（v2.0）
+# UG-CEM-APT 复现、领域适配与公平对比总任务书（v2.1）
 
 > 仓库：yang-whu-cnn/aptdetect  
 > 稳定备份分支：me  
 > 实验分支：ug-cem-apt  
-> 当前阶段：Gate A3 之前的总方案复核  
+> 当前阶段：新小论文方案冻结后，回退到 Gate A1R/A2R 修订  
 > 最后更新：2026-09-15  
 > 本文件是后续实现、审核、实验和论文撰写的唯一总路线图。若后续方案发生实质变化，必须先更新本文件，再改实现。
 
 ---
 
-# 0. 本次 v2.0 复核为什么必须做
+# 0. v2.1 方案冻结：以新小论文为准
 
-Step 2、Step 3、Gate A1、Gate A2 已经完成。进入真实 CybORG / CAGE Challenge 4 之前，再次对照：
+本版任务书以以下论文设计为当前 LWM-RL 正式方案来源：
 
-1. Webster & Flach, Risk Sensitive Model-Based Reinforcement Learning using Uncertainty Guided Planning；
-2. 仓库内 UG 官方源码；
-3. 当前第二章已有实现；
-4. CAGE Challenge 4 官方动作、观测、奖励和多智能体规则；
+- 原硕士论文《大模型+预测强化学习-电力系统APT检测》提供总体 LLM + WM + PPO 框架；
+- 新小论文《融合LLM+WM+RL的APT动态响应小论文-20260915》作为当前方法细节的最新版本；
+- 实验环境继续使用 CAGE Challenge 4（CC4），不切换到 DARPA；
+- UG-CEM 作为当前核心对比 baseline。
 
-发现旧任务书虽然方向正确，但仍有几个会直接影响最终效果和论文可信度的缺口：
+v2.1 相对 v2.0 的冻结变化：
 
-- 旧任务书把正式状态长期锁死为 D=8，但 CC4 的 mission phase、traffic policy、blocked state 会直接影响奖励和 control_traffic 的价值；
-- 旧 world model 的 ensemble 成员使用同一批 minibatch，没有显式 bootstrap，弱化了 epistemic uncertainty 的可信度；
-- 旧 replay / checkpoint 的动作 ID 已与新 5 动作语义不一致，正式实验必须废弃并重新采集；
-- 旧 plan_eval 仍包含旧 cost / delay / early-warning 兼容逻辑，不能继续作为正式计划回报；
-- 旧 llm_prior 仍依赖 monitor / light_evidence / heavy_evidence / local_mitigate / strong_mitigate，不能直接用于新方案；
-- 旧 official evaluator 仍使用 0->Monitor, 1/2->Analyse, 3->Remove, 4->Restore 的旧映射；
-- CC4 中 Analyse/Remove/Restore 具有多 tick duration，agent 在动作完成前不能重新发起新动作；
-- BlockTraffic 是持久化交通控制的一部分，CC4 同时提供 AllowTraffic；若只会 block 而无法处理 stale block，可能产生明显的 green availability penalty；
-- BlueFixedActionWrapper 的 action index 对不同 agent 不能假定同义，必须使用 action_labels + action_mask；
-- 正式 CC4 有 5 个 Blue agent，blue_agent_4 还负责多个 subnet；只做 region0-3 会降低正式 team reward；
-- 当前世界模型只预测状态，而正式 CC4 reward 依赖 mission phase、green availability、red impact 等，不能继续只用 risk_proxy 手工近似正式回报。
+1. 高层动作空间从 5 类改为 **4 类**：
+   - no_op
+   - analyse
+   - remove
+   - restore
+2. 删除 control_traffic，不再把 BlockTraffic / AllowTraffic 纳入当前 LWM-RL 与 UG-CEM 主对比动作空间。
+3. LLM 仍生成多步候选计划及先验偏好。
+4. World Model 仍对候选计划做多步 rollout，但正式前瞻评估只保留：
+   - value / cumulative reward
+   - predictive uncertainty
+   不再把独立 action cost 作为第三个 PPO evidence 分量。
+5. PPO 的 observation / candidate posterior representation 对齐新小论文：
+   - current incident/state vector
+   - candidate plan
+   - LLM prior preference
+   - predicted value
+   - predictive uncertainty
+6. 正式 response reward 改为围绕：
+   - attack eradication time
+   - normal operation failure
+7. attack eradication time 与原硕士论文式(3.18)平均恢复时间中的“单次恢复事件时长”采用同一语义：
+   T_erad = t_normal - t_compromise。
+8. normal operation failure 定义为：
+   **当前响应/攻击事件所在主机的 CC4 Host Work Fail**，
+   不是全网所有主机 Host Work Fail 的总和。
+9. early-warning lead steps 不进入当前正式 PPO reward。
+10. 旧固定 action cost、lambda_delay 不进入当前正式主 reward。
+11. 由于动作契约从 A=5 改为 A=4，已经通过的 A1/A2 五动作实现属于历史版本，必须先修订后才能进入 A3。
 
-因此 v2.0 的核心目标是：
+因此当前执行顺序改为：
 
-> 在不改变论文核心思想的前提下，把“能跑通”的实现升级为“状态信息充分、模型可校准、动作真实可执行、回报与官方目标一致、对比公平、可以稳定做最终论文实验”的实现。
+A1R 四动作契约修订
+-> A2R local adapter 修订
+-> A3 official CC4 adapter
+-> A4 formal state/replay/bootstrap WM/reward adapter
+-> 后续 UG-CEM / LWM-RL 公平比较。
 
 ---
 
-# 1. 论文与官方环境中必须保持不变的事实
+# 1. 论文与 CC4 环境中必须保持不变的事实
 
 ## 1.1 UG-CEM 原论文核心
 
-UG-CEM 的核心不是重新设计 reward，也不是额外训练一个策略网络，而是：
+UG-CEM 的核心保持：
 
-- 用 bootstrap ensemble dynamics models 近似环境 epistemic uncertainty；
-- 用 CEM 规划未来动作序列；
-- 对 ensemble 未来状态预测分歧较大的 action sequence 加惩罚；
-- 引导规划器倾向模型更有把握的未来区域；
-- 风险敏感性体现为 risk-return trade-off，而不是保证 reward 一定更高。
-
-领域适配必须保留：
-
-- ensemble model disagreement；
+- bootstrap ensemble dynamics models；
+- CEM 多步 action-sequence optimisation；
+- ensemble disagreement 估计 epistemic uncertainty；
 - fixed-member / TS∞ 风格 rollout；
-- deterministic model mean rollout；
-- state-trajectory disagreement uncertainty；
-- running state / horizon normalizer；
+- deterministic mean rollout；
 - score = predicted_return - beta * uncertainty / (cem_iteration + 1)。
 
-## 1.2 CC4 正式环境关键事实
+领域适配允许改变原始任务的 state/action/reward，但 LWM-RL、UG-CEM、CEM-APT 必须共享同一套领域接口。
 
-正式 CC4 必须按以下事实设计：
+## 1.2 当前 LWM-RL 新小论文核心
 
-- Monitor 是自动发生的默认监测行为；
-- Sleep 才是显式“本 tick 不主动执行动作”；
-- Analyse duration=2；
-- Remove duration=3；
-- Restore duration=5；
-- BlockTraffic duration=1；
-- Sleep duration=1；
-- BlockTraffic 需要 from_subnet / to_subnet；
-- AllowTraffic 用于撤销已有 firewall block；
-- BlockTraffic 可能导致 green communication failure penalty；
-- reward 随 mission phase 变化；
-- Blue agents 在动作完成前不能重新发起另一个动作；
-- 正式环境有 5 个 Blue agent；
-- BlueFixedActionWrapper 提供 action_labels 和 action_mask，不能假定一个整数 action index 在不同 agent 上语义相同。
+正式方法链保持：
+
+current incident information
+-> LLM candidate plans + prior preferences
+-> ensemble world-model rollout
+-> value + uncertainty
+-> PPO posterior plan selection
+-> execute first response action
+-> replan at next decision epoch。
+
+高层动作固定为：
+
+- no_op
+- analyse
+- remove
+- restore
+
+## 1.3 CC4 正式环境关键事实
+
+正式 CC4 实现必须验证并遵守：
+
+- Monitor 为自动监测行为；
+- no_op 的显式执行使用 Sleep；
+- Analyse / Remove / Restore 需要 host target；
+- Analyse / Remove / Restore 具有 multi-tick duration；
+- BlueFixedActionWrapper 的 action index 不能假设跨 agent 同义；
+- 必须基于 action_labels + action_mask 解析真实底层动作；
+- 正式环境包含 5 个 Blue agent；
+- policy observation 不能使用 hidden red ground truth。
+
+CC4 虽然存在 BlockTraffic / AllowTraffic，但 v2.1 的四动作主实验 **不把它们作为可选高层动作**。
 
 ---
 
 # 2. 最终论文方法与对比目标
 
-最终至少比较：
+最终核心比较：
 
 - LWM-RL（Ours）
 - UG-CEM-APT
-- CEM-APT（beta=0）
+- CEM-APT（UG-CEM beta=0）
 
-最终需要证明的不是“某一次跑分最高”，而是：
+核心公平比较问题：
 
-1. Ours 在相同 state / action / world model / reward objective / environment 下取得更高或更稳定的 official return；
-2. UG uncertainty 的作用可以通过 beta=0 与 beta>0 消融解释；
-3. Ours 中 LLM prior、world-model foresight、PPO posterior 的作用可以通过 ablation 解释；
-4. 所有方法都没有未来标签、test-seed tuning 或隐藏 heuristic；
-5. 结果能在 paired seeds 下复现。
+> 在相同 CC4 observation、四动作空间、world model、response reward、target resolver 和 paired seeds 下，
+> “LLM prior + PPO posterior candidate selection”
+> 是否优于
+> “Categorical CEM + uncertainty-guided planning”。
 
-重要说明：
+正式主目标优先体现新小论文：
 
-> 本任务书只能通过更合理的状态表示、更可靠的世界模型、更正确的 CC4 adapter、更严格的数据划分和调参流程来提高成功概率，不能在实验前保证 Ours 一定胜出。任何为了“保证赢”而只给 Ours 增加额外信息、heuristic 或 test-set tuning 的做法都禁止。
+1. 更短 attack eradication time；
+2. 更少/更低的当前 incident host Host Work Fail；
+3. 更高、更稳定的 cumulative response return。
+
+同时保留 CC4 official episode return 作为重要外部评价指标，用于检查自定义 response objective 是否没有牺牲整体系统表现。
+
+论文结论不能依赖一次最高分，而必须使用 paired seeds、均值/方差/置信区间和消融实验。
 
 ---
 
 # 3. 全局公平性与性能原则
 
-所有正式方法必须共享：
+所有正式方法共享：
 
-- 当前时刻可见的原始 CC4 observation；
+- current visible CC4 observation；
 - FormalStateEncoder；
-- 高层动作契约；
-- target resolver；
-- official action adapter；
-- train / validation / calibration / test seed 列表；
-- dynamics ensemble architecture；
-- world-model checkpoint；
+- 四动作 high-level contract；
+- host target resolver；
+- official CC4 action adapter；
+- train / validation / calibration / test seeds；
+- bootstrap dynamics ensemble architecture；
+- 同一个 world-model checkpoint bundle；
 - state normalizer；
-- shared reward model / plan-return adapter；
-- episode 配置；
+- 同一个 response reward definition / reward adapter；
+- 相同 action duration / decision-epoch convention；
 - evaluation metrics。
 
-只允许方法之间不同的部分：
+方法间只允许不同：
 
 LWM-RL：
 - LLM candidate prior；
-- evidence construction；
-- PPO posterior plan selection。
+- PPO posterior candidate-plan selection。
 
 UG-CEM-APT：
-- categorical CEM；
-- trajectory uncertainty penalty；
-- MPC probability warm-start。
+- Categorical CEM；
+- source-faithful uncertainty penalty；
+- MPC warm-start。
 
 CEM-APT：
-- 与 UG-CEM 完全相同，但 beta=0。
+- 与 UG-CEM 相同，但 beta=0。
 
-正式测试前必须冻结：
+正式 test 前冻结：
 
 - state schema；
-- action mapping；
-- target selection；
+- A=4 action mapping；
+- target resolver；
 - world model；
-- reward model；
+- response reward；
 - beta；
-- PPO checkpoint；
-- LLM prompt / model / generation config；
-- evaluation seeds。
+- PPO；
+- LLM prompt/model/config；
+- seeds。
 
 ---
 
@@ -196,118 +230,114 @@ src/env_region.py：
 
 ---
 
-# 5. 状态表示：开发 D=8 与正式状态必须分开
+# 5. 状态表示：开发 D=8 与正式 incident state
 
 ## 5.1 Local development state
 
-Gate A2 local simulator 继续使用当前 D=8：
+A2 local simulator 当前 D=8 可以继续作为开发接口：
 
-1. cnt_auth_fail
-2. cnt_port_scan
-3. cnt_proc_spawn
-4. cnt_outbound_conn
-5. avg_severity
-6. unique_src
-7. unique_dst
-8. risk_proxy
+- cnt_auth_fail
+- cnt_port_scan
+- cnt_proc_spawn
+- cnt_outbound_conn
+- avg_severity
+- unique_src
+- unique_dst
+- risk_proxy
 
-用途：
+但它不自动等于正式 CC4 state。
 
-- unit test；
-- local smoke；
-- 检查动作 transition；
-- 不作为最终 CC4 状态充分性的证明。
+## 5.2 新小论文对正式 state 的要求
 
-## 5.2 正式 CC4 状态存在的信息缺口
+新小论文中的 incident information 同时包含：
 
-仅 D=8 会遗漏：
+- textual incident context；
+- vector representation；
+- alarms；
+- logs；
+- associated hosts。
 
-- mission phase；
-- 当前 blocked traffic 状态；
-- 当前 communication policy；
-- block 与 policy 是否冲突。
+因此正式 LWM-RL / UG-CEM comparison 的 numeric state 必须能够支持：
 
-这些变量会直接影响 official reward 和 traffic-control 决策，因此正式状态不能未经验证就永久锁死 D=8。
+- world-model state transition；
+- host target resolution；
+- attack eradication tracking；
+- current incident host Host Work Fail reward association；
+- action duration / next decision availability。
 
-## 5.3 v2.0 默认正式候选：D=13
+## 5.3 正式 state 不预先锁死 D=13
 
-正式候选状态：
+v2.0 中为 control_traffic 设计的：
 
-基础 8 维：
-- 原 D=8 全部保留。
-
-增加 5 维：
-- mission_phase_1
-- mission_phase_2a
-- mission_phase_2b
 - blocked_ratio
 - policy_mismatch_ratio
 
-其中：
+在 A=4 后不再是主状态必备项。
 
-policy_mismatch_ratio =
-当前 firewall block state 与当前 mission communication policy 不一致的比例。
+A4 必须从真实 CC4 observation 中冻结 FormalStateEncoder。
 
-设计理由：
+候选信息应优先包括：
 
-- phase 是 official reward 非平稳性的直接上下文；
-- blocked_ratio 表示当前交通控制状态；
-- policy_mismatch_ratio 直接反映可能造成 green penalty 的错误阻断或缺失阻断；
-- 不加入未来 red ground truth；
-- 不加入 hidden simulator state。
+- 原有行为统计/风险证据；
+- mission phase（若当前 Blue observation 可合法获得且 validation 证明有用）；
+- current incident / suspicious host 的可观测证据摘要；
+- 当前 agent 是否可决策、必要时的 action-duration context。
+
+禁止把 true red location、真实 compromise ground truth 直接作为 policy / planner state。
 
 ## 5.4 状态冻结规则
 
-Gate A4 用 validation seeds 比较：
+只用 train/validation seeds 比较候选 state schema。
 
-- D8
-- D13
+比较：
 
-比较指标：
-
-- one-step state prediction；
-- H=4 open-loop rollout error；
-- reward prediction error；
-- official validation return；
+- one-step prediction error；
+- H=4 rollout error；
+- response-reward prediction error；
+- validation response return；
+- official CC4 validation return；
 - planning stability。
 
-默认优先 D13。
-
-只有 D8 在 validation 上不劣且明显更稳定/更快时，才允许保留 D8。
-
-正式 test seeds 不能参与这个决定。
+test seeds 不参与 state schema 选择。
 
 ---
 
-# 6. 高层动作契约
+# 6. 四类高层动作契约（v2.1）
 
-Gate A1 已完成并冻结：
+新小论文正式动作空间固定：
+
+A = 4
 
 0 = no_op
 1 = analyse
-2 = control_traffic
-3 = remove
-4 = restore
+2 = remove
+3 = restore
 
 语义：
 
-- no_op：no operation / monitor，仅不主动处置；
+- no_op：no operation；CC4 中使用 Sleep 表达不主动响应，Monitor 仍由环境自动进行；
 - analyse：intrusion investigation；
-- control_traffic：traffic containment / blocking；
 - remove：user-level compromise removal；
 - restore：host reimaging。
 
-动作 ID 只是 categorical index，绝不表示 0<1<2<3<4 的连续强度。
-
-当前 CC4 计划映射：
+计划底层映射：
 
 - no_op -> Sleep
-- analyse -> Analyse
-- control_traffic -> BlockTraffic / traffic-control lifecycle adapter
-- remove -> Remove
-- restore -> Restore
+- analyse -> Analyse(host)
+- remove -> Remove(host)
+- restore -> Restore(host)
 
-Monitor 继续由 CC4 自动发生，不把 Monitor 当显式 no-op action 发出。
+动作 ID 仅为 categorical index，不表示强度。
+
+旧 A=5 contract：
+
+0 no_op
+1 analyse
+2 control_traffic
+3 remove
+4 restore
+
+自 v2.1 起 **superseded**，不得用于正式 replay、WM、PPO、LLM prompt 或 UG-CEM config。
 
 ---
 
@@ -363,71 +393,101 @@ A3 未验证前，不允许假设 duration 可以忽略。
 
 ---
 
-# 8. control_traffic 生命周期是 A3 的强制决策项
+# 8. 正式 response reward：Attack Eradication Time + Incident-Host Work Fail
 
-CC4 同时存在：
+## 8.1 Attack Eradication Time
 
-- BlockTrafficZone
-- AllowTrafficZone
+对第 j 个攻击/恢复事件：
 
-而当前论文高层动作只有 control_traffic。
+T_erad,j = t_normal,j - t_compromise,j
 
-如果 block 持续存在而 planner 永远没有 unblock 能力，可能造成长期 green service penalty，严重影响效果。
+其定义与原硕士论文式(3.18)平均恢复时间中的单事件恢复时长一致。
 
-A3 必须实测：
+最终平均：
 
-1. block 是否持续到 AllowTraffic；
-2. mission phase 改变后 stale block 是否保留；
-3. action label 如何编码 subnet pair；
-4. blue_agent_0..4 各自可见哪些 subnet pair。
+MTR / Mean Attack Eradication Time
+= mean_j(T_erad,j)
 
-A3 必须在以下两种方案中冻结一个：
+## 8.2 Normal Operation Failure
 
-方案 A（优先）：
-- 高层仍只有 control_traffic；
-- 将其定义为“traffic-control management / containment”宏动作；
-- shared adapter 根据当前可见 block/policy/threat evidence，在 BlockTrafficZone 与必要的 AllowTrafficZone cleanup 之间做确定性解析；
-- 该逻辑 Ours / UG / CEM 完全共享；
-- 论文明确说明这是 5-action high-level abstraction 对 CC4 firewall lifecycle 的领域适配。
+对当前响应事件 j，对应事件主机 h_j。
 
-方案 B：
-- 高层 control_traffic 严格只 BlockTraffic；
-- 必须证明 stale block 不会导致不可恢复的明显 penalty，或存在 CC4 自动恢复机制。
+只统计：
 
-如果 B 的实测不成立，不允许为了保持“block-only”而牺牲整个正式控制系统。
+HostWorkFail(h_j, t)
+
+即 **当前事件所在主机** 的正常运行失败。
+
+不把同一 tick 其他无关主机的 Host Work Fail 直接并入该事件 reward。
+
+若 CC4 对不同 host work / mission work 提供不同 penalty，则保留 CC4 对应 penalty magnitude，而不是全部二值化为 1。
+
+## 8.3 训练时的逐步实现
+
+完整 T_erad 只有事件恢复后才完全知道。
+
+为了便于 PPO / planning，可以用数学等价的逐 tick 延迟惩罚：
+
+r_t^resp
+=
+- lambda_T * I(current incident still active)
+- lambda_F * HostWorkFailPenalty(h_j,t)
+
+在一个事件从 compromise 到 recovery 的整个区间求和时：
+
+sum_t I(active) = T_erad
+
+因此该实现不改变“最小化攻击消除时间”的目标，同时避免必须等恢复后才一次性回传全部时间代价。
+
+## 8.4 重要边界
+
+- early-warning lead steps 不进入正式 response reward；
+- 不再使用旧固定 action cost；
+- 不再额外手工加 lambda_delay；
+- duration 的时间代价自然通过 active-duration penalty 进入；
+- Host Work Fail 只取 current incident host；
+- response reward 可以用于训练/规划；
+- CC4 official reward 作为独立评价指标继续记录。
+
+A4 必须通过真实 CC4 probe 确认：
+- compromise/recovery event 的可记录时间点；
+- current incident host 的稳定 event/host identity；
+- Host Work Fail 的真实可访问字段或 reward breakdown；
+- policy observation 与 reward bookkeeping 的信息隔离。
 
 ---
 
-# 9. Shared target resolver
+# 9. Shared host target resolver
 
-高层 planner 只选 action type，不直接选 host/subnet，因此正式实验必须有共享 target resolver。
+planner 只选四类 high-level action，不直接输出具体 host。
+
+正式实验必须共享同一个 host target resolver。
+
+Host-target actions：
+
+- Analyse
+- Remove
+- Restore
 
 要求：
 
-- Ours、UG、CEM 完全相同；
-- 只能使用当前 observation；
+- Ours / UG / CEM 完全相同；
+- 只能使用当前可见 observation；
 - 不使用 true red location；
 - 不使用未来 reward；
-- 不使用测试标签；
-- tie-breaking 必须确定性。
+- tie-breaking deterministic；
+- 只选择当前 action_mask 中 valid 的真实底层 action label。
 
-Host action：
-- Analyse / Remove / Restore；
-- 从当前 Blue observation 中按 malicious process / malicious network evidence 给 host 排序；
-- 相同分数按固定 host order 选；
-- 不允许 planner-specific host heuristic。
+no_op：
 
-Traffic action：
-- 从合法 subnet pair 中选；
-- 结合当前 network evidence、communication policy、blocked state；
-- 只在 action_mask 为 valid 的底层 action 中选择；
-- 不直接用 action index 的数值含义。
+- 解析为当前 agent 可用的 Sleep。
 
-若目标不存在：
-- 记录 requested high-level action；
-- 执行明确的 fallback（默认 Sleep）；
+若 requested action 当前没有合法 target：
+
+- 保留 requested_high_level_action；
+- 执行明确 fallback（默认 Sleep）；
 - 记录 fallback_reason；
-- replay 中保留 requested 与 executed 两者。
+- replay 同时保存 requested 与 executed action。
 
 ---
 
@@ -514,392 +574,342 @@ Traffic action：
 
 ---
 
-# 11. Shared reward model / predicted return
+# 11. Shared response-reward adapter / predicted value
 
-## 11.1 为什么旧 risk surrogate 不够
+## 11.1 正式目标
 
-正式 CC4 reward 受到：
+不再把 CC4 完整 official reward 直接定义为 LWM-RL 的论文 reward。
 
-- mission phase；
-- green local work failure；
-- service access failure；
-- red impact / compromise；
-- restore availability loss；
-- traffic block 导致的 green communication failure；
+当前论文 response objective 固定为：
 
-共同影响。
+- attack eradication time；
+- current incident host Host Work Fail。
 
-因此只使用：
+UG-CEM / CEM 与 LWM-RL 共享相同 objective。
 
--risk_proxy - action_cost - delay
+## 11.2 环境真实 reward adapter
 
-作为正式 predicted return，会与 official objective 明显错位。
+真实交互时，shared response reward adapter 接收：
 
-## 11.2 v2.0 设计
+- incident_event_id
+- incident_host_id
+- active / recovered status
+- elapsed ticks / decision_dt
+- incident-host Host Work Fail penalty
 
-A4 新增 shared reward model，所有方法共用。
+输出当前 decision interval 的 accumulated response reward。
 
-输入候选：
+## 11.3 World-model planning value
 
-- s_t
-- high-level action
-- predicted s_{t+1}
-- decision_dt
+新小论文要求 World Model 对每个 plan 估计 cumulative reward。
 
-输出：
-
-- 从当前 decision epoch 到下一 decision epoch 的 accumulated official reward。
-
-训练 target：
-
-- CybORG 官方环境实际返回 reward 的区间累积。
-
-首选 loss：
-
-- Huber loss；
-- 同时记录 MAE / RMSE。
-
-计划回报：
+优先实现：
 
 G(plan) =
-对 ensemble member 的 predicted accumulated official reward 做折扣累计，再对 member 求均值。
+discounted cumulative predicted response reward
 
-## 11.3 Duration-aware discount
+如果 FormalStateEncoder 能使 reward 从 predicted state / action 直接计算，则使用 deterministic reward function。
 
-不再人为加 lambda_delay。
+如果真实 Host Work Fail 无法仅从 predicted state 稳定计算，则允许增加一个 **所有方法共享的 auxiliary response-reward predictor**，但它只是工程实现，不改变论文 reward 定义。
 
-若 action duration 为 d ticks：
+其训练 target 必须仍是第 8 节定义的 response reward，而不是另造 surrogate。
 
-- 使用 tick-level gamma；
-- 按 cumulative ticks 折扣；
-- duration 的代价由真实环境 reward + 时间折扣自然体现。
+## 11.4 验收
 
-这样可以避免：
+需要在 held-out validation 上报告：
 
-- official environment 已经惩罚 Restore/BlockTraffic；
-- planner 又手工重复扣 cost/delay；
+- response reward MAE / RMSE（若使用 predictor）；
+- predicted plan value 与真实 rollout return 的相关性；
+- H=4 cumulative value error。
 
-造成 double counting。
+如果 predicted value 与真实 response outcome 无明显关系，不能直接进入最终 planner 对比。
 
 ---
 
 # 12. 数据与 seed 协议
 
-## 12.1 四类 seed 必须分开
+## 12.1 Seeds
 
-必须在正式训练前生成并提交固定列表：
+固定：
 
 - train_seeds
 - validation_seeds
 - calibration_seeds
 - test_seeds
 
-用途：
-
 train：
-- replay collection；
-- world model / reward model / PPO training。
+- replay；
+- world model；
+- reward predictor（如需）；
+- PPO。
 
 validation：
-- D8 vs D13；
-- absolute vs delta；
+- state schema；
 - beta；
-- LLM/PPO hyperparameters；
-- candidate count；
-- population size 等。
+- WM/reward design；
+- LLM/PPO hyperparameters。
 
 calibration：
-- UG uncertainty normalizer warm-up；
-- final sanity check。
+- UG uncertainty normalizer。
 
 test：
-- 只做一次冻结后的正式结果。
+- 冻结后正式 paired evaluation。
 
 ## 12.2 Replay 必须重新采集
 
-旧 replay 与新 action semantics 不兼容，正式全部标记 legacy。
+旧 replay 的动作语义与 A=4 不兼容，全部 legacy-only。
 
-正式 replay schema 至少包含：
+正式 replay 至少保存：
 
 - episode_seed
 - agent_id / region_id
+- incident_event_id
+- incident_host_id（仅 reward bookkeeping；不得自动作为 policy hidden input）
 - decision_index
-- global_tick_start
-- global_tick_end
+- global_tick_start / end
 - decision_dt
 - state
 - requested_high_level_action
 - executed_low_level_label
-- executed_target
+- executed_target_host
 - action_success / fallback_reason
+- interval_attack_active_ticks
+- interval_incident_host_work_fail_penalty
+- accumulated_response_reward
 - accumulated_official_reward
 - next_state
 - done
 
-## 12.3 行为策略与 action coverage
+## 12.3 Action coverage
 
-不能纯随机后发现 Remove / Restore / BlockTraffic 几乎没有有效样本。
+正式 collection policy 对四动作做 stratified exploration：
 
-正式 collection policy 使用：
-
-- high-level stratified exploration；
-- 保证五类 action 都有最低样本覆盖；
-- target resolver 与正式 evaluator 完全相同；
-- action_mask 过滤 invalid low-level target；
-- 同时保留自然状态分布，不做 test-label directed sampling。
+- no_op
+- analyse
+- remove
+- restore
 
 必须报告：
 
-- 每类 requested action 数；
-- 每类 actual executed action 数；
-- success / fallback rate；
-- state coverage；
-- region/agent coverage。
+- requested count；
+- executed count；
+- valid-target rate；
+- fallback rate；
+- agent/region coverage；
+- incident-host coverage。
+
+不得利用 test ground truth 指导 exploration。
 
 ---
 
 # 13. LWM-RL（Ours）正式迁移要求
 
-旧 src/llm_prior.py 与新动作空间不兼容，因此正式 Ours 必须新增新 prior module，而不是继续兼容旧 action names。
+旧 src/llm_prior.py 仍使用旧五档动作名，因此不能作为正式 LWM-RL prior。
 
-## 13.1 LLM candidate prior
+## 13.1 LLM candidate prior v2.1
 
 固定：
 
-- action vocabulary = A1 五类动作；
-- H=4；
-- K 候选计划；
-- prompt version；
-- LLM model/version；
-- generation temperature；
-- max tokens；
-- parser；
-- fallback policy。
+- action vocabulary = {no_op, analyse, remove, restore}；
+- A=4；
+- H=4（除非 validation 后统一调整）；
+- K candidate plans；
+- prompt/model/temperature/parser/fallback 全部版本化。
 
-输出必须经过 validator：
+validator：
 
-- 只允许 0..4；
-- 长度必须 H；
-- 去重；
-- 无效计划拒绝；
-- 候选不足时使用固定模板补齐；
-- 记录 raw response 与 parsed result。
+- action ID 必须 0..3；
+- plan length=H；
+- duplicate handling；
+- invalid plan rejection；
+- candidate shortage 时固定 fallback plan generation。
 
 ## 13.2 Candidate diversity
 
-为了避免 LLM prior 全部生成近似计划，记录：
+记录：
 
 - unique plan ratio；
 - per-position action entropy；
-- candidate duplicate rate。
+- duplicate rate。
 
-如果 diversity 长期过低，优先优化 prompt / deterministic mutation，而不是在 test seeds 上调。
+## 13.3 PPO posterior observation 对齐新小论文
 
-## 13.3 Evidence
+对候选计划 i，posterior input 只围绕：
 
-正式 evidence 不再直接使用旧 plan_eval。
+- current vector state s_t；
+- candidate plan pi_i；
+- LLM prior p_i；
+- predicted value g_i；
+- uncertainty u_i。
 
-候选计划至少包含：
+不再把旧的独立 Cost / operational burden 当作必需 evidence 维度。
 
-- G：shared predicted official return；
-- U_LWM：ensemble member return disagreement；
-- C：LLM checkpoint consistency；
-- O：operational burden feature。
+## 13.4 Feature normalization
 
-O 首选定义：
+state / prior / value / uncertainty 使用 train-only normalizer 或稳定固定 scaling。
 
-- 由 action duration 与 traffic-policy mismatch 等可观测 operational burden 构成；
-- 只作为 PPO 输入 feature；
-- 不自动等于额外 reward penalty。
-
-## 13.4 Evidence normalization
-
-G/U/C/O 的数值尺度可能差异很大。
-
-正式 PPO 前增加 train-only running normalizer 或固定 feature scaling。
-
-必须避免：
-
-- 用 test episodes 拟合；
-- candidate 数变化导致尺度漂移。
+禁止使用 test episodes 拟合。
 
 ---
 
-# 14. Gate A 详细实施
+# 14. Gate A 详细实施（v2.1 修订后）
 
-## A1 — Shared Action Contract
+## A1 历史状态
 
-状态：PASS。
+原 A=5 Shared Action Contract 曾 PASS，并记录于：
 
-审核记录：
-- docs/step3-A1.md
+docs/step3-A1.md
 
-完成：
-- 五动作语义；
-- ID；
-- CC4 action type placeholder；
-- duration metadata；
-- legacy isolation。
+但由于 2026-09-15 新小论文方案冻结为 A=4，该历史 PASS 仅代表旧五动作版本。
 
-## A2 — Local-online Action Adapter
-
-状态：PASS。
-
-审核记录：
-- docs/step3-A2.md
-
-完成：
-- LocalThreatState；
-- 五类不同 transition semantics；
-- partial observability；
-- risk_proxy from observable events；
-- reward=0 Gate B placeholder；
-- 31 个 Gate A tests。
-
-## A3 — Official CybORG / CC4 Action Adapter
+## A1R — Four-Action Contract Revision
 
 状态：CURRENT。
 
-### A3 目标
+目标：
 
-把五个高层 action 映射到真实 CC4 可执行 action，冻结 target selection、duration/availability 处理和 traffic-control lifecycle。
+- 从 shared/action_contract.py 删除 control_traffic；
+- 冻结：
+  0 no_op
+  1 analyse
+  2 remove
+  3 restore
+- duration：
+  no_op=1
+  analyse=2
+  remove=3
+  restore=5
+- N_ACTIONS=4；
+- 更新所有 A1 tests；
+- 明确旧 ID 2/3/4 重排会使旧 replay/checkpoint 彻底失效。
 
-### A3 子任务
+验收：
 
-A3.1 Wrapper probe
-- 初始化正式 EnterpriseScenario + BlueFixedActionWrapper；
-- 枚举 blue_agent_0..4；
-- 保存 action_labels；
-- 保存 action_mask；
-- 保存 hosts；
-- 保存 subnets；
-- 明确 padding 行为。
+- 无 control_traffic；
+- name/ID mapping；
+- duration；
+- invalid ID；
+- legacy old names rejected；
+- docs/step3-A1R.md。
 
-A3.2 no_op
-- high-level no_op -> Sleep；
-- 验证 Monitor 自动执行；
-- 不把 Monitor 当显式 no-op。
+## A2 历史状态
 
-A3.3 Host actions
+原 A2 五动作 local adapter 曾 PASS，记录于：
+
+docs/step3-A2.md
+
+其中 no_op / analyse / remove / restore 的 semantic 设计仍可复用；
+control_traffic 相关 transition 和 tests 必须删除。
+
+## A2R — Local-online Adapter Revision
+
+目标：
+
+- local adapter 仅四动作；
+- local client action sequence 仅 0..3；
+- 删除 network-specific control_traffic action effect；
+- 保留 partial observability / visibility / no hidden leakage；
+- reward 仍可保持 development placeholder，正式 reward 由 A4 接入。
+
+验收：
+
+- 四动作 semantic tests；
+- reproducibility；
+- StateSummary compatibility；
+- no ordinal action assumption；
+- docs/step3-A2R.md。
+
+## A3 — Official CybORG / CC4 Action Adapter
+
+目标：
+
+冻结真实四动作底层执行。
+
+A3.1 Wrapper probe：
+- blue_agent_0..4；
+- action_labels；
+- action_mask；
+- hosts；
+- padding；
+- Sleep / Analyse / Remove / Restore 的真实 label。
+
+A3.2 no_op：
+- no_op -> Sleep；
+- Monitor 自动发生。
+
+A3.3 Host actions：
 - Analyse / Remove / Restore；
-- 从 valid labels 中按 shared host resolver 选 target；
-- 若 host 不存在或被 padding，不能选 invalid index。
+- shared host resolver；
+- valid labels only。
 
-A3.4 control_traffic
-- 解析 BlockTrafficZone label；
-- 解析 from_subnet / to_subnet；
-- 验证 blue_agent_0..4；
-- 验证 block persistence；
-- 验证 AllowTraffic cleanup；
-- 冻结第 8 节 lifecycle 方案。
+A3.4 Duration / decision availability：
+- 验证 Analyse/Remove/Restore multi-tick；
+- 冻结 decision-epoch transition。
 
-A3.5 Duration / decision availability
-- 实测 Analyse=2 / Remove=3 / Restore=5 的实际 wrapper 行为；
-- 确认何时 agent 再次可选择新动作；
-- 冻结 decision-epoch replay 定义。
+A3.5 Reward-source probe：
+- 仅探测并记录 compromise/recovery timestamp 的可获得方式；
+- current incident host identity；
+- Host Work Fail breakdown；
+- 不把 ground truth 泄漏给 planner state。
 
-A3.6 Multi-agent scope
-- 正式主实验默认支持 blue_agent_0..4；
-- blue_agent_4 多 subnet 必须通过；
-- 如果因论文范围必须只研究部分 region，其余 agent 的背景 policy 必须对所有方法完全相同，并在论文中说明；
-- 为保证 official team reward 和方案效果，优先支持全部 5 agent。
+A3.6 Multi-agent：
+- blue_agent_0..4；
+- 正式比较默认共享相同背景策略/控制范围。
 
-### A3 新增文件建议
+验收：
+- 4 high-level actions 全可解析；
+- 无固定跨-agent action index；
+- deterministic resolver；
+- duration frozen；
+- reward bookkeeping source frozen；
+- docs/step3-A3.md。
 
-- shared/cyborg_action_adapter.py
-- shared/cyborg_target_resolver.py
-- tests/test_gate_a_cyborg_adapter.py
-- experiments/probe_cc4_action_contract.py
+## A4 — Formal State / Replay / Bootstrap WM / Response Reward
 
-### A3 验收
+A4.1 FormalStateEncoder：
+- 从真实 CC4 observation 冻结；
+- incident host evidence；
+- mission phase 是否保留由 validation 决定；
+- 不再为 traffic-control 强加 blocked/policy 特征。
 
-必须满足：
+A4.2 Formal replay：
+- A=4；
+- decision-epoch；
+- new schema；
+- response reward bookkeeping；
+- all required agents。
 
-- 5 个 high-level action 均可解析；
-- 所有 agent 不使用固定 action index；
-- 只用 label + mask；
-- 相同 observation 得到相同 target；
-- 无 latent / future leakage；
-- control_traffic lifecycle 已冻结；
-- decision-epoch timing 已冻结；
-- 形成 docs/step3-A3.md。
+A4.3 Legacy isolation：
+- old replay / WM / PPO legacy-only。
 
-## A4 — Formal State / Replay / World-model Compatibility
-
-### A4 目标
-
-在进入 Step 4 前冻结真正用于论文实验的 state/data/model contract。
-
-### A4 子任务
-
-A4.1 FormalStateEncoder
-- D8 vs D13 validation；
-- phase / block / policy feature 提取；
-- text summary 与 vector 同源。
-
-A4.2 Formal replay collector
-- train seeds；
-- all 5 agents；
-- decision-epoch transition；
-- stratified action coverage；
-- official reward accumulation。
-
-A4.3 旧数据兼容性
-- 正式声明旧 replay / WM / PPO legacy-only；
-- 不允许隐式加载旧 checkpoint。
-
-A4.4 Bootstrap dynamics ensemble
+A4.4 Bootstrap dynamics ensemble：
 - independent bootstrap；
-- state normalization；
-- model validation；
+- normalization；
+- held-out multi-step validation；
 - uncertainty-error calibration。
 
-A4.5 Reward model
-- official reward target；
-- Huber；
-- held-out MAE/RMSE。
+A4.5 Response reward adapter / predictor：
+- objective 严格为 attack eradication + incident-host work fail；
+- validation predicted-value quality。
 
-A4.6 Checkpoint bundle
-一个正式 checkpoint bundle 必须同时记录：
-- state schema version；
-- action contract version；
-- target resolver version；
-- train seed list；
-- normalizer；
-- ensemble members；
-- reward model；
-- config hash。
-
-A4.7 Config cleanup
-- compare_ug_cem_local_online.yaml 中旧 costs/delays/old D=8 formal assumption 改为 development-only；
-- 正式新增 formal comparison config；
-- 不再从 src/action_space.py 读取正式动作定义。
-
-### A4 验收
-
-- formal state frozen；
-- replay frozen；
-- WM quality Gate 通过；
-- reward model quality通过；
-- Ours / UG 可加载同一 model bundle；
-- 形成 docs/step3-A4.md。
+A4.6 Config cleanup：
+- n_actions=4；
+- 删除正式 control_traffic/cost/delay 配置；
+- 新 formal comparison config。
 
 ## A5 — Gate A Final Review
 
-检查：
+只有以下全部冻结后才进入 Step4：
 
-- action contract；
-- action execution；
-- control traffic lifecycle；
-- duration；
+- A=4 action contract；
+- CC4 host-target adapter；
+- duration / decision epoch；
 - formal state；
 - replay；
-- bootstrap ensemble；
-- reward model；
+- bootstrap WM；
+- response reward；
 - legacy isolation；
 - no leakage。
-
-只有 A5 PASS 才进入 Step 4。
 
 ---
 
@@ -1069,77 +1079,75 @@ G_i - beta * omega_i / (k+1)
 
 ---
 
-# 20. Gate B — Ours 的正式 reward / prior / PPO 冻结
+# 20. Gate B — Ours 的正式 prior / posterior PPO 冻结
 
 Gate B 在正式 PPO 重训前执行。
 
-## B1 Reward objective
+## B1 Response reward contract
 
-首选主目标：
+再次确认：
 
-- official CC4 accumulated reward；
-- action duration 由环境真实体现；
-- 不再手工重复加旧 action cost / lambda_delay；
-- 不包含 early-warning lead steps。
+r_resp 只围绕：
 
-如果 PPO 收敛明显不稳定，可以研究 potential-based shaping：
+- attack eradication duration；
+- current incident host Host Work Fail。
 
-F(s,s') = gamma*Phi(s') - Phi(s)
+不包含：
 
-但必须：
+- early-warning lead steps；
+- 旧固定 action cost；
+- 手工 lambda_delay。
 
-- train/validation 决定；
-- 不用 test；
-- Ours / shared plan-return 语义一致；
-- 正式报告 shaping 公式。
+若最终采用逐 tick active penalty，必须证明其与事件级 T_erad 累积等价。
 
-## B2 LLM prior v2
+## B2 LLM prior v2.1
 
 冻结：
 
-- model；
+- 4-action vocabulary；
 - prompt；
+- LLM model；
 - temperature；
-- candidate K；
-- H=4；
+- K；
+- H；
 - parser；
 - fallback；
 - duplicate handling。
 
-## B3 Evidence
+## B3 Posterior observation
 
-冻结 G/U/C/O 定义和 normalization。
+冻结：
+
+state + plan + prior + value + uncertainty
+
+不增加未经新小论文定义且只服务于 Ours 的额外 evidence。
 
 ## B4 PPO
 
 旧 PPO checkpoint 全部 legacy。
 
 正式 PPO：
-- 新 action semantics；
-- 新 evidence；
-- new reward；
+
+- A=4；
+- new posterior observation；
+- new response reward；
 - train seeds；
-- validation model selection；
-- 固定 random seeds；
-- 保存 optimizer/config metadata。
+- validation model selection。
 
-## B5 PPO 稳定性
+## B5 PPO stability
 
-至少检查：
+检查：
 
 - entropy；
 - KL / clip fraction；
 - value loss；
 - policy loss；
-- action distribution；
-- candidate-rank distribution；
-- validation official return。
+- selected candidate rank；
+- validation eradication time；
+- validation incident-host work fail；
+- official CC4 return。
 
-避免：
-- action collapse；
-- 永久 no_op；
-- 永久 restore；
-- 只靠 prior score 不看 evidence。
+避免策略 collapse 到永久 no_op 或永久 restore。
 
 ---
 
@@ -1291,47 +1299,48 @@ validation 比较：
 
 # 24. Step 11 — Metrics 与统计
 
-## Primary
+## Primary metrics
 
-- official team episode return；
-- mean；
-- std；
-- median；
-- 95% bootstrap CI。
+与新小论文 response objective 对齐：
 
-## Secondary
+- Mean Attack Eradication Time / 原式(3.18) MTR；
+- incident-host Normal Operation Failure：
+  - failure count；
+  - CC4 weighted Host Work Fail penalty；
+- cumulative response return。
 
-- per-agent / per-region return；
-- green availability penalty；
-- red impact/access penalty；
-- action success rate；
+## External system metric
+
+- CC4 official team episode return；
+- mean / std / median / 95% bootstrap CI。
+
+## Secondary response metrics
+
+- Restore precision（若实验需要沿用原论文恢复精确率）；
+- action distribution；
+- valid target rate；
 - fallback-to-Sleep rate；
-- Analyse/Control/Remove/Restore distribution；
-- block-induced service penalty；
-- Restore frequency；
+- per-agent/per-region response performance；
 - planning latency；
-- decision count；
-- average decision_dt。
+- decision_dt。
 
 ## Model diagnostics
 
 - one-step WM error；
 - H=4 rollout error；
-- reward model MAE；
+- predicted response-value error；
 - uncertainty-error correlation；
 - uncertainty quantiles。
 
 ## Statistical comparison
 
-由于相同 episode seed 配对：
+相同 episode seeds 做 paired evaluation：
 
 - paired bootstrap CI；
-- 配对显著性检验；
-- 同时报告 effect size。
+- paired significance test；
+- effect size。
 
-不再使用：
-
-- early-warning lead steps。
+early-warning lead steps 不作为本轮 LWM-RL vs UG-CEM 主 reward 或主指标。
 
 ---
 
@@ -1368,35 +1377,39 @@ validation 比较：
 
 # 26. 影响最终效果的优先优化顺序
 
-如果时间有限，优化优先级固定为：
-
 P0：
-1. 正确的 CC4 action adapter；
-2. action duration / decision epoch；
-3. D13 mission/policy context；
-4. 重新采集正式 replay；
-5. bootstrap ensemble；
-6. reward model 对齐 official reward；
-7. 新 LLM action vocabulary；
-8. PPO 重训。
+
+1. 四动作契约修订正确；
+2. Sleep / Analyse / Remove / Restore CC4 adapter；
+3. 正确 host target resolver；
+4. action duration / decision epoch；
+5. current incident host 与 Host Work Fail bookkeeping；
+6. formal replay 重采集；
+7. bootstrap ensemble；
+8. response reward / predicted value 与真实 eradication + host-work-fail 对齐；
+9. 新 LLM four-action prior；
+10. PPO 重训。
 
 P1：
-9. evidence normalization；
-10. candidate diversity；
-11. beta validation；
-12. vectorized planning。
+
+11. state schema validation；
+12. evidence normalization；
+13. candidate diversity；
+14. beta tuning；
+15. vectorized rollout。
 
 P2：
-13. raw trajectory cache；
-14. delta-model ablation；
-15. extra statistical analyses。
 
-禁止为了追求表面效果优先做：
+16. cache / speed optimisation；
+17. delta-state ablation；
+18. extra statistical analysis。
 
-- test-time heuristics；
-- Ours-only action override；
-- test seed 调参；
-- hidden red-state leakage。
+禁止用以下方式“保证效果”：
+
+- test-time heuristic override；
+- Ours-only hidden information；
+- test-seed tuning；
+- true red-state leakage。
 
 ---
 
@@ -1404,20 +1417,18 @@ P2：
 
 1. Ours / UG 使用不同 state；
 2. Ours / UG 使用不同 WM checkpoint；
-3. Ours / UG 使用不同 reward model；
-4. 只给 Ours 看 mission phase / policy；
-5. 只给 Ours 更强 target resolver；
-6. 只给 UG 收 action cost；
-7. 使用 test seed 调 beta；
-8. 使用 test seed 调 PPO；
-9. 使用 true red host/location；
-10. 把 action ID 当连续强度；
-11. 忽略 action_mask；
-12. 假设不同 Blue agent 的同 index action 相同；
-13. 使用旧 replay / checkpoint 冒充新语义；
-14. 使用 local simulator 结果替代正式 CC4 主结果；
-15. 把 early-warning lead steps 重新塞回 reward；
-16. 保留 run_deploy / hybrid 脚本中的隐藏 heuristic 做主实验。
+3. Ours / UG 使用不同 response reward；
+4. Ours 使用 hidden current-compromise truth 作为 policy input；
+5. 不同方法使用不同 host resolver；
+6. action ID 当连续强度；
+7. test seeds 调 beta / PPO / prompt；
+8. old A=5 replay/checkpoint 用于 A=4 正式实验；
+9. 把全网 Host Work Fail 错算成“当前事件主机 Host Work Fail”；
+10. 把 early-warning lead steps 重新加入正式 PPO reward；
+11. 使用 local simulator 代替 CC4 正式主实验；
+12. 保留 method-specific hidden heuristic；
+13. 固定跨-agent action index 而忽略 labels/mask；
+14. 把 control_traffic 继续混入当前四动作 formal config。
 
 ---
 
@@ -1448,65 +1459,78 @@ P2：
 
 # 29. 当前进度
 
-[x] Step 0  experimental branch  
-[x] Step 1  baseline scaffold  
-[x] Step 2  Categorical CEM  
-[x] Step 3  UG uncertainty  
+[x] Step 0  experimental branch
+[x] Step 1  baseline scaffold
+[x] Step 2  Categorical CEM
+[x] Step 3  UG uncertainty
 
 Gate A：
-[x] A1  Shared Action Contract  
-[x] A2  Local-online Action Adapter  
-[ ] A3  Official CybORG / CC4 Action Adapter  <- CURRENT  
-[ ] A4  Formal State / Replay / Bootstrap WM / Reward Model  
-[ ] A5  Gate A Final Review  
+
+[~] A1R Four-Action Contract Revision  <- CURRENT
+[ ] A2R Local-online Adapter Revision
+[ ] A3  Official CybORG / CC4 Four-Action Adapter
+[ ] A4  Formal State / Replay / Bootstrap WM / Response Reward
+[ ] A5  Gate A Final Review
+
+历史记录：
+
+- A1 A=5：PASS，但已被 v2.1 A=4 方案 supersede；
+- A2 A=5：PASS，但必须按 A=4 修订。
 
 之后：
-[ ] Step 4  Vectorized Shared Rollout Evaluator  
-[ ] Step 5  UGCEM Planner  
-[ ] Step 6  Normalizer Warm-up  
-[ ] Step 7  Integration Smoke Tests  
-[ ] Gate B  Formal Reward / LLM Prior / Evidence / PPO Freeze  
-[ ] Step 8  Fair Comparison Harness  
-[ ] Step 9  Validation + Ablation  
-[ ] Step 10 Official CC4 Main Experiment  
-[ ] Step 11 Metrics + Statistics  
-[ ] Step 12 Final Thesis Tables  
+
+[ ] Step 4  Vectorized Shared Rollout Evaluator
+[ ] Step 5  UGCEM Planner
+[ ] Step 6  Normalizer Warm-up
+[ ] Step 7  Integration Smoke Tests
+[ ] Gate B  Four-action LLM Prior + PPO Freeze
+[ ] Step 8  Fair Comparison Harness
+[ ] Step 9  Validation + Ablation
+[ ] Step 10 Official CC4 Main Experiment
+[ ] Step 11 Metrics + Statistics
+[ ] Step 12 Final Thesis Tables
 
 ---
 
 # 30. 下一步固定要求
 
-当前下一步不是直接写 A3 代码。
+当前不能直接继续原 A3。
 
-进入 A3 实现前先完成：
+必须先：
 
-1. 阅读本任务书；
-2. 运行真实 CC4 action-space probe；
-3. 确认 5 Blue agents 的 labels / masks / hosts / subnets；
-4. 确认 BlockTraffic / AllowTraffic lifecycle；
-5. 确认 action duration 与 decision availability；
-6. 再冻结 A3 adapter API；
-7. 最后开始编码。
+1. 修改 shared/action_contract.py：
+   A=4；
+2. 更新 A1 tests；
+3. 审核并记录 A1R；
+4. 删除 local adapter 中 control_traffic semantic；
+5. 更新 local client/tests 到四动作；
+6. 审核并记录 A2R；
+7. 然后重新运行 A3.1 CC4 wrapper probe，只围绕：
+   - Sleep
+   - Analyse
+   - Remove
+   - Restore
+8. 再冻结 official adapter。
+
+旧五动作 replay / WM / PPO 不再具有正式兼容性。
 
 ---
 
-# 31. 一句话记住 v2.0
+# 31. 一句话记住 v2.1
 
-共享 current observation
-+ phase/policy-aware formal state
-+ shared bootstrap probabilistic dynamics ensemble
-+ shared official-reward model
-+ shared target/action adapter
-+ 严格 train/val/calibration/test 分离，
+CC4 不变，
+LWM-RL 核心仍是：
 
-然后只把：
+LLM prior
++ bootstrap ensemble WM foresight
++ PPO posterior plan selection。
 
-LLM prior + PPO posterior
+但正式领域契约现在冻结为：
 
-与：
+4 actions
+(no_op / analyse / remove / restore)
++ attack eradication time
++ current-incident-host Host Work Fail。
 
-Categorical CEM + source-faithful uncertainty penalty
-
-作为核心方法差异，
-
-最终在相同 5-agent CybORG/CC4 条件下做 paired comparison。
+UG-CEM 与 CEM 使用完全相同的 state / action / WM / response reward，
+只比较 planning / posterior-selection 机制差异。
