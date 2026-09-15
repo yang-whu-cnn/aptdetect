@@ -1153,18 +1153,20 @@ CEMResult
 
 不要简单 `clamp(min=floor)` 后忘记归一化。
 
-推荐语义：
+推荐使用**幂等的 lower-bound projection**，避免 MPC warm-start 时对已经合法的概率分布重复“抹平”：
 
 ```text
-p_floor
-=
-floor + (1 - A*floor) * normalize(p)
+p = normalize(p)
+residual = max(p - floor, 0)
+p_floor = floor + (1 - A*floor) * residual / sum(residual)
 ```
 
 这样同时满足：
 
 - 每个动作概率 >= floor；
 - 每行概率和严格为 1；
+- 如果输入本来已经满足 `p>=floor` 且行和为 1，则输出保持不变（幂等）；
+- 下一时刻把上一轮 `final_probs` 作为 warm-start 时不会因为再次应用 floor 而被无意义地向 uniform 拉回；
 - 需要验证 `A * floor < 1`。
 
 ### 非有限 score
