@@ -234,6 +234,7 @@ class CategoricalCEMOptimizer:
             raise ValueError(
                 "n_actions * prob_floor "
                 "must be < 1"
+                "finite_mask"
             )
 
     def _apply_probability_floor(
@@ -686,16 +687,27 @@ class CategoricalCEMOptimizer:
             # 3. 处理 NaN / Inf
             # --------------------------------
 
-            finite_mask = (
-                torch.isfinite(
-                    scores
-                )
+            finite_mask = torch.isfinite(
+                scores
             )
 
-            if not finite_mask.any():
+            finite_count = int(
+                finite_mask.sum().item()
+            )
+
+            if finite_count == 0:
                 raise ValueError(
                     "all candidate scores "
                     "are non-finite"
+                )
+
+            if finite_count < self.elite_num:
+                raise ValueError(
+                    "not enough finite candidate "
+                    "scores to form elite set: "
+                    f"{finite_count} finite scores, "
+                    f"but elite_num="
+                    f"{self.elite_num}"
                 )
 
             scores = torch.where(

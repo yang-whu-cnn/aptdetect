@@ -727,6 +727,50 @@ class TestCategoricalCEM(
                 bad_objective
             )
 
+    def test_too_few_finite_scores_for_elites(
+            self,
+    ):
+        cfg = CategoricalCEMConfig(
+            population_size=8,
+            num_iterations=1,
+            elite_ratio=0.5,
+            seed=0,
+        )
+
+        cem = CategoricalCEMOptimizer(
+            cfg
+        )
+
+        # elite_num =
+        # ceil(8 * 0.5)
+        # = 4
+        #
+        # 但这里只提供2个finite score
+        def objective(
+                plans,
+                iteration,
+        ):
+            return torch.tensor(
+                [
+                    1.0,
+                    0.5,
+                    float("nan"),
+                    float("nan"),
+                    float("nan"),
+                    float("nan"),
+                    float("nan"),
+                    float("nan"),
+                ],
+                device=plans.device,
+            )
+
+        with self.assertRaises(
+                ValueError
+        ):
+            cem.optimize(
+                objective
+            )
+
     def test_all_nonfinite_scores(
         self,
     ):
