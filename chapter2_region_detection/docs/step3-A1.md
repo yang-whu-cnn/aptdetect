@@ -296,3 +296,35 @@ Gate A2 — Local-online Action Adapter
 ```
 
 A2 继续遵循“不修改旧 `src/cc4_client.py`，优先新增共享适配层”的策略。
+
+
+---
+
+## 13. 2026-09-15 方案变更说明（v2.1）
+
+新小论文《融合LLM+WM+RL的APT动态响应小论文-20260915》将正式高层动作空间冻结为 4 类：
+
+```text
+0 = no_op
+1 = analyse
+2 = remove
+3 = restore
+```
+
+因此本文件记录的 A=5 PASS 结论仅代表历史五动作版本。
+
+其中：
+
+```text
+control_traffic
+```
+
+已从当前正式 LWM-RL / UG-CEM 公平对比动作空间删除。
+
+本阶段状态更新为：
+
+```text
+HISTORICAL PASS / SUPERSEDED BY A1R
+```
+
+后续以 `UG_CEM_APT_REPRODUCTION_PLAN.md v2.1` 与 `step3-A1R.md` 为准。
