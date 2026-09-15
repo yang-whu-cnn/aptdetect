@@ -21,34 +21,38 @@ class TestGateAActionContract(
     ):
         self.assertEqual(
             N_ACTIONS,
-            5,
+            4,
         )
 
         self.assertEqual(
             len(ACTION_CONTRACTS),
-            5,
+            4,
         )
 
     def test_numeric_id_order(
         self,
     ):
-        expected = [
+        expected_names = [
             "no_op",
             "analyse",
-            "control_traffic",
             "remove",
             "restore",
         ]
 
-        got = [
-            action.name
-            for action
-            in ACTION_CONTRACTS
+        expected_ids = [
+            0,
+            1,
+            2,
+            3,
         ]
 
         self.assertEqual(
-            got,
-            expected,
+            [
+                action.name
+                for action
+                in ACTION_CONTRACTS
+            ],
+            expected_names,
         )
 
         self.assertEqual(
@@ -57,13 +61,7 @@ class TestGateAActionContract(
                 for action
                 in ACTION_CONTRACTS
             ],
-            [
-                0,
-                1,
-                2,
-                3,
-                4,
-            ],
+            expected_ids,
         )
 
     def test_name_to_id_contract(
@@ -72,9 +70,8 @@ class TestGateAActionContract(
         expected = {
             "no_op": 0,
             "analyse": 1,
-            "control_traffic": 2,
-            "remove": 3,
-            "restore": 4,
+            "remove": 2,
+            "restore": 3,
         }
 
         self.assertEqual(
@@ -82,18 +79,23 @@ class TestGateAActionContract(
             expected,
         )
 
-        for name, action_id in (
-            expected.items()
-        ):
+        for (
+            name,
+            action_id,
+        ) in expected.items():
             self.assertEqual(
-                get_action_id(name),
+                get_action_id(
+                    name
+                ),
                 action_id,
             )
 
     def test_id_to_action_contract(
         self,
     ):
-        for action_id in range(5):
+        for action_id in range(
+            N_ACTIONS
+        ):
             action = get_action(
                 action_id
             )
@@ -104,7 +106,9 @@ class TestGateAActionContract(
             )
 
             self.assertIs(
-                ID2ACTION[action_id],
+                ID2ACTION[
+                    action_id
+                ],
                 action,
             )
 
@@ -126,22 +130,15 @@ class TestGateAActionContract(
         )
 
         self.assertIn(
-            "traffic blocking",
+            "user-level compromise removal",
             get_action(2)
             .description
             .lower(),
         )
 
         self.assertIn(
-            "user-level compromise removal",
-            get_action(3)
-            .description
-            .lower(),
-        )
-
-        self.assertIn(
             "host reimaging",
-            get_action(4)
+            get_action(3)
             .description
             .lower(),
         )
@@ -152,14 +149,15 @@ class TestGateAActionContract(
         expected = [
             "Sleep",
             "Analyse",
-            "BlockTraffic",
             "Remove",
             "Restore",
         ]
 
         got = [
             get_cyborg_action_type(i)
-            for i in range(5)
+            for i in range(
+                N_ACTIONS
+            )
         ]
 
         self.assertEqual(
@@ -173,14 +171,15 @@ class TestGateAActionContract(
         expected = [
             1,
             2,
-            1,
             3,
             5,
         ]
 
         got = [
             get_action_duration(i)
-            for i in range(5)
+            for i in range(
+                N_ACTIONS
+            )
         ]
 
         self.assertEqual(
@@ -188,12 +187,41 @@ class TestGateAActionContract(
             expected,
         )
 
+    def test_removed_control_traffic_rejected(
+        self,
+    ):
+        with self.assertRaises(
+            ValueError
+        ):
+            get_action_id(
+                "control_traffic"
+            )
+
+    def test_legacy_action_names_rejected(
+        self,
+    ):
+        legacy_names = [
+            "monitor",
+            "light_evidence",
+            "heavy_evidence",
+            "local_mitigate",
+            "strong_mitigate",
+        ]
+
+        for name in legacy_names:
+            with self.assertRaises(
+                ValueError
+            ):
+                get_action_id(
+                    name
+                )
+
     def test_invalid_action_id(
         self,
     ):
         for bad_id in (
             -1,
-            5,
+            4,
             100,
         ):
             with self.assertRaises(
@@ -203,15 +231,23 @@ class TestGateAActionContract(
                     bad_id
                 )
 
-    def test_invalid_action_name(
+    def test_non_integer_action_id_rejected(
         self,
     ):
-        with self.assertRaises(
-            ValueError
-        ):
-            get_action_id(
-                "heavy_evidence"
-            )
+        bad_ids = (
+            1.5,
+            "1",
+            None,
+            True,
+        )
+
+        for bad_id in bad_ids:
+            with self.assertRaises(
+                ValueError
+            ):
+                get_action(
+                    bad_id
+                )
 
 
 if __name__ == "__main__":

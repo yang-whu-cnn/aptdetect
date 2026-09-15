@@ -1,40 +1,37 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from numbers import Integral
 from typing import Dict, Tuple
 
 
 @dataclass(frozen=True)
 class ActionContract:
     """
-    第二章正式公平比较使用的统一高层动作契约。
-
-    这里定义的是“论文层面的动作语义”，
-    与旧版 src/action_space.py 分离。
+    LWM-RL / UG-CEM / CEM-APT
+    正式公平比较共用的高层动作契约。
 
     action_id:
-        离散类别 ID。
+        离散 categorical ID。
 
     name:
-        论文和代码中统一使用的动作名称。
+        论文与代码统一动作名称。
 
     description:
-        论文动作语义。
+        新小论文中的动作语义。
 
     cyborg_action:
-        CybORG / CC4 中计划映射到的
-        底层动作类型。
+        计划映射到的 CC4 底层动作类型。
 
-        这里只冻结动作类型名称；
-        host / subnet 等具体参数由后续
-        adapter 负责选择。
+        本层只冻结动作类型，
+        host target 由 A3 adapter 负责解析。
 
     duration_ticks:
-        对应官方 CC4 动作持续时间。
+        CC4 动作持续时间 metadata。
 
     注意：
         action_id 只是类别索引，
-        不能把 ID 大小解释为连续动作强度。
+        不表示连续强度或动作等级。
     """
 
     action_id: int
@@ -46,13 +43,13 @@ class ActionContract:
 
 ACTION_CONTRACTS: Tuple[
     ActionContract,
-    ...
+    ...,
 ] = (
     ActionContract(
         action_id=0,
         name="no_op",
         description=(
-            "no operation / monitor; "
+            "no operation; "
             "observe without active intervention"
         ),
         cyborg_action="Sleep",
@@ -69,15 +66,6 @@ ACTION_CONTRACTS: Tuple[
     ),
     ActionContract(
         action_id=2,
-        name="control_traffic",
-        description=(
-            "traffic blocking"
-        ),
-        cyborg_action="BlockTraffic",
-        duration_ticks=1,
-    ),
-    ActionContract(
-        action_id=3,
         name="remove",
         description=(
             "user-level compromise removal"
@@ -86,7 +74,7 @@ ACTION_CONTRACTS: Tuple[
         duration_ticks=3,
     ),
     ActionContract(
-        action_id=4,
+        action_id=3,
         name="restore",
         description=(
             "host reimaging"
@@ -95,6 +83,74 @@ ACTION_CONTRACTS: Tuple[
         duration_ticks=5,
     ),
 )
+
+
+def _validate_contracts() -> None:
+    """
+    模块加载时验证动作契约本身。
+
+    防止后续修改时出现：
+    - 重复 ID；
+    - 重复名称；
+    - ID 不连续；
+    - 非法 duration。
+    """
+
+    ids = [
+        action.action_id
+        for action in ACTION_CONTRACTS
+    ]
+
+    names = [
+        action.name
+        for action in ACTION_CONTRACTS
+    ]
+
+    if len(ids) != len(set(ids)):
+        raise RuntimeError(
+            "duplicate action_id "
+            "in ACTION_CONTRACTS"
+        )
+
+    if len(names) != len(set(names)):
+        raise RuntimeError(
+            "duplicate action name "
+            "in ACTION_CONTRACTS"
+        )
+
+    expected_ids = list(
+        range(
+            len(ACTION_CONTRACTS)
+        )
+    )
+
+    if ids != expected_ids:
+        raise RuntimeError(
+            "action IDs must be "
+            "contiguous categorical IDs "
+            f"{expected_ids}; got {ids}"
+        )
+
+    for action in ACTION_CONTRACTS:
+        if (
+            not isinstance(
+                action.duration_ticks,
+                Integral,
+            )
+            or isinstance(
+                action.duration_ticks,
+                bool,
+            )
+            or action.duration_ticks <= 0
+        ):
+            raise RuntimeError(
+                "duration_ticks must be "
+                "a positive integer: "
+                f"{action}"
+            )
+
+
+_validate_contracts()
 
 
 N_ACTIONS = len(
@@ -124,10 +180,28 @@ def get_action(
     action_id: int,
 ) -> ActionContract:
     """
-    根据动作 ID 获取统一动作定义。
+    根据 categorical action ID
+    获取统一动作定义。
     """
 
-    action_id = int(action_id)
+    if (
+        not isinstance(
+            action_id,
+            Integral,
+        )
+        or isinstance(
+            action_id,
+            bool,
+        )
+    ):
+        raise ValueError(
+            "action_id must be "
+            "an integer categorical ID"
+        )
+
+    action_id = int(
+        action_id
+    )
 
     if action_id not in ID2ACTION:
         raise ValueError(
@@ -146,7 +220,7 @@ def get_action_id(
     name: str,
 ) -> int:
     """
-    根据统一动作名称获得 ID。
+    根据统一动作名称获取 categorical ID。
     """
 
     if name not in NAME2ID:
@@ -164,12 +238,10 @@ def get_cyborg_action_type(
     action_id: int,
 ) -> str:
     """
-    获取该高层动作对应的
-    CybORG 动作类型。
+    获取计划映射到的 CC4 动作类型。
 
-    注意：
-    这里只返回类型，
-    不负责 host/subnet 参数选择。
+    host target 由后续 A3 adapter
+    负责解析。
     """
 
     return get_action(
@@ -181,7 +253,7 @@ def get_action_duration(
     action_id: int,
 ) -> int:
     """
-    获取 CC4 对应动作持续时间。
+    获取当前动作对应的 CC4 duration metadata。
     """
 
     return get_action(
