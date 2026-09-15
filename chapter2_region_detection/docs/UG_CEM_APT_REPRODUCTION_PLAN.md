@@ -1467,8 +1467,8 @@ P2：
 Gate A：
 
 [x] A1R Four-Action Contract Revision
-[~] A2R Local-online Adapter Revision  <- CURRENT
-[ ] A3  Official CybORG / CC4 Four-Action Adapter
+[x] A2R Local-online Adapter Revision
+[~] A3  Official CybORG / CC4 Four-Action Adapter  <- CURRENT
 [ ] A4  Formal State / Replay / Bootstrap WM / Response Reward
 [ ] A5  Gate A Final Review
 
