@@ -545,3 +545,34 @@ FINAL STATUS: PASS
 ```text
 Gate A3 — CybORG / CC4 Action Adapter
 ```
+
+
+---
+
+## 17. 2026-09-15 方案变更说明（v2.1）
+
+由于正式高层动作空间从 A=5 修订为 A=4，本文件记录的五动作 local-online adapter PASS 仅作为历史审计记录。
+
+仍可复用的语义：
+
+- no_op；
+- analyse；
+- remove；
+- restore；
+- partial observability；
+- latent-state isolation；
+- reproducibility。
+
+需要在 A2R 删除：
+
+- control_traffic transition；
+- control_traffic tests；
+- A=5 action sequence assumptions。
+
+本阶段状态更新为：
+
+```text
+HISTORICAL PASS / SUPERSEDED BY A2R
+```
+
+后续以 `UG_CEM_APT_REPRODUCTION_PLAN.md v2.1` 与 `step3-A2R.md` 为准。
