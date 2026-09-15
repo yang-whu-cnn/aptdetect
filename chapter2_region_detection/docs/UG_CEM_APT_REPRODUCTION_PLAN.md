@@ -24,6 +24,53 @@
 
 本文件用于避免后续长对话中出现方案漂移、参数遗忘、接口不一致和“为了跑通临时改算法”的情况。
 
+
+## 0.1 方案变更记录（2026-09-15，优先级高于后文旧描述）
+
+从本次更新开始，后续实现与审核必须以以下三条为准：
+
+### 变更 A：高层动作空间重新设计
+
+原先的：
+`monitor / light_evidence / heavy_evidence / local_mitigate / strong_mitigate`
+不再作为最终论文动作语义。
+
+新的 5 类高层动作语义确定为：
+
+- `analyse`：intrusion investigation（入侵调查）
+- `remove`：user-level compromise removal（用户级失陷清除）
+- `restore`：host reimaging（主机重装/恢复）
+- `control_traffic`：traffic blocking（流量阻断/控制）
+- `no_op`：monitor（不采取处置，仅监测）
+
+当前只冻结“动作语义集合”和动作数 `A=5`，**暂不在 Step 2/3 阶段锁死数值 ID 顺序、动作成本和延迟参数**。这些内容在进入世界模型/正式环境集成前通过 Gate A 统一确定。
+
+因此 Step 2 的 Categorical CEM 只依赖 `n_actions=5`，不允许把旧动作名称、旧 cost 或旧强度语义硬编码进优化器。
+
+### 变更 B：删除“提前预警步数”
+
+`early-warning lead steps / 提前预警步数` 不再作为：
+
+- PPO reward 项；
+- 最终主实验评价指标；
+- 模型选择指标；
+- baseline 调参指标。
+
+原因：该目标可能诱导 PPO 通过拖延/不处置获得不期望的策略行为。后续若源码中仍保留旧的 `compute_early_gain`、`lambda1_early` 等兼容代码，在最终训练和评估配置中必须保证它们不参与 reward 和主指标计算。
+
+### 变更 C：PPO reward 暂不冻结
+
+新的 PPO reward 设计目前为 **TBD**。
+
+当前原则：
+
+1. Step 2（Categorical CEM）和 Step 3（UG uncertainty）继续推进，因为它们与 PPO reward 无关；
+2. 不为了赶进度临时拍脑袋确定新的 PPO reward；
+3. rollout evaluator 和 planner 设计必须允许 reward / plan-return 逻辑可替换，避免将旧 reward 写死在 UG-CEM 内部；
+4. 在最终重新训练 PPO、正式公平比较和论文主实验前，必须通过 Gate B 冻结 reward 定义、权重及训练 checkpoint；
+5. 旧 PPO checkpoint / 旧 local-online reward 仅用于联调，不自动视为最终论文版本。
+
+
 ---
 
 # 1. 最终目标
@@ -184,21 +231,15 @@ UG-CEM-APT 不重新设计状态。
 
 ## 3.2 动作空间
 
-来自：
+最终论文动作空间语义已经在 2026-09-15 修改为 5 类：
 
-```text
-src/action_space.py
-```
-
-五类高层动作：
-
-| ID | 动作 | cost |
-|---:|---|---:|
-| 0 | monitor | 0.05 |
-| 1 | light_evidence | 0.20 |
-| 2 | heavy_evidence | 0.45 |
-| 3 | local_mitigate | 0.75 |
-| 4 | strong_mitigate | 1.10 |
+| 动作语义 | 英文说明 | 设计含义 |
+|---|---|---|
+| analyse | intrusion investigation | 对可疑活动进行调查与证据确认 |
+| remove | user-level compromise removal | 清除用户级失陷/会话级威胁 |
+| restore | host reimaging | 对受影响主机执行恢复/重装 |
+| control_traffic | traffic blocking | 对恶意或可疑通信进行流量阻断 |
+| no_op | monitor | 不执行处置，仅持续监测 |
 
 因此：
 
@@ -206,7 +247,29 @@ src/action_space.py
 A = 5
 ```
 
-原 UG-CEM 是连续动作 CEM，不能直接使用连续高斯采样。领域适配必须使用 **Categorical CEM**。
+**当前阶段只冻结动作数与语义，不冻结数值 ID 顺序。**
+
+旧版 `src/action_space.py` 中的：
+
+```text
+monitor
+light_evidence
+heavy_evidence
+local_mitigate
+strong_mitigate
+```
+
+属于旧方案实现，在完成 Step 2/3 之前暂不修改，以避免把动作重构和 CEM/uncertainty 基础实现混在一个阶段。
+
+在进入 world-model / official CC4 集成前，必须通过 Gate A 完成：
+
+- 数值 ID 顺序；
+- CybORG 底层动作映射；
+- action cost / delay（若最终 reward 需要）；
+- 旧 checkpoint 是否还能复用；
+- 是否需要重新收集 replay / 重训 world model。
+
+原 UG-CEM 是连续动作 CEM，领域适配仍必须使用 **Categorical CEM**。
 
 ---
 
@@ -252,25 +315,32 @@ UG-CEM-APT 与 Ours 共享同一批 world model checkpoint，不重新训练一�
 
 ---
 
-## 3.4 预测计划回报
+## 3.4 预测计划回报 / Reward 接口
 
-共享当前：
+最终 PPO reward 目前尚未确定，因此这里不再把旧的 `src.plan_eval._plan_return_from_risk()` 视为不可改变的最终论文 reward。
 
-```text
-src.plan_eval._plan_return_from_risk()
-```
-
-形式近似为：
+实现原则改为：
 
 ```text
-G = Σ gamma^h [
-      - lambda_risk  * predicted_risk
-      - lambda_cost  * action_cost
-      - lambda_delay * action_delay
-    ]
+UG-CEM 核心搜索器
+    不知道 reward 细节
+        ↓
+RolloutEvaluator / Planner
+    通过可替换的 plan_return_fn / reward adapter
+    获得 predicted return
 ```
 
-公平比较配置必须明确写入动作 cost，避免旧代码 fallback 成所有动作 cost=1。
+这样 Step 2/3 可以先独立完成，后续 reward 修改不需要重写 CEM 和 uncertainty。
+
+现有 `_plan_return_from_risk()` 可以作为 **开发期兼容/联调实现**，但在 Gate B 之前不得视为最终 reward 定义。
+
+公平比较最终要求：
+
+- Ours 与 UG 使用一致的任务 reward 语义；
+- 不重复计算 action cost；
+- 不包含“提前预警步数”奖励；
+- reward 权重在正式测试前冻结；
+- test seeds 不参与 reward 调参。
 
 ---
 
@@ -919,6 +989,38 @@ CEM 按 J 排序选择 elite。
 
 ---
 
+# 11.5 两个强制设计 Gate
+
+## Gate A — 动作语义与环境映射冻结（Step 3 之后、Step 4 正式集成前）
+
+必须完成：
+
+- 5 个新动作的数值 ID；
+- `src/action_space.py` 与新方案同步；
+- local-online 动作适配；
+- CybORG/CC4 动作适配；
+- `control_traffic` 的真实底层动作可用性验证；
+- action cost / delay 是否保留以及如何定义；
+- 旧 world-model checkpoint 是否因动作语义改变而失效。
+
+若动作 ID 或语义与旧 replay 不一致，必须重新收集数据并重训 world model，不能直接把旧 checkpoint 当新动作模型使用。
+
+## Gate B — PPO reward 冻结（正式 PPO 重训 / Step 8 公平比较前）
+
+必须完成：
+
+- PPO 单步 reward 数学定义；
+- reward 每个分量的含义；
+- 各权重；
+- 是否需要 action cost；
+- 与 CybORG official reward 的关系；
+- 训练/验证 seed；
+- 明确“不包含提前预警步数”。
+
+Gate B 未通过前，可以做模块联调，但不得生成最终论文 PPO checkpoint 或主实验表格。
+
+---
+
 # 12. 完整实施阶段
 
 ## Step 0 — 建立实验分支
@@ -1111,7 +1213,7 @@ next_states [H,N,M,D]
 - 不使用随机 aleatoric sample；
 - 批量向量化 N 条候选；
 - 不修改 `src/world_model.py`；
-- 预测回报复用 `_plan_return_from_risk()`。
+- rollout evaluator 不硬编码最终 reward；通过可替换 `plan_return_fn / reward adapter` 计算预测回报。开发期可临时调用 `_plan_return_from_risk()`，但 Gate B 后必须替换/确认最终定义。
 
 ### Step 4 必须测试
 
@@ -1418,8 +1520,9 @@ uncertainty
 ```text
 average recovery time
 recovery precision
-early-warning lead steps
 ```
+
+`early-warning lead steps / 提前预警步数` 已从最终指标中删除。
 
 必须让两个方法使用同一 metric evaluator。
 
@@ -1583,10 +1686,12 @@ feat(eval): add fair planner comparison harness
 [x] Step 1  baseline scaffold + comparison config
 [ ] Step 2  Categorical CEM
 [ ] Step 3  UG uncertainty
+[ ] Gate A  冻结新动作 ID / 环境映射 / world-model 数据兼容性
 [ ] Step 4  Vectorized rollout evaluator
 [ ] Step 5  UGCEM planner
 [ ] Step 6  Normalizer warm-up
 [ ] Step 7  Local-online smoke test
+[ ] Gate B  冻结新的 PPO reward 并重训正式 PPO
 [ ] Step 8  Fair comparison harness
 [ ] Step 9  Beta validation + ablation
 [ ] Step 10 Official CybORG/CC4 comparison
@@ -1634,7 +1739,7 @@ chapter2_region_detection/docs/UG_CEM_APT_REPRODUCTION_PLAN.md
 # 18. 一句话记住整个方案
 
 ```text
-共享状态 + 共享世界模型 + 共享预测回报，
+共享状态 + 共享世界模型 + 在 Gate B 后冻结的统一 reward/预测回报，
 只把 LLM+PPO 规划选择器替换成
 Categorical CEM + 官方风格 trajectory uncertainty，
 每步只执行最佳计划的第一个动作，
