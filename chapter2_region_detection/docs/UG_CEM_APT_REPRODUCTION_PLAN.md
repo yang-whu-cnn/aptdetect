@@ -1134,6 +1134,7 @@ optimize(objective_fn, initial_probs=None)
 - optional `initial_probs`；
 - `final_probs` 返回；
 - seed reproducibility；
+- objective 接口显式接收当前 CEM `iteration`（0-based）；
 - objective score shape / finite-value 防御；
 - 配置与输入 shape 校验。
 
@@ -1190,8 +1191,9 @@ floor + (1 - A*floor) * normalize(p)
 10. 两次独立 optimize 默认都从 uniform/传入 initial_probs 开始，而不是自动继承上一次 `final_probs`；
 11. 非法配置（H/A/N/ratio/alpha/floor）抛异常；
 12. `initial_probs` shape、负概率、全零行、NaN/Inf 抛异常；
-13. objective 返回 shape 错误抛异常；
-14. objective 全部为非有限值时抛异常。
+13. objective 能收到正确的 iteration 序列 `0..num_iterations-1`；
+14. objective 返回 shape 错误抛异常；
+15. objective 全部为非有限值时抛异常。
 
 ### Debug Oracle
 
