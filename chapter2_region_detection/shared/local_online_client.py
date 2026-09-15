@@ -130,7 +130,7 @@ class SharedLocalOnlineClient:
 
     1. Ours / UG-CEM 后续共用；
     2. action ID 只作为类别 ID；
-    3. 五类动作通过 LocalActionAdapter 产生不同语义；
+    3. 四类动作通过 LocalActionAdapter 产生不同语义；
     4. latent threat state 不暴露给 planner；
     5. risk_proxy 从可观测 events 计算，
        不直接返回真实 latent risk；

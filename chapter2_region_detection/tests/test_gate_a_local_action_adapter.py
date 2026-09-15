@@ -72,40 +72,12 @@ class TestGateALocalActionAdapter(
             self.state.visibility,
         )
 
-    def test_control_traffic_targets_network(
-        self,
-    ):
-        got = self.adapter.apply(
-            self.state,
-            2,
-        )
-
-        self.assertEqual(
-            got.auth_pressure,
-            self.state.auth_pressure,
-        )
-
-        self.assertEqual(
-            got.process_pressure,
-            self.state.process_pressure,
-        )
-
-        self.assertLess(
-            got.scan_pressure,
-            self.state.scan_pressure,
-        )
-
-        self.assertLess(
-            got.outbound_pressure,
-            self.state.outbound_pressure,
-        )
-
     def test_remove_targets_user_compromise(
         self,
     ):
         got = self.adapter.apply(
             self.state,
-            3,
+            2,
         )
 
         self.assertLess(
@@ -133,7 +105,7 @@ class TestGateALocalActionAdapter(
     ):
         got = self.adapter.apply(
             self.state,
-            4,
+            3,
         )
 
         self.assertLess(
@@ -151,14 +123,12 @@ class TestGateALocalActionAdapter(
             self.state.outbound_pressure,
         )
 
-        # 外部扫描压力不应因为
-        # reimage host 自动消失。
         self.assertEqual(
             got.scan_pressure,
             self.state.scan_pressure,
         )
 
-    def test_actions_are_not_numeric_strength_levels(
+    def test_actions_are_semantically_distinct_not_strength_levels(
         self,
     ):
         analyse = self.adapter.apply(
@@ -166,33 +136,50 @@ class TestGateALocalActionAdapter(
             1,
         )
 
-        control = self.adapter.apply(
+        remove = self.adapter.apply(
             self.state,
             2,
         )
 
-        remove = self.adapter.apply(
+        restore = self.adapter.apply(
             self.state,
             3,
         )
 
-        # action 2 并不是 action 1
-        # 的“更强版本”。
+        # analyse 只增加 visibility。
         self.assertEqual(
-            analyse.outbound_pressure,
-            self.state.outbound_pressure,
+            analyse.auth_pressure,
+            self.state.auth_pressure,
         )
 
+        self.assertGreater(
+            analyse.visibility,
+            self.state.visibility,
+        )
+
+        # remove 针对用户级 compromise，
+        # 不直接改变 outbound。
         self.assertLess(
-            control.outbound_pressure,
-            self.state.outbound_pressure,
+            remove.auth_pressure,
+            self.state.auth_pressure,
         )
 
-        # action 3 也不是简单继续增强
-        # action 2 的网络效果。
         self.assertEqual(
             remove.outbound_pressure,
             self.state.outbound_pressure,
+        )
+
+        # restore 是 host reimage，
+        # 会影响 outbound，
+        # 但不清除外部 scan pressure。
+        self.assertLess(
+            restore.outbound_pressure,
+            self.state.outbound_pressure,
+        )
+
+        self.assertEqual(
+            restore.scan_pressure,
+            self.state.scan_pressure,
         )
 
     def test_input_state_is_immutable(
@@ -202,13 +189,24 @@ class TestGateALocalActionAdapter(
 
         _ = self.adapter.apply(
             self.state,
-            4,
+            3,
         )
 
         self.assertEqual(
             self.state,
             original,
         )
+
+    def test_removed_old_action_id_rejected(
+        self,
+    ):
+        with self.assertRaises(
+            ValueError
+        ):
+            self.adapter.apply(
+                self.state,
+                4,
+            )
 
     def test_invalid_state_rejected(
         self,
@@ -237,7 +235,7 @@ class TestGateALocalActionAdapter(
         ):
             LocalActionAdapter(
                 LocalActionAdapterConfig(
-                    control_outbound_multiplier=1.5,
+                    remove_auth_multiplier=1.5,
                 )
             )
 

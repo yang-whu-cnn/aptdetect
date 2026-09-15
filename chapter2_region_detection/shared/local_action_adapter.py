@@ -11,11 +11,7 @@ class LocalThreatState:
     """
     local-online simulator 内部使用的隐状态。
 
-    注意：
     这些变量不能直接暴露给 planner。
-
-    planner 仍然只能看到统一的 8 维
-    StateSummary。
     """
 
     auth_pressure: float
@@ -28,16 +24,13 @@ class LocalThreatState:
 @dataclass(frozen=True)
 class LocalActionAdapterConfig:
     """
-    A2 开发期动作效果参数。
+    A2R 开发期动作效果参数。
 
-    这些数值只用于 local-online 联调，
-    不是论文最终 reward 参数。
+    这些参数只用于 local-online 联调，
+    不是正式论文 reward 参数。
     """
 
     analyse_visibility_gain: float = 0.35
-
-    control_scan_multiplier: float = 0.70
-    control_outbound_multiplier: float = 0.25
 
     remove_auth_multiplier: float = 0.25
     remove_process_multiplier: float = 0.60
@@ -49,18 +42,14 @@ class LocalActionAdapterConfig:
 
 class LocalActionAdapter:
     """
-    将 Gate A1 的统一高层动作
-    映射成 local simulator 中的
-    transition semantics。
+    将四类统一高层动作映射到
+    local simulator transition semantics。
 
     本模块：
-
     - 不计算 reward；
-    - 不依赖 planner；
-    - 不依赖 CEM；
-    - 不依赖 PPO；
-    - 不依赖 uncertainty；
-    - 不把 action ID 当连续强度。
+    - 不依赖 CEM / PPO / uncertainty；
+    - 不把 action ID 当连续强度；
+    - 不包含已删除的 control_traffic。
     """
 
     def __init__(
@@ -94,12 +83,6 @@ class LocalActionAdapter:
             "analyse_visibility_gain":
                 self.cfg.analyse_visibility_gain,
 
-            "control_scan_multiplier":
-                self.cfg.control_scan_multiplier,
-
-            "control_outbound_multiplier":
-                self.cfg.control_outbound_multiplier,
-
             "remove_auth_multiplier":
                 self.cfg.remove_auth_multiplier,
 
@@ -123,22 +106,6 @@ class LocalActionAdapter:
                 raise ValueError(
                     f"{name} must be finite"
                 )
-
-        if not (
-            0.0
-            <= self.cfg.analyse_visibility_gain
-            <= 1.0
-        ):
-            raise ValueError(
-                "analyse_visibility_gain "
-                "must be in [0, 1]"
-            )
-
-        for name, value in values.items():
-            if name == (
-                "analyse_visibility_gain"
-            ):
-                continue
 
             if not (
                 0.0
@@ -185,14 +152,8 @@ class LocalActionAdapter:
         action_id: int,
     ) -> LocalThreatState:
         """
-        对当前 local latent state
-        应用一次高层动作效果。
-
-        这里只处理 action effect。
-
-        threat 的自然增长、随机攻击过程、
-        observation generation 等由后续
-        local environment 负责。
+        对 local latent state 应用一次
+        高层动作语义。
         """
 
         self._validate_state(
@@ -205,18 +166,14 @@ class LocalActionAdapter:
 
         name = action.name
 
-        # --------------------------------
         # 0. no_op
-        # --------------------------------
         if name == "no_op":
             return state
 
-        # --------------------------------
         # 1. analyse
         #
-        # 调查提高可见性，
-        # 不直接清除威胁。
-        # --------------------------------
+        # 调查提升可见性，
+        # 不直接消除威胁。
         if name == "analyse":
             return replace(
                 state,
@@ -228,37 +185,9 @@ class LocalActionAdapter:
                 ),
             )
 
-        # --------------------------------
-        # 2. control_traffic
+        # 2. remove
         #
-        # 主要作用于网络活动。
-        # --------------------------------
-        if name == "control_traffic":
-            return replace(
-                state,
-
-                scan_pressure=self._clip01(
-                    state.scan_pressure
-                    *
-                    self.cfg
-                    .control_scan_multiplier
-                ),
-
-                outbound_pressure=self._clip01(
-                    state.outbound_pressure
-                    *
-                    self.cfg
-                    .control_outbound_multiplier
-                ),
-            )
-
-        # --------------------------------
-        # 3. remove
-        #
-        # 用户级失陷清除：
-        # 主要针对认证/会话，
-        # 对进程级失陷提供部分缓解。
-        # --------------------------------
+        # 用户级 compromise removal。
         if name == "remove":
             return replace(
                 state,
@@ -278,15 +207,12 @@ class LocalActionAdapter:
                 ),
             )
 
-        # --------------------------------
-        # 4. restore
+        # 3. restore
         #
-        # host reimaging：
-        # 对主机级失陷进行强恢复。
+        # host reimaging。
         #
-        # 不清除 scan_pressure，
-        # 因为外部攻击者仍可继续扫描。
-        # --------------------------------
+        # 不直接消除 scan_pressure，
+        # 因为外部扫描源仍可能存在。
         if name == "restore":
             return replace(
                 state,
