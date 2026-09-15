@@ -993,15 +993,51 @@ CEM 按 J 排序选择 elite。
 
 ## Gate A — 动作语义与环境映射冻结（Step 3 之后、Step 4 正式集成前）
 
-必须完成：
+状态：**进行中**
 
-- 5 个新动作的数值 ID；
-- `src/action_space.py` 与新方案同步；
-- local-online 动作适配；
-- CybORG/CC4 动作适配；
-- `control_traffic` 的真实底层动作可用性验证；
-- action cost / delay 是否保留以及如何定义；
-- 旧 world-model checkpoint 是否因动作语义改变而失效。
+Gate A 分阶段执行：
+
+```text
+[x] A1  Shared Action Contract
+[ ] A2  Local-online Action Adapter
+[ ] A3  CybORG / CC4 Action Adapter
+[ ] A4  Replay / World-model Compatibility + Cost/Delay
+[ ] A5  Gate A Final Review
+```
+
+A1 审核记录：
+
+```text
+chapter2_region_detection/docs/step3-A1.md
+```
+
+A1 已冻结：
+
+```text
+0 = no_op
+1 = analyse
+2 = control_traffic
+3 = remove
+4 = restore
+```
+
+动作 ID 仅作为离散类别索引，不能把数值大小解释为连续动作强度。
+
+为保留旧实现和历史实验，Gate A 改用**新增共享适配层**策略，不直接覆盖旧 `src/action_space.py`：
+
+```text
+chapter2_region_detection/shared/action_contract.py
+```
+
+后续 Ours、UG-CEM-APT 及其它公平比较 baseline 必须共享这一动作契约。
+
+Gate A 仍必须完成：
+
+- local-online 新动作语义适配；
+- CybORG/CC4 真实动作适配；
+- `control_traffic` 的真实底层动作/参数可用性验证；
+- action cost / delay 是否进入正式 reward 及其定义；
+- 旧 replay / world-model checkpoint 与新动作语义的兼容性判断。
 
 若动作 ID 或语义与旧 replay 不一致，必须重新收集数据并重训 world model，不能直接把旧 checkpoint 当新动作模型使用。
 
@@ -1820,7 +1856,7 @@ feat(eval): add fair planner comparison harness
 [x] Step 1  baseline scaffold + comparison config
 [x] Step 2  Categorical CEM
 [x] Step 3  UG uncertainty
-[ ] Gate A  冻结新动作 ID / 环境映射 / world-model 数据兼容性
+[~] Gate A  进行中：A1 已完成，当前 A2
 [ ] Step 4  Vectorized rollout evaluator
 [ ] Step 5  UGCEM planner
 [ ] Step 6  Normalizer warm-up
@@ -1835,7 +1871,7 @@ feat(eval): add fair planner comparison harness
 
 当前下一步：
 
-> **Gate A：冻结新动作数值 ID、local-online / CybORG 映射、action cost/delay 规则，并确认旧 replay / world-model checkpoint 与新动作语义是否兼容。Gate A 通过后再进入 Step 4。**
+> **Gate A2：在不修改旧 `src/cc4_client.py` 的前提下，新增 local-online action adapter，使 5 类新动作具有明确且彼此区分的本地环境语义。A2 完成后继续 A3 CybORG/CC4 adapter。**
 
 ---
 
