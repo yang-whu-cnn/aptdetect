@@ -1494,19 +1494,36 @@ Gate A：
 
 # 30. 下一步固定要求
 
-A1R 已完成。
+A1R / A2R 已完成。
 
-当前必须先完成 A2R：
+当前进入 A3。
 
-1. 删除 local adapter 中 control_traffic semantic；
-2. 更新 local client/tests 到四动作；
-3. 审核并记录 A2R；
-7. 然后重新运行 A3.1 CC4 wrapper probe，只围绕：
-   - Sleep
-   - Analyse
-   - Remove
-   - Restore
-8. 再冻结 official adapter。
+A3.1 先运行真实 CC4 wrapper probe，只围绕四动作：
+
+- Sleep
+- Analyse
+- Remove
+- Restore
+
+必须同时记录：
+
+- blue_agent_0..4；
+- action_labels；
+- action_mask；
+- hosts；
+- actions；
+- pad_spaces=False / True；
+- 不同 seeds 下 label/index 稳定性。
+
+完成 A3.1 后，再继续：
+
+- A3.2 no_op -> Sleep；
+- A3.3 Analyse / Remove / Restore host target resolver；
+- A3.4 multi-tick duration / next-decision availability；
+- A3.5 compromise/recovery 与 current incident host Host Work Fail reward bookkeeping probe；
+- A3.6 multi-agent integration。
+
+probe 结果确认前，不冻结固定 action index。
 
 旧五动作 replay / WM / PPO 不再具有正式兼容性。
 
