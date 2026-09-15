@@ -1071,39 +1071,127 @@ baselines/ug_cem_apt/categorical_cem.py
 tests/test_categorical_cem.py
 ```
 
-只实现：
+### Step 2 的边界
 
-- categorical sampling；
-- elite selection；
-- elite action frequency；
-- alpha smoothing；
-- probability floor；
-- best sampled plan；
-- optional initial_probs；
-- final_probs 返回；
-- seed reproducibility。
+本阶段只实现“单次离散 CEM 搜索器”，不接任何 APT 语义。
+
+因此 CEM 只知道：
+
+```text
+H = planning horizon
+A = n_actions = 5
+N = population size
+```
+
+它不知道五个动作分别是 analyse / remove / restore / control_traffic / no_op，也不允许硬编码旧动作名称、cost、delay 或 reward。
 
 暂时不实现：
 
 - world model；
 - uncertainty；
-- CC4；
+- CC4 / CybORG；
 - LLM；
 - PPO；
-- MPC warm-start（只保留 initial_probs 接口，真正 shift 在 planner 阶段）。
+- reward；
+- MPC warm-start 的“左移逻辑”（只保留 `initial_probs` 接口，真正 shift 在 `planner.py` 中）。
+
+### Step 2 的实现约定
+
+为减少后续接 PyTorch world model 时的 NumPy↔Torch 拷贝，本阶段采用 **Torch-first** 实现。
+
+```text
+plans       : torch.LongTensor [N,H]
+probabilities: torch.FloatTensor [H,A]
+scores      : torch.FloatTensor [N]
+```
+
+这样 Step 4 的批量 world-model evaluator 可以直接接收候选动作序列。
+
+优化器应保持“单次调用无跨时间步规划状态”：
+
+```text
+optimize(objective_fn, initial_probs=None)
+```
+
+- `initial_probs=None`：从均匀分布开始；
+- 传入 `initial_probs[H,A]`：从指定 categorical 分布开始；
+- `categorical_cem.py` 不负责把上一时刻概率左移；
+- 跨真实环境时间步的 warm-start 由 Step 5 的 `planner.py` 管理。
+
+随机数生成器可以保留在 optimizer 内部，用 seed 保证可复现；但是 **不得把上一轮 `final_probs` 静默保存为下一次 optimize 的默认起点**。
+
+### 必须实现的功能
+
+- categorical sampling；
+- elite selection；
+- elite action frequency；
+- `elite_num = ceil(N * elite_ratio)`；
+- 与官方一致的 alpha 语义：
+  `p_new = alpha*p_old + (1-alpha)*p_elite`；
+- probability floor；
+- 每行概率重新归一化；
+- best sampled plan（跨所有 CEM iteration 的全局最佳已评估计划）；
+- optional `initial_probs`；
+- `final_probs` 返回；
+- seed reproducibility；
+- objective score shape / finite-value 防御；
+- 配置与输入 shape 校验。
+
+建议返回：
+
+```text
+CEMResult
+├── best_plan      [H], long
+├── best_score     scalar
+└── final_probs    [H,A], float
+```
+
+可选的 debug history 可以后续增加，不作为 Step 2 必需项。
+
+### Probability floor
+
+不要简单 `clamp(min=floor)` 后忘记归一化。
+
+推荐语义：
+
+```text
+p_floor
+=
+floor + (1 - A*floor) * normalize(p)
+```
+
+这样同时满足：
+
+- 每个动作概率 >= floor；
+- 每行概率和严格为 1；
+- 需要验证 `A * floor < 1`。
+
+### 非有限 score
+
+正式模型以后可能出现 NaN/Inf。Step 2 中要求：
+
+- 将非有限候选视为不可选（例如映射到 `-inf`）；
+- 如果整批候选全部非有限，直接抛异常；
+- 不能让 NaN 因排序行为意外进入 elite。
 
 ### Step 2 测试
 
 至少验证：
 
-1. probability shape = `[H,A]`；
-2. 每行和为 1；
-3. prob_floor 生效；
-4. alpha=0 时接近 elite empirical distribution；
-5. 相同 seed 可复现；
-6. 人工目标计划能被找到；
-7. 非法参数会抛异常；
-8. objective 返回 shape 错误会抛异常。
+1. 默认概率 shape = `[H,A]` 且每行和为 1；
+2. sampled plans shape = `[N,H]`，dtype 为 long，动作范围 `[0,A-1]`；
+3. elite 数使用 `ceil(N*elite_ratio)`；
+4. elite frequency 计算正确；
+5. prob_floor 生效且每行仍严格归一；
+6. alpha 更新方向与官方一致，特别测试 `alpha=0` 和 `alpha=1`；
+7. 相同 seed + 相同 initial_probs + 相同 objective 可复现；
+8. 人工目标计划能被 CEM 找到；
+9. 自定义 `initial_probs` 能真正影响首轮采样，且不被优化器静默覆盖；
+10. 两次独立 optimize 默认都从 uniform/传入 initial_probs 开始，而不是自动继承上一次 `final_probs`；
+11. 非法配置（H/A/N/ratio/alpha/floor）抛异常；
+12. `initial_probs` shape、负概率、全零行、NaN/Inf 抛异常；
+13. objective 返回 shape 错误抛异常；
+14. objective 全部为非有限值时抛异常。
 
 ### Debug Oracle
 
@@ -1115,9 +1203,35 @@ H=4、A=5：
 
 可枚举所有计划作为测试 oracle。
 
-该 exhaustive oracle：
+推荐人工 objective 不使用动作 ID 的“距离平方”作为主要测试，因为动作 ID 只是类别标签，不代表连续强度。优先使用：
+
+```text
+score(plan) = number_of_positions_equal_to_target
+```
+
+目标例如：
+
+```text
+target = [4,3,2,1]
+```
+
+其唯一最优分数为 4。
+
+exhaustive oracle：
 
 > 只用于单元测试和 debug，不作为正式比较方法。
+
+### Step 2 验收标准
+
+只有满足以下条件才允许进入 Step 3：
+
+```text
+categorical_cem.py 不 import src/world_model / CC4 / PPO / LLM
+tests 全部通过
+未修改 src/
+未修改 UG 官方源码
+Git diff 只包含 Step 2 文件（外加本任务书修订）
+```
 
 ---
 
@@ -1679,7 +1793,7 @@ feat(eval): add fair planner comparison harness
 
 # 16. 当前进度
 
-截至 2026-09-14：
+截至 2026-09-15：
 
 ```text
 [x] Step 0  创建 ug-cem-apt 分支
