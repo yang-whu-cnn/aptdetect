@@ -999,7 +999,7 @@ Gate A 分阶段执行：
 
 ```text
 [x] A1  Shared Action Contract
-[ ] A2  Local-online Action Adapter
+[x] A2  Local-online Action Adapter
 [ ] A3  CybORG / CC4 Action Adapter
 [ ] A4  Replay / World-model Compatibility + Cost/Delay
 [ ] A5  Gate A Final Review
@@ -1009,6 +1009,12 @@ A1 审核记录：
 
 ```text
 chapter2_region_detection/docs/step3-A1.md
+```
+
+A2 审核记录：
+
+```text
+chapter2_region_detection/docs/step3-A2.md
 ```
 
 A1 已冻结：
@@ -1856,7 +1862,7 @@ feat(eval): add fair planner comparison harness
 [x] Step 1  baseline scaffold + comparison config
 [x] Step 2  Categorical CEM
 [x] Step 3  UG uncertainty
-[~] Gate A  进行中：A1 已完成，当前 A2
+[~] Gate A  进行中：A1/A2 已完成，当前 A3
 [ ] Step 4  Vectorized rollout evaluator
 [ ] Step 5  UGCEM planner
 [ ] Step 6  Normalizer warm-up
@@ -1871,7 +1877,7 @@ feat(eval): add fair planner comparison harness
 
 当前下一步：
 
-> **Gate A2：在不修改旧 `src/cc4_client.py` 的前提下，新增 local-online action adapter，使 5 类新动作具有明确且彼此区分的本地环境语义。A2 完成后继续 A3 CybORG/CC4 adapter。**
+> **Gate A3：在不污染旧 evaluator 的前提下，新增共享 CybORG/CC4 action adapter，验证 no_op / analyse / control_traffic / remove / restore 的真实底层执行映射，尤其完成 BlockTraffic 的 subnet-pair 参数与 action availability 验证。A3 完成后继续 A4 replay / world-model compatibility。**
 
 ---
 
