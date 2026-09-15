@@ -1,1923 +1,1512 @@
-# UG-CEM-APT 复现与公平对比实施总方案
+# UG-CEM-APT 复现、领域适配与公平对比总任务书（v2.0）
 
-> 仓库：`yang-whu-cnn/aptdetect`  
-> 稳定备份分支：`me`  
-> 实验分支：`ug-cem-apt`  
-> 当前任务：将论文 **Risk Sensitive Model-Based Reinforcement Learning using Uncertainty Guided Planning** 的核心规划机制适配到本项目离散 APT 防御动作空间，形成 **UG-CEM-APT** 对比基线，并与 LWM-RL 做公平对比。  
-> 最后更新：2026-09-15
-
----
-
-## 0. 本文件的用途
-
-本文件是后续 UG-CEM-APT 复现工作的唯一“总路线图”和检查清单。
-
-以后每次开始下一步之前，必须先做以下事情：
-
-1. 读取本文件；
-2. 检查 `me` 与 `ug-cem-apt` 的当前差异；
-3. 确认上一阶段是否已经审核通过；
-4. 只执行当前阶段，不提前混入后续功能；
-5. 本地测试通过后再 push；
-6. push 后由 ChatGPT 直接读取 GitHub 分支进行 code review；
-7. 审核通过后才进入下一阶段。
-
-本文件用于避免后续长对话中出现方案漂移、参数遗忘、接口不一致和“为了跑通临时改算法”的情况。
-
-
-## 0.1 方案变更记录（2026-09-15，优先级高于后文旧描述）
-
-从本次更新开始，后续实现与审核必须以以下三条为准：
-
-### 变更 A：高层动作空间重新设计
-
-原先的：
-`monitor / light_evidence / heavy_evidence / local_mitigate / strong_mitigate`
-不再作为最终论文动作语义。
-
-新的 5 类高层动作语义确定为：
-
-- `analyse`：intrusion investigation（入侵调查）
-- `remove`：user-level compromise removal（用户级失陷清除）
-- `restore`：host reimaging（主机重装/恢复）
-- `control_traffic`：traffic blocking（流量阻断/控制）
-- `no_op`：monitor（不采取处置，仅监测）
-
-当前只冻结“动作语义集合”和动作数 `A=5`，**暂不在 Step 2/3 阶段锁死数值 ID 顺序、动作成本和延迟参数**。这些内容在进入世界模型/正式环境集成前通过 Gate A 统一确定。
-
-因此 Step 2 的 Categorical CEM 只依赖 `n_actions=5`，不允许把旧动作名称、旧 cost 或旧强度语义硬编码进优化器。
-
-### 变更 B：删除“提前预警步数”
-
-`early-warning lead steps / 提前预警步数` 不再作为：
-
-- PPO reward 项；
-- 最终主实验评价指标；
-- 模型选择指标；
-- baseline 调参指标。
-
-原因：该目标可能诱导 PPO 通过拖延/不处置获得不期望的策略行为。后续若源码中仍保留旧的 `compute_early_gain`、`lambda1_early` 等兼容代码，在最终训练和评估配置中必须保证它们不参与 reward 和主指标计算。
-
-### 变更 C：PPO reward 暂不冻结
-
-新的 PPO reward 设计目前为 **TBD**。
-
-当前原则：
-
-1. Step 2（Categorical CEM）和 Step 3（UG uncertainty）继续推进，因为它们与 PPO reward 无关；
-2. 不为了赶进度临时拍脑袋确定新的 PPO reward；
-3. rollout evaluator 和 planner 设计必须允许 reward / plan-return 逻辑可替换，避免将旧 reward 写死在 UG-CEM 内部；
-4. 在最终重新训练 PPO、正式公平比较和论文主实验前，必须通过 Gate B 冻结 reward 定义、权重及训练 checkpoint；
-5. 旧 PPO checkpoint / 旧 local-online reward 仅用于联调，不自动视为最终论文版本。
-
+> 仓库：yang-whu-cnn/aptdetect  
+> 稳定备份分支：me  
+> 实验分支：ug-cem-apt  
+> 当前阶段：Gate A3 之前的总方案复核  
+> 最后更新：2026-09-15  
+> 本文件是后续实现、审核、实验和论文撰写的唯一总路线图。若后续方案发生实质变化，必须先更新本文件，再改实现。
 
 ---
 
-# 1. 最终目标
+# 0. 本次 v2.0 复核为什么必须做
 
-最终要得到一个领域适配基线：
+Step 2、Step 3、Gate A1、Gate A2 已经完成。进入真实 CybORG / CAGE Challenge 4 之前，再次对照：
 
-```text
-UG-CEM-APT
-=
-共享的 APT 状态表示
-+ 共享的集成概率世界模型
-+ 离散 Categorical CEM
-+ UG 官方源码风格的不确定性惩罚
-+ MPC / Receding-Horizon 执行
-```
+1. Webster & Flach, Risk Sensitive Model-Based Reinforcement Learning using Uncertainty Guided Planning；
+2. 仓库内 UG 官方源码；
+3. 当前第二章已有实现；
+4. CAGE Challenge 4 官方动作、观测、奖励和多智能体规则；
 
-它不使用：
+发现旧任务书虽然方向正确，但仍有几个会直接影响最终效果和论文可信度的缺口：
 
-- LLM 候选计划；
-- PPO 后验选择；
-- 人工启发式动作融合；
-- 测试集未来信息或攻击标签。
+- 旧任务书把正式状态长期锁死为 D=8，但 CC4 的 mission phase、traffic policy、blocked state 会直接影响奖励和 control_traffic 的价值；
+- 旧 world model 的 ensemble 成员使用同一批 minibatch，没有显式 bootstrap，弱化了 epistemic uncertainty 的可信度；
+- 旧 replay / checkpoint 的动作 ID 已与新 5 动作语义不一致，正式实验必须废弃并重新采集；
+- 旧 plan_eval 仍包含旧 cost / delay / early-warning 兼容逻辑，不能继续作为正式计划回报；
+- 旧 llm_prior 仍依赖 monitor / light_evidence / heavy_evidence / local_mitigate / strong_mitigate，不能直接用于新方案；
+- 旧 official evaluator 仍使用 0->Monitor, 1/2->Analyse, 3->Remove, 4->Restore 的旧映射；
+- CC4 中 Analyse/Remove/Restore 具有多 tick duration，agent 在动作完成前不能重新发起新动作；
+- BlockTraffic 是持久化交通控制的一部分，CC4 同时提供 AllowTraffic；若只会 block 而无法处理 stale block，可能产生明显的 green availability penalty；
+- BlueFixedActionWrapper 的 action index 对不同 agent 不能假定同义，必须使用 action_labels + action_mask；
+- 正式 CC4 有 5 个 Blue agent，blue_agent_4 还负责多个 subnet；只做 region0-3 会降低正式 team reward；
+- 当前世界模型只预测状态，而正式 CC4 reward 依赖 mission phase、green availability、red impact 等，不能继续只用 risk_proxy 手工近似正式回报。
 
-它与本文 LWM-RL 共享：
+因此 v2.0 的核心目标是：
 
-- 状态表示；
-- 动作空间；
-- 世界模型结构及 checkpoint；
-- 预测计划回报函数；
-- 环境；
-- 数据/种子划分；
-- 评价指标。
-
-因此正式论文中应称为：
-
-> **UG-CEM-APT（领域适配实现）**
-
-而不是“原论文完全复现”。
+> 在不改变论文核心思想的前提下，把“能跑通”的实现升级为“状态信息充分、模型可校准、动作真实可执行、回报与官方目标一致、对比公平、可以稳定做最终论文实验”的实现。
 
 ---
 
-# 2. 三套代码必须严格隔离
+# 1. 论文与官方环境中必须保持不变的事实
 
-## 2.1 本文稳定代码
+## 1.1 UG-CEM 原论文核心
 
-```text
-chapter2_region_detection/src/
-```
+UG-CEM 的核心不是重新设计 reward，也不是额外训练一个策略网络，而是：
 
-原则：**尽量不修改。**
+- 用 bootstrap ensemble dynamics models 近似环境 epistemic uncertainty；
+- 用 CEM 规划未来动作序列；
+- 对 ensemble 未来状态预测分歧较大的 action sequence 加惩罚；
+- 引导规划器倾向模型更有把握的未来区域；
+- 风险敏感性体现为 risk-return trade-off，而不是保证 reward 一定更高。
 
-特别是：
+领域适配必须保留：
 
-```text
-src/action_space.py
-src/state_summary.py
-src/world_model.py
-src/plan_eval.py
-src/ppo_posterior.py
-src/env_region.py
-src/cc4_client.py
-```
+- ensemble model disagreement；
+- fixed-member / TS∞ 风格 rollout；
+- deterministic model mean rollout；
+- state-trajectory disagreement uncertainty；
+- running state / horizon normalizer；
+- score = predicted_return - beta * uncertainty / (cem_iteration + 1)。
 
-这些代表当前主方法和共享基础设施。
+## 1.2 CC4 正式环境关键事实
 
----
+正式 CC4 必须按以下事实设计：
 
-## 2.2 UG 官方源码
-
-```text
-mbrl-lib-uncertainty_guided_planning/
-```
-
-原则：**只读，不修改。**
-
-重点参考：
-
-```text
-mbrl/planning/trajectory_opt.py
-mbrl/models/model_env.py
-mbrl/util/common.py
-uncertainty_guided_planning/offline_episodes.py
-uncertainty_guided_planning/cartpole_experiments.py
-```
+- Monitor 是自动发生的默认监测行为；
+- Sleep 才是显式“本 tick 不主动执行动作”；
+- Analyse duration=2；
+- Remove duration=3；
+- Restore duration=5；
+- BlockTraffic duration=1；
+- Sleep duration=1；
+- BlockTraffic 需要 from_subnet / to_subnet；
+- AllowTraffic 用于撤销已有 firewall block；
+- BlockTraffic 可能导致 green communication failure penalty；
+- reward 随 mission phase 变化；
+- Blue agents 在动作完成前不能重新发起另一个动作；
+- 正式环境有 5 个 Blue agent；
+- BlueFixedActionWrapper 提供 action_labels 和 action_mask，不能假定一个整数 action index 在不同 agent 上语义相同。
 
 ---
 
-## 2.3 我们的领域适配代码
+# 2. 最终论文方法与对比目标
 
-统一放在：
+最终至少比较：
 
-```text
-chapter2_region_detection/baselines/ug_cem_apt/
-```
+- LWM-RL（Ours）
+- UG-CEM-APT
+- CEM-APT（beta=0）
 
-预计最终结构：
+最终需要证明的不是“某一次跑分最高”，而是：
 
-```text
-chapter2_region_detection/
-├── baselines/
-│   ├── __init__.py
-│   └── ug_cem_apt/
-│       ├── __init__.py
-│       ├── categorical_cem.py
-│       ├── uncertainty.py
-│       ├── rollout_evaluator.py
-│       └── planner.py
-├── tests/
-│   ├── test_categorical_cem.py
-│   ├── test_ug_uncertainty.py
-│   └── test_ug_rollout.py
-├── experiments/
-│   ├── run_ug_cem_apt.py
-│   ├── run_compare_planners.py
-│   └── run_compare_official_cyborg.py
-└── configs/
-    └── compare_ug_cem_local_online.yaml
-```
+1. Ours 在相同 state / action / world model / reward objective / environment 下取得更高或更稳定的 official return；
+2. UG uncertainty 的作用可以通过 beta=0 与 beta>0 消融解释；
+3. Ours 中 LLM prior、world-model foresight、PPO posterior 的作用可以通过 ablation 解释；
+4. 所有方法都没有未来标签、test-seed tuning 或隐藏 heuristic；
+5. 结果能在 paired seeds 下复现。
+
+重要说明：
+
+> 本任务书只能通过更合理的状态表示、更可靠的世界模型、更正确的 CC4 adapter、更严格的数据划分和调参流程来提高成功概率，不能在实验前保证 Ours 一定胜出。任何为了“保证赢”而只给 Ours 增加额外信息、heuristic 或 test-set tuning 的做法都禁止。
 
 ---
 
-# 3. 当前项目中已经确定的共享接口
+# 3. 全局公平性与性能原则
 
-## 3.1 状态空间
+所有正式方法必须共享：
 
-来自：
+- 当前时刻可见的原始 CC4 observation；
+- FormalStateEncoder；
+- 高层动作契约；
+- target resolver；
+- official action adapter；
+- train / validation / calibration / test seed 列表；
+- dynamics ensemble architecture；
+- world-model checkpoint；
+- state normalizer；
+- shared reward model / plan-return adapter；
+- episode 配置；
+- evaluation metrics。
 
-```text
-chapter2_region_detection/src/state_summary.py
-```
+只允许方法之间不同的部分：
 
-当前结构化状态为 8 维：
+LWM-RL：
+- LLM candidate prior；
+- evidence construction；
+- PPO posterior plan selection。
 
-```python
-FEATURE_KEYS = [
-    "cnt_auth_fail",
-    "cnt_port_scan",
-    "cnt_proc_spawn",
-    "cnt_outbound_conn",
-    "avg_severity",
-    "unique_src",
-    "unique_dst",
-    "risk_proxy",
-]
-```
+UG-CEM-APT：
+- categorical CEM；
+- trajectory uncertainty penalty；
+- MPC probability warm-start。
 
-因此：
+CEM-APT：
+- 与 UG-CEM 完全相同，但 beta=0。
 
-```text
-D = 8
-state = summary.vec
-shape = [8]
-```
+正式测试前必须冻结：
 
-UG-CEM-APT 不重新设计状态。
-
----
-
-## 3.2 动作空间
-
-最终论文动作空间语义已经在 2026-09-15 修改为 5 类：
-
-| 动作语义 | 英文说明 | 设计含义 |
-|---|---|---|
-| analyse | intrusion investigation | 对可疑活动进行调查与证据确认 |
-| remove | user-level compromise removal | 清除用户级失陷/会话级威胁 |
-| restore | host reimaging | 对受影响主机执行恢复/重装 |
-| control_traffic | traffic blocking | 对恶意或可疑通信进行流量阻断 |
-| no_op | monitor | 不执行处置，仅持续监测 |
-
-因此：
-
-```text
-A = 5
-```
-
-**当前阶段只冻结动作数与语义，不冻结数值 ID 顺序。**
-
-旧版 `src/action_space.py` 中的：
-
-```text
-monitor
-light_evidence
-heavy_evidence
-local_mitigate
-strong_mitigate
-```
-
-属于旧方案实现，在完成 Step 2/3 之前暂不修改，以避免把动作重构和 CEM/uncertainty 基础实现混在一个阶段。
-
-在进入 world-model / official CC4 集成前，必须通过 Gate A 完成：
-
-- 数值 ID 顺序；
-- CybORG 底层动作映射；
-- action cost / delay（若最终 reward 需要）；
-- 旧 checkpoint 是否还能复用；
-- 是否需要重新收集 replay / 重训 world model。
-
-原 UG-CEM 是连续动作 CEM，领域适配仍必须使用 **Categorical CEM**。
+- state schema；
+- action mapping；
+- target selection；
+- world model；
+- reward model；
+- beta；
+- PPO checkpoint；
+- LLM prompt / model / generation config；
+- evaluation seeds。
 
 ---
 
-## 3.3 世界模型
+# 4. 代码分层与“不得直接用于正式实验”的旧模块
 
-来自：
+## 4.1 Legacy src 保留
 
-```text
-src/world_model.py
-```
+以下旧代码继续保留，作为历史实现和回滚参考：
 
-核心模型：
+- src/action_space.py
+- src/cc4_client.py
+- src/state_summary.py
+- src/world_model.py
+- src/plan_eval.py
+- src/llm_prior.py
+- src/env_region.py
+- src/ppo_posterior.py
+- experiments/run_region_official_cyborg_eval.py
 
-```text
-ProbDynamicsNet
-DynamicsEnsemble
-```
+原则：
 
-单成员输入：
+> 不为了新方案强行改旧实现；正式方案优先新增 shared / formal 模块。
 
-```text
-(s_t, a_t)
-```
+## 4.2 当前不能直接用于最终实验的原因
 
-动作在模型内部 one-hot。
+src/action_space.py：
+- 仍是旧五档动作。
 
-输出：
+src/llm_prior.py：
+- 仍生成 monitor / light_evidence / heavy_evidence / local_mitigate / strong_mitigate。
 
-```text
-mu(s_{t+1})
-logvar(s_{t+1})
-```
+src/plan_eval.py：
+- 仍依赖旧 action_cost / action_intensity；
+- 存在旧 early-warning 兼容函数；
+- 当前 risk/cost/delay surrogate 不是 official reward。
 
-正式比较统一使用：
+src/env_region.py：
+- 仍从旧 ACTION_SPACE 建 world model / prior / PPO。
 
-```text
-ensemble_size M = 5
-hidden_dim = 128
-lr = 3e-4
-```
+旧 official evaluator：
+- action mapping 仍是 1/2 都映射 Analyse；
+- 只控制指定 target_agent，其余 agent 默认 Monitor；
+- 不支持新的 control_traffic；
+- 不能作为最终公平比较脚本。
 
-UG-CEM-APT 与 Ours 共享同一批 world model checkpoint，不重新训练一套“更强”或“更弱”的模型作为主对比。
-
----
-
-## 3.4 预测计划回报 / Reward 接口
-
-最终 PPO reward 目前尚未确定，因此这里不再把旧的 `src.plan_eval._plan_return_from_risk()` 视为不可改变的最终论文 reward。
-
-实现原则改为：
-
-```text
-UG-CEM 核心搜索器
-    不知道 reward 细节
-        ↓
-RolloutEvaluator / Planner
-    通过可替换的 plan_return_fn / reward adapter
-    获得 predicted return
-```
-
-这样 Step 2/3 可以先独立完成，后续 reward 修改不需要重写 CEM 和 uncertainty。
-
-现有 `_plan_return_from_risk()` 可以作为 **开发期兼容/联调实现**，但在 Gate B 之前不得视为最终 reward 定义。
-
-公平比较最终要求：
-
-- Ours 与 UG 使用一致的任务 reward 语义；
-- 不重复计算 action cost；
-- 不包含“提前预警步数”奖励；
-- reward 权重在正式测试前冻结；
-- test seeds 不参与 reward 调参。
+现有 replay / WM / PPO checkpoint：
+- 由旧动作语义生成；
+- 不能作为新五动作正式模型。
 
 ---
 
-# 4. UG 官方源码中必须保留的核心机制
+# 5. 状态表示：开发 D=8 与正式状态必须分开
 
-以下不是“可选设计”，而是我们从官方源码中确认需要保留的核心思想。
+## 5.1 Local development state
 
-## 4.1 CEM elite 更新
+Gate A2 local simulator 继续使用当前 D=8：
 
-官方连续 CEM：
+1. cnt_auth_fail
+2. cnt_port_scan
+3. cnt_proc_spawn
+4. cnt_outbound_conn
+5. avg_severity
+6. unique_src
+7. unique_dst
+8. risk_proxy
 
-```text
-elite_num = ceil(population_size * elite_ratio)
+用途：
 
-new_mu  = mean(elites)
-new_var = var(elites)
+- unit test；
+- local smoke；
+- 检查动作 transition；
+- 不作为最终 CC4 状态充分性的证明。
 
-mu  = alpha * old_mu  + (1-alpha) * new_mu
-var = alpha * old_var + (1-alpha) * new_var
-```
+## 5.2 正式 CC4 状态存在的信息缺口
 
-离散适配后：
+仅 D=8 会遗漏：
 
-```text
-p_new
-=
-alpha * p_old
-+
-(1-alpha) * p_elite_frequency
-```
+- mission phase；
+- 当前 blocked traffic 状态；
+- 当前 communication policy；
+- block 与 policy 是否冲突。
 
-注意：**alpha 方向不能写反。**
+这些变量会直接影响 official reward 和 traffic-control 决策，因此正式状态不能未经验证就永久锁死 D=8。
 
----
+## 5.3 v2.0 默认正式候选：D=13
 
-## 4.2 官方实验主要参数
+正式候选状态：
 
-官方 `offline_episodes.py`：
+基础 8 维：
+- 原 D=8 全部保留。
 
-```text
-planning_horizon = 10
-num_iterations   = 5
-elite_ratio      = 0.3
-population_size  = 200
-alpha            = 0.1
-return_mean_elites = True
-uncertainty_guided = True
-num_particles    = 12
-normalizer warmup = 100 planner calls
-```
-
-APT 适配不会机械照搬所有数值，因为本文动作空间和计划长度不同。
-
-正式论文必须区分：
-
-- **算法机制保留**
-- **领域参数适配**
-
----
-
-## 4.3 TS∞ / fixed-member rollout
-
-官方模型配置使用：
-
-```text
-propagation_method = fixed_model
-```
-
-并在 `model_env.py` 中：
-
-```text
-sample=False
-```
-
-因此主要不确定性来源是：
-
-> 不同 ensemble member 的预测分歧（epistemic uncertainty）
-
-而不是每一步重新随机抽模型。
-
-APT 适配要求：
-
-> 对某条候选计划，某个 ensemble member 一旦选定，就负责整条 H 步 rollout。
-
-绝对不能：
-
-```text
-第1步 model0
-第2步 model3
-第3步 model1
-...
-```
-
-正确的是：
-
-```text
-member0: s0 -> s1 -> s2 -> s3 -> s4
-member1: s0 -> s1 -> s2 -> s3 -> s4
-...
-member4: s0 -> s1 -> s2 -> s3 -> s4
-```
-
----
-
-## 4.4 官方 uncertainty 实现
-
-官方核心代码等价于：
-
-1. 更新全局状态均值/标准差；
-2. 对预测状态做归一化；
-3. 沿 particle/model 维计算 std；
-4. 对状态维平均；
-5. 维护每个 horizon 的 running std；
-6. 再按 horizon 归一化；
-7. 对 horizon 求平均；
-8. 加入风险惩罚。
-
-官方实现的核心形式：
-
-```text
-score
-=
-predicted_return
--
-beta * uncertainty / (cem_iteration + 1)
-```
-
-这里的：
-
-```text
-/(cem_iteration + 1)
-```
-
-必须保留在 source-faithful 主版本中。
-
----
-
-# 5. 经过再次审核后的关键优化
-
-相比最初方案，后续实现采用以下优化。
-
-## 5.1 Canonical rollout tensor 改为与官方源码一致
-
-统一内部 shape：
-
-```text
-[H, N, M, D]
-```
+增加 5 维：
+- mission_phase_1
+- mission_phase_2a
+- mission_phase_2b
+- blocked_ratio
+- policy_mismatch_ratio
 
 其中：
 
-```text
-H = horizon = 4
-N = 当前 CEM population
-M = ensemble members = 5
-D = state dimension = 8
-```
+policy_mismatch_ratio =
+当前 firewall block state 与当前 mission communication policy 不一致的比例。
 
-例如：
+设计理由：
 
-```text
-[4, 64, 5, 8]
-```
+- phase 是 official reward 非平稳性的直接上下文；
+- blocked_ratio 表示当前交通控制状态；
+- policy_mismatch_ratio 直接反映可能造成 green penalty 的错误阻断或缺失阻断；
+- 不加入未来 red ground truth；
+- 不加入 hidden simulator state。
 
-这样 `uncertainty.py` 可以几乎逐维对应官方：
+## 5.4 状态冻结规则
 
-```text
-std(dim=model)
-mean(dim=state)
-normalize(dim=horizon)
-mean(dim=horizon)
-```
+Gate A4 用 validation seeds 比较：
 
-避免后续反复 transpose 导致维度错误。
+- D8
+- D13
 
----
+比较指标：
 
-## 5.2 rollout 必须批量向量化
+- one-step state prediction；
+- H=4 open-loop rollout error；
+- reward prediction error；
+- official validation return；
+- planning stability。
 
-不要对：
+默认优先 D13。
 
-```text
-64 plans × 5 models × 4 steps
-```
+只有 D8 在 validation 上不劣且明显更稳定/更快时，才允许保留 D8。
 
-逐条调用 `predict_next_by_member()`。
-
-这样正式 100×500 实验会非常慢。
-
-优化实现：
-
-对每个 horizon 和每个 ensemble member：
-
-```text
-一次性输入 N 个 candidate states
-shape [N,D]
-
-一次性输入 N 个 actions
-shape [N]
-```
-
-直接调用已有：
-
-```python
-model = world_model.models[m]
-mu, logvar = model(state_batch, action_batch)
-```
-
-因此每轮 CEM 的模型 forward 数量约从：
-
-```text
-N × M × H
-```
-
-降到：
-
-```text
-M × H
-```
-
-这对最终大规模实验非常重要。
-
-注意：这是计算优化，不改变算法语义。
+正式 test seeds 不能参与这个决定。
 
 ---
 
-## 5.3 CEM optimizer 与 MPC warm-start 分离
+# 6. 高层动作契约
 
-`categorical_cem.py` 只负责“一次 CEM 搜索”。
+Gate A1 已完成并冻结：
 
-它接收：
-
-```text
-initial_probs (optional)
-```
-
-并返回：
-
-```text
-best sampled plan
-final probability matrix
-```
-
-跨环境时间步的 warm-start 放在 `planner.py` 中维护。
-
-官方 `TrajectoryOptimizer` 会把上一次 solution 左移一格，因此离散对应方式：
-
-```text
-上一次 final_probs:
-P0
-P1
-P2
-P3
-
-下一步初始概率:
-P1
-P2
-P3
-Uniform
-```
-
-这样结构更清晰，也更接近官方职责划分。
-
----
-
-## 5.4 主版本返回 best sampled plan
-
-官方连续实验配置：
-
-```text
-return_mean_elites=True
-```
-
-连续空间可以返回 elite mean。
-
-离散动作 ID 没有有意义的算术平均，因此领域适配主版本采用：
-
-> **最高得分的已实际评估候选计划（best sampled plan）**
-
-理由：
-
-- 不会构造一个从未评估过的动作组合；
-- 离散空间语义更合理；
-- 保留 CEM 的 elite-search 核心机制。
-
-可选敏感性实验可以增加：
-
-```text
-final_map = argmax(final_probs, axis=action)
-```
-
-但不作为第一版主结果。
-
-论文中必须注明这是离散动作空间的必要适配。
-
----
-
-## 5.5 不需要机械保留 12 particles
-
-官方：
-
-```text
-ensemble=4
-particles=12
-```
-
-当前共享世界模型：
-
-```text
-ensemble=5
-```
-
-而我们使用：
-
-```text
-sample=False
-```
-
-同一 member 重复三次不会产生新轨迹。
-
-因此领域适配采用：
-
-```text
-M = 5 deterministic ensemble trajectories
-```
-
-即一个 member 对应一条 particle trajectory。
-
-这是有意的领域适配，不是漏实现。
-
----
-
-## 5.6 加入每个决策时刻的 raw trajectory cache
-
-H=4、A=5 时理论计划总数：
-
-```text
-5^4 = 625
-```
-
-CEM 不同迭代中可能重复采到相同计划。
-
-允许在**同一个真实环境决策时刻内部**缓存：
-
-```text
-plan tuple -> raw model trajectory / member returns
-```
-
-但是：
-
-- uncertainty running stats 仍必须按当前 sampled population（包含重复样本）更新；
-- 只能缓存 raw model prediction；
-- 不能缓存已经经过当前 iteration normalizer 得到的最终 uncertainty score；
-- 环境进入下一真实时间步后清空 cache。
-
-这属于计算优化，不改变样本分布。
-
-第一版如果复杂度太高，可以先不实现 cache，向量化完成后再加。
-
----
-
-## 5.7 本地 local-online 与正式 CC4 必须分阶段
-
-`OnlineCC4Client(base_url=local)` 是项目内部可交互仿真环境。
-
-它适合：
-
-- 单元测试；
-- 联调；
-- 检查 action 是否真正改变下一状态；
-- 调试 CEM / uncertainty / MPC。
-
-但正式论文最终结果不能只依赖本地仿真。
-
-仓库已有官方 CybORG/CC4 接口：
-
-```text
-experiments/run_region_official_cyborg_eval.py
-```
-
-因此最终流程分成：
-
-### 开发阶段
-
-```text
-local online
-```
-
-### 正式论文评估阶段
-
-```text
-CybORG / CAGE Challenge 4
-```
-
-两种方法都必须在同一官方环境适配器中比较。
-
----
-
-## 5.8 官方 CC4 动作映射是最终实验前的重点审查项
-
-当前官方 evaluator 中：
-
-```python
-ACTION_TYPE_MAP = {
-    0: "Monitor",
-    1: "Analyse",
-    2: "Analyse",
-    3: "Remove",
-    4: "Restore",
-}
-```
-
-即动作 1 与动作 2 在 CybORG 中都会映射成 `Analyse`。
-
-这意味着：
-
-> 当前五类高层动作并不是在官方 CC4 中一一对应五个不同底层动作。
-
-因此在正式论文主实验之前，必须专门审核：
-
-- Ours 与 UG 是否使用完全相同 mapping；
-- 世界模型训练动作语义是否与官方执行语义一致；
-- 是否需要重新定义/重新训练共享世界模型；
-- 是否需要在论文中说明 1/2 两级补证对应同一 CybORG 动作但具有不同规划成本。
-
-在这个问题解决前，不把 local-online 的结果当最终论文结论。
-
----
-
-# 6. 统一开发参数
-
-当前公平比较配置：
-
-```text
-configs/compare_ug_cem_local_online.yaml
-```
-
-开发阶段：
-
-```text
-D = 8
-A = 5
-M = 5
-H = 4
-
-population_size = 64
-num_iterations  = 4
-elite_ratio     = 0.30
-alpha           = 0.10
-beta            = 0.10
-prob_floor      = 0.01
-
-uncertainty_alpha = 0.01
-normalizer_warmup = 100
-```
-
-正式实验候选：
-
-```text
-population_size = 200
-num_iterations  = 5
-elite_ratio     = 0.30
-alpha           = 0.10
-```
-
-是否使用 N=200 / I=5 要在性能测试后决定。
-
-H 保持 4，因为本文 LWM-RL 候选计划长度为 4，公平性优先于机械照搬原论文 H=10。
-
----
-
-# 7. Beta 选择规则
-
-开发值：
-
-```text
-beta = 0.10
-```
-
-它不是最终论文参数。
-
-候选验证网格：
-
-```text
-beta ∈ {0, 0.1, 0.2, 0.3, 0.5, 1.0}
-```
-
-其中：
-
-```text
-beta = 0
-```
-
-自然构成：
-
-> risk-neutral CEM 消融基线。
-
-严禁：
-
-> 看正式测试集结果后再选择 beta。
-
-应使用：
-
-```text
-开发/验证 seeds -> 选择 beta
-正式 test seeds -> 固定 beta
-```
-
----
-
-# 8. Uncertainty normalizer 的执行策略
-
-## 8.1 官方行为
-
-官方实验先执行：
-
-```text
-100 planner calls
-keep_last_solution = False
-```
-
-用于训练：
-
-```text
-obs_mean
-obs_std
-horizon_std
-```
-
-然后：
-
-```text
-keep_last_solution = True
-```
-
-进入正式 episode。
-
----
-
-## 8.2 APT 适配
-
-开发阶段实现相同概念：
-
-```text
-normalizer_warmup = 100
-```
-
-warm-up 状态必须来自：
-
-- 训练数据；
-- 或专门 calibration seeds；
-
-不能使用：
-
-- 正式 test episode 的未来真实信息；
-- 攻击标签；
-- 测试结果反向调参数。
-
-主 source-faithful 模式允许在在线决策时继续使用当前模型预测更新 running statistics，因为官方实现就是在线更新，且没有使用未来真实标签。
-
-为做敏感性验证，可选增加：
-
-```text
-freeze_after_warmup = true/false
-```
-
-但第一版先实现官方风格在线更新。
-
----
-
-# 9. 不确定性究竟是什么
-
-本文当前 LWM-RL 的 Evidence.U：
-
-```text
-U_LWM = Var_m(plan_return_m)
-```
-
-即：
-
-> 不同世界模型成员对整条计划“预测回报”的方差。
-
-UG-CEM 的 uncertainty 不同：
-
-```text
-U_UG = normalized state-trajectory disagreement
-```
-
-即：
-
-> 不同世界模型成员对未来状态轨迹的分歧。
-
-因此：
-
-**绝对不能直接拿 `Evidence.U` 当 UG uncertainty。**
-
-UG 必须单独实现 `uncertainty.py`。
-
----
-
-# 10. 计划评分
-
-对第 i 个候选计划：
-
-```text
-G_i
-=
-所有 ensemble member 的预测计划回报平均
-```
-
-UG uncertainty：
-
-```text
-omega_i
-=
-基于 state trajectory disagreement 的归一化不确定性
-```
-
-第 k 轮 CEM：
-
-```text
-J_i^(k)
-=
-G_i
--
-beta * omega_i / (k + 1)
-```
-
-CEM 按 J 排序选择 elite。
-
----
-
-# 11. MPC / Receding Horizon
-
-每个真实环境时间步：
-
-1. 从当前状态生成 H=4 的候选动作序列；
-2. CEM 优化；
-3. 得到 best plan；
-4. **只执行 best_plan[0]**；
-5. 从真实环境获取新状态；
-6. 上一轮最终概率左移作为下一轮 warm-start；
-7. 再规划。
-
-绝对不能一次执行整条 4 步计划。
-
----
-
-# 11.5 两个强制设计 Gate
-
-## Gate A — 动作语义与环境映射冻结（Step 3 之后、Step 4 正式集成前）
-
-状态：**进行中**
-
-Gate A 分阶段执行：
-
-```text
-[x] A1  Shared Action Contract
-[x] A2  Local-online Action Adapter
-[ ] A3  CybORG / CC4 Action Adapter
-[ ] A4  Replay / World-model Compatibility + Cost/Delay
-[ ] A5  Gate A Final Review
-```
-
-A1 审核记录：
-
-```text
-chapter2_region_detection/docs/step3-A1.md
-```
-
-A2 审核记录：
-
-```text
-chapter2_region_detection/docs/step3-A2.md
-```
-
-A1 已冻结：
-
-```text
 0 = no_op
 1 = analyse
 2 = control_traffic
 3 = remove
 4 = restore
-```
 
-动作 ID 仅作为离散类别索引，不能把数值大小解释为连续动作强度。
+语义：
 
-为保留旧实现和历史实验，Gate A 改用**新增共享适配层**策略，不直接覆盖旧 `src/action_space.py`：
+- no_op：no operation / monitor，仅不主动处置；
+- analyse：intrusion investigation；
+- control_traffic：traffic containment / blocking；
+- remove：user-level compromise removal；
+- restore：host reimaging。
 
-```text
-chapter2_region_detection/shared/action_contract.py
-```
+动作 ID 只是 categorical index，绝不表示 0<1<2<3<4 的连续强度。
 
-后续 Ours、UG-CEM-APT 及其它公平比较 baseline 必须共享这一动作契约。
+当前 CC4 计划映射：
 
-Gate A 仍必须完成：
+- no_op -> Sleep
+- analyse -> Analyse
+- control_traffic -> BlockTraffic / traffic-control lifecycle adapter
+- remove -> Remove
+- restore -> Restore
 
-- local-online 新动作语义适配；
-- CybORG/CC4 真实动作适配；
-- `control_traffic` 的真实底层动作/参数可用性验证；
-- action cost / delay 是否进入正式 reward 及其定义；
-- 旧 replay / world-model checkpoint 与新动作语义的兼容性判断。
-
-若动作 ID 或语义与旧 replay 不一致，必须重新收集数据并重训 world model，不能直接把旧 checkpoint 当新动作模型使用。
-
-## Gate B — PPO reward 冻结（正式 PPO 重训 / Step 8 公平比较前）
-
-必须完成：
-
-- PPO 单步 reward 数学定义；
-- reward 每个分量的含义；
-- 各权重；
-- 是否需要 action cost；
-- 与 CybORG official reward 的关系；
-- 训练/验证 seed；
-- 明确“不包含提前预警步数”。
-
-Gate B 未通过前，可以做模块联调，但不得生成最终论文 PPO checkpoint 或主实验表格。
+Monitor 继续由 CC4 自动发生，不把 Monitor 当显式 no-op action 发出。
 
 ---
 
-# 12. 完整实施阶段
+# 7. 动作 duration 与正式 transition 定义
 
-## Step 0 — 建立实验分支
+这是 v2.0 新增的关键约束。
 
-状态：**已完成**
+## 7.1 不再把每个 global tick 简单当成一个 planner transition
 
-```text
-me         = 稳定完整备份
-ug-cem-apt = 实验分支
-```
+CC4 中 Analyse/Remove/Restore 跨多个 tick。
 
-审核结果：
+如果世界模型仍训练：
 
-```text
-PASS
-```
+s_t, a_t -> s_{t+1 global tick}
+
+但状态里又没有 ongoing action / remaining duration，就会产生明显的 non-Markov 问题。
+
+## 7.2 首选方案：decision-epoch transition
+
+对每个 Blue agent：
+
+1. 只有 agent 可以发起新动作时才调用 planner；
+2. planner 选择一个高层动作；
+3. official adapter 发出真实底层 action；
+4. 环境继续 global ticks；
+5. 等该 agent 再次可选择动作时，形成 next decision state；
+6. 将这整个区间记为一个 high-level transition。
+
+Replay 保存：
+
+- s_t
+- high_level_action
+- accumulated_official_reward
+- s_next_decision
+- decision_dt_ticks
+- done
+
+这样：
+
+- duration 被环境真实体现；
+- 不需要人为 lambda_delay；
+- world model 学的是“一个高层动作完成后的下一决策状态”；
+- H=4 表示未来 4 个高层决策，而不是机械 4 个 global ticks。
+
+## 7.3 备选方案
+
+如果 A3 实测发现 wrapper 无法稳定获取 decision availability，则必须：
+
+- 将 current_action / remaining_ticks 加入 formal state；
+- 明确 tick-level world model。
+
+A3 未验证前，不允许假设 duration 可以忽略。
 
 ---
 
-## Step 1 — 建立 baseline 骨架和公平比较配置
+# 8. control_traffic 生命周期是 A3 的强制决策项
 
-状态：**已完成**
+CC4 同时存在：
 
-新增：
+- BlockTrafficZone
+- AllowTrafficZone
 
-```text
-chapter2_region_detection/baselines/__init__.py
-chapter2_region_detection/baselines/ug_cem_apt/__init__.py
-chapter2_region_detection/configs/compare_ug_cem_local_online.yaml
-```
+而当前论文高层动作只有 control_traffic。
 
-审核结果：
+如果 block 持续存在而 planner 永远没有 unblock 能力，可能造成长期 green service penalty，严重影响效果。
 
-```text
-PASS
-```
+A3 必须实测：
 
----
+1. block 是否持续到 AllowTraffic；
+2. mission phase 改变后 stale block 是否保留；
+3. action label 如何编码 subnet pair；
+4. blue_agent_0..4 各自可见哪些 subnet pair。
 
-## Step 2 — Categorical CEM
+A3 必须在以下两种方案中冻结一个：
 
-状态：**已完成（审核通过）**
+方案 A（优先）：
+- 高层仍只有 control_traffic；
+- 将其定义为“traffic-control management / containment”宏动作；
+- shared adapter 根据当前可见 block/policy/threat evidence，在 BlockTrafficZone 与必要的 AllowTrafficZone cleanup 之间做确定性解析；
+- 该逻辑 Ours / UG / CEM 完全共享；
+- 论文明确说明这是 5-action high-level abstraction 对 CC4 firewall lifecycle 的领域适配。
 
-审核记录：
+方案 B：
+- 高层 control_traffic 严格只 BlockTraffic；
+- 必须证明 stale block 不会导致不可恢复的明显 penalty，或存在 CC4 自动恢复机制。
 
-```text
-chapter2_region_detection/docs/step2.md
-```
-
-最终结论：**PASS**
-
-文件：
-
-```text
-baselines/ug_cem_apt/categorical_cem.py
-tests/test_categorical_cem.py
-```
-
-### Step 2 的边界
-
-本阶段只实现“单次离散 CEM 搜索器”，不接任何 APT 语义。
-
-因此 CEM 只知道：
-
-```text
-H = planning horizon
-A = n_actions = 5
-N = population size
-```
-
-它不知道五个动作分别是 analyse / remove / restore / control_traffic / no_op，也不允许硬编码旧动作名称、cost、delay 或 reward。
-
-暂时不实现：
-
-- world model；
-- uncertainty；
-- CC4 / CybORG；
-- LLM；
-- PPO；
-- reward；
-- MPC warm-start 的“左移逻辑”（只保留 `initial_probs` 接口，真正 shift 在 `planner.py` 中）。
-
-### Step 2 的实现约定
-
-为减少后续接 PyTorch world model 时的 NumPy↔Torch 拷贝，本阶段采用 **Torch-first** 实现。
-
-```text
-plans       : torch.LongTensor [N,H]
-probabilities: torch.FloatTensor [H,A]
-scores      : torch.FloatTensor [N]
-```
-
-这样 Step 4 的批量 world-model evaluator 可以直接接收候选动作序列。
-
-优化器应保持“单次调用无跨时间步规划状态”：
-
-```text
-optimize(objective_fn, initial_probs=None)
-```
-
-- `initial_probs=None`：从均匀分布开始；
-- 传入 `initial_probs[H,A]`：从指定 categorical 分布开始；
-- `categorical_cem.py` 不负责把上一时刻概率左移；
-- 跨真实环境时间步的 warm-start 由 Step 5 的 `planner.py` 管理。
-
-随机数生成器可以保留在 optimizer 内部，用 seed 保证可复现；但是 **不得把上一轮 `final_probs` 静默保存为下一次 optimize 的默认起点**。
-
-### 必须实现的功能
-
-- categorical sampling；
-- elite selection；
-- elite action frequency；
-- `elite_num = ceil(N * elite_ratio)`；
-- 与官方一致的 alpha 语义：
-  `p_new = alpha*p_old + (1-alpha)*p_elite`；
-- probability floor；
-- 每行概率重新归一化；
-- best sampled plan（跨所有 CEM iteration 的全局最佳已评估计划）；
-- optional `initial_probs`；
-- `final_probs` 返回；
-- seed reproducibility；
-- objective 接口显式接收当前 CEM `iteration`（0-based）；
-- objective score shape / finite-value 防御；
-- 配置与输入 shape 校验。
-
-建议返回：
-
-```text
-CEMResult
-├── best_plan      [H], long
-├── best_score     scalar
-└── final_probs    [H,A], float
-```
-
-可选的 debug history 可以后续增加，不作为 Step 2 必需项。
-
-### Probability floor
-
-不要简单 `clamp(min=floor)` 后忘记归一化。
-
-推荐使用**幂等的 lower-bound projection**，避免 MPC warm-start 时对已经合法的概率分布重复“抹平”：
-
-```text
-p = normalize(p)
-residual = max(p - floor, 0)
-p_floor = floor + (1 - A*floor) * residual / sum(residual)
-```
-
-这样同时满足：
-
-- 每个动作概率 >= floor；
-- 每行概率和严格为 1；
-- 如果输入本来已经满足 `p>=floor` 且行和为 1，则输出保持不变（幂等）；
-- 下一时刻把上一轮 `final_probs` 作为 warm-start 时不会因为再次应用 floor 而被无意义地向 uniform 拉回；
-- 需要验证 `A * floor < 1`。
-
-### 非有限 score
-
-正式模型以后可能出现 NaN/Inf。Step 2 中要求：
-
-- 将非有限候选视为不可选（例如映射到 `-inf`）；
-- 如果整批候选全部非有限，直接抛异常；
-- 不能让 NaN 因排序行为意外进入 elite。
-
-### Step 2 测试
-
-至少验证：
-
-1. 默认概率 shape = `[H,A]` 且每行和为 1；
-2. sampled plans shape = `[N,H]`，dtype 为 long，动作范围 `[0,A-1]`；
-3. elite 数使用 `ceil(N*elite_ratio)`；
-4. elite frequency 计算正确；
-5. prob_floor 生效且每行仍严格归一；
-6. alpha 更新方向与官方一致，特别测试 `alpha=0` 和 `alpha=1`；
-7. 相同 seed + 相同 initial_probs + 相同 objective 可复现；
-8. 人工目标计划能被 CEM 找到；
-9. 自定义 `initial_probs` 能真正影响首轮采样，且不被优化器静默覆盖；
-10. 两次独立 optimize 默认都从 uniform/传入 initial_probs 开始，而不是自动继承上一次 `final_probs`；
-11. 非法配置（H/A/N/ratio/alpha/floor）抛异常；
-12. `initial_probs` shape、负概率、全零行、NaN/Inf 抛异常；
-13. objective 能收到正确的 iteration 序列 `0..num_iterations-1`；
-14. objective 返回 shape 错误抛异常；
-15. objective 全部为非有限值时抛异常。
-
-### Debug Oracle
-
-H=4、A=5：
-
-```text
-5^4 = 625
-```
-
-可枚举所有计划作为测试 oracle。
-
-推荐人工 objective 不使用动作 ID 的“距离平方”作为主要测试，因为动作 ID 只是类别标签，不代表连续强度。优先使用：
-
-```text
-score(plan) = number_of_positions_equal_to_target
-```
-
-目标例如：
-
-```text
-target = [4,3,2,1]
-```
-
-其唯一最优分数为 4。
-
-exhaustive oracle：
-
-> 只用于单元测试和 debug，不作为正式比较方法。
-
-### Step 2 验收标准
-
-只有满足以下条件才允许进入 Step 3：
-
-```text
-categorical_cem.py 不 import src/world_model / CC4 / PPO / LLM
-tests 全部通过
-未修改 src/
-未修改 UG 官方源码
-Git diff 只包含 Step 2 文件（外加本任务书修订）
-```
+如果 B 的实测不成立，不允许为了保持“block-only”而牺牲整个正式控制系统。
 
 ---
 
-## Step 3 — UG Uncertainty
+# 9. Shared target resolver
 
-状态：**已完成（审核通过）**
-
-审核记录：
-
-```text
-chapter2_region_detection/docs/step3.md
-```
-
-最终结论：**PASS**
-
-文件：
-
-```text
-baselines/ug_cem_apt/uncertainty.py
-tests/test_ug_uncertainty.py
-```
-
-输入统一：
-
-```text
-next_states.shape = [H,N,M,D]
-```
-
-维护：
-
-```text
-obs_mean[D]
-obs_std[D]
-horizon_std[H]
-```
-
-初始化对应官方：
-
-```text
-obs_mean = 0
-obs_std = 0.1
-horizon_std = 0.01
-alpha_norm = 0.01
-```
-
-更新逻辑：
-
-```text
-obs_mean = (1-a)*obs_mean + a*mean(next_states)
-obs_std  = (1-a)*obs_std  + a*std(next_states)
-```
-
-归一化后：
-
-```text
-member_std = std(dim=M)
-state_mean = mean(dim=D)
-horizon_normalize
-omega = mean(dim=H)
-```
-
-添加很小 `eps` 防止除 0，这是数值稳定性适配。
-
-### Step 3 测试
-
-- 所有 member 预测相同 -> uncertainty 接近 0；
-- member 分歧增大 -> uncertainty 增大；
-- shape 正确；
-- 无 NaN/Inf；
-- running stats 更新正确；
-- reset 正确；
-- update_stats=False 时统计量不变化。
-
----
-
-## Step 4 — World Model Rollout Evaluator
-
-状态：待执行。
-
-文件：
-
-```text
-baselines/ug_cem_apt/rollout_evaluator.py
-tests/test_ug_rollout.py
-```
-
-目标：
-
-```text
-state [D]
-plans [N,H]
-↓
-returns [N]
-next_states [H,N,M,D]
-```
+高层 planner 只选 action type，不直接选 host/subnet，因此正式实验必须有共享 target resolver。
 
 要求：
 
-- 固定 member 整段 rollout；
-- 使用 deterministic member mean；
-- 不使用随机 aleatoric sample；
-- 批量向量化 N 条候选；
-- 不修改 `src/world_model.py`；
-- rollout evaluator 不硬编码最终 reward；通过可替换 `plan_return_fn / reward adapter` 计算预测回报。开发期可临时调用 `_plan_return_from_risk()`，但 Gate B 后必须替换/确认最终定义。
+- Ours、UG、CEM 完全相同；
+- 只能使用当前 observation；
+- 不使用 true red location；
+- 不使用未来 reward；
+- 不使用测试标签；
+- tie-breaking 必须确定性。
 
-### Step 4 必须测试
+Host action：
+- Analyse / Remove / Restore；
+- 从当前 Blue observation 中按 malicious process / malicious network evidence 给 host 排序；
+- 相同分数按固定 host order 选；
+- 不允许 planner-specific host heuristic。
 
-- tensor shape；
-- action ID 越界；
-- horizon 不一致；
-- fixed-member 语义；
-- batch 与逐条计算结果一致；
-- returns finite。
+Traffic action：
+- 从合法 subnet pair 中选；
+- 结合当前 network evidence、communication policy、blocked state；
+- 只在 action_mask 为 valid 的底层 action 中选择；
+- 不直接用 action index 的数值含义。
+
+若目标不存在：
+- 记录 requested high-level action；
+- 执行明确的 fallback（默认 Sleep）；
+- 记录 fallback_reason；
+- replay 中保留 requested 与 executed 两者。
 
 ---
 
-## Step 5 — UGCEM Planner
+# 10. 世界模型：v2.0 正式设计
 
-状态：待执行。
+## 10.1 当前问题
 
-文件：
+旧 DynamicsEnsemble：
+- 成员初始化不同；
+- 但训练时所有 member 使用同一个 minibatch index；
+- 不是真正显式 bootstrap dataset；
+- 原论文的 epistemic uncertainty 依据因此不够强。
 
-```text
-baselines/ug_cem_apt/planner.py
-```
+## 10.2 正式 dynamics ensemble
 
-整合：
+正式模型仍共享给 Ours / UG / CEM。
 
-```text
+默认：
+
+- ensemble_size M=5；
+- 两层 MLP；
+- hidden=128；
+- probabilistic diagonal Gaussian output；
+- 每个 member 独立初始化；
+- 每个 member 独立 bootstrap sampling；
+- train-only state normalization；
+- state std 下限 eps；
+- 每个 member 独立 optimizer；
+- checkpoint 保存 model seed 与 bootstrap seed。
+
+禁止：
+
+- 只给 UG 使用 bootstrap；
+- Ours 与 UG 使用不同 world-model data；
+- test data 更新模型。
+
+## 10.3 输入 / 输出 normalization
+
+正式状态各维尺度不同：
+
+- event count 可大于 1；
+- risk / ratio 在 0..1；
+- phase 是 one-hot。
+
+因此正式模型必须：
+
+- 对连续 state feature 用 train-set mean/std 标准化；
+- one-hot phase 可以保留原值或统一进入相同 normalizer；
+- normalizer 只在 train split 拟合；
+- checkpoint 与 normalizer 一起保存。
+
+## 10.4 absolute vs delta prediction
+
+首选仍保持当前“预测 next state”的结构，减少一次大范围算法改动。
+
+但 A4 validation 必须增加：
+
+- absolute next-state target；
+- delta-state target；
+
+二者的小规模对比。
+
+若 delta 在 H=4 rollout error 上稳定更好，则所有方法一起切换；不能只给某一个 baseline 使用。
+
+## 10.5 模型质量 Gate
+
+世界模型不能“train 完就算通过”。
+
+必须在 held-out validation episodes 上记录：
+
+- one-step RMSE / MAE；
+- Gaussian NLL；
+- H=2/H=4 open-loop rollout RMSE；
+- per-feature error；
+- persistence baseline error；
+- ensemble disagreement 与实际 prediction error 的 Spearman correlation；
+- high-error sample detection AUROC 或分位数 calibration。
+
+最低接受条件：
+
+- one-step 与 H=4 error 均应优于 persistence / naive baseline；
+- ensemble disagreement 对 error 至少应有稳定正相关；
+- 若 uncertainty 与 error 完全无关，不允许进入正式 UG 主实验。
+
+---
+
+# 11. Shared reward model / predicted return
+
+## 11.1 为什么旧 risk surrogate 不够
+
+正式 CC4 reward 受到：
+
+- mission phase；
+- green local work failure；
+- service access failure；
+- red impact / compromise；
+- restore availability loss；
+- traffic block 导致的 green communication failure；
+
+共同影响。
+
+因此只使用：
+
+-risk_proxy - action_cost - delay
+
+作为正式 predicted return，会与 official objective 明显错位。
+
+## 11.2 v2.0 设计
+
+A4 新增 shared reward model，所有方法共用。
+
+输入候选：
+
+- s_t
+- high-level action
+- predicted s_{t+1}
+- decision_dt
+
+输出：
+
+- 从当前 decision epoch 到下一 decision epoch 的 accumulated official reward。
+
+训练 target：
+
+- CybORG 官方环境实际返回 reward 的区间累积。
+
+首选 loss：
+
+- Huber loss；
+- 同时记录 MAE / RMSE。
+
+计划回报：
+
+G(plan) =
+对 ensemble member 的 predicted accumulated official reward 做折扣累计，再对 member 求均值。
+
+## 11.3 Duration-aware discount
+
+不再人为加 lambda_delay。
+
+若 action duration 为 d ticks：
+
+- 使用 tick-level gamma；
+- 按 cumulative ticks 折扣；
+- duration 的代价由真实环境 reward + 时间折扣自然体现。
+
+这样可以避免：
+
+- official environment 已经惩罚 Restore/BlockTraffic；
+- planner 又手工重复扣 cost/delay；
+
+造成 double counting。
+
+---
+
+# 12. 数据与 seed 协议
+
+## 12.1 四类 seed 必须分开
+
+必须在正式训练前生成并提交固定列表：
+
+- train_seeds
+- validation_seeds
+- calibration_seeds
+- test_seeds
+
+用途：
+
+train：
+- replay collection；
+- world model / reward model / PPO training。
+
+validation：
+- D8 vs D13；
+- absolute vs delta；
+- beta；
+- LLM/PPO hyperparameters；
+- candidate count；
+- population size 等。
+
+calibration：
+- UG uncertainty normalizer warm-up；
+- final sanity check。
+
+test：
+- 只做一次冻结后的正式结果。
+
+## 12.2 Replay 必须重新采集
+
+旧 replay 与新 action semantics 不兼容，正式全部标记 legacy。
+
+正式 replay schema 至少包含：
+
+- episode_seed
+- agent_id / region_id
+- decision_index
+- global_tick_start
+- global_tick_end
+- decision_dt
+- state
+- requested_high_level_action
+- executed_low_level_label
+- executed_target
+- action_success / fallback_reason
+- accumulated_official_reward
+- next_state
+- done
+
+## 12.3 行为策略与 action coverage
+
+不能纯随机后发现 Remove / Restore / BlockTraffic 几乎没有有效样本。
+
+正式 collection policy 使用：
+
+- high-level stratified exploration；
+- 保证五类 action 都有最低样本覆盖；
+- target resolver 与正式 evaluator 完全相同；
+- action_mask 过滤 invalid low-level target；
+- 同时保留自然状态分布，不做 test-label directed sampling。
+
+必须报告：
+
+- 每类 requested action 数；
+- 每类 actual executed action 数；
+- success / fallback rate；
+- state coverage；
+- region/agent coverage。
+
+---
+
+# 13. LWM-RL（Ours）正式迁移要求
+
+旧 src/llm_prior.py 与新动作空间不兼容，因此正式 Ours 必须新增新 prior module，而不是继续兼容旧 action names。
+
+## 13.1 LLM candidate prior
+
+固定：
+
+- action vocabulary = A1 五类动作；
+- H=4；
+- K 候选计划；
+- prompt version；
+- LLM model/version；
+- generation temperature；
+- max tokens；
+- parser；
+- fallback policy。
+
+输出必须经过 validator：
+
+- 只允许 0..4；
+- 长度必须 H；
+- 去重；
+- 无效计划拒绝；
+- 候选不足时使用固定模板补齐；
+- 记录 raw response 与 parsed result。
+
+## 13.2 Candidate diversity
+
+为了避免 LLM prior 全部生成近似计划，记录：
+
+- unique plan ratio；
+- per-position action entropy；
+- candidate duplicate rate。
+
+如果 diversity 长期过低，优先优化 prompt / deterministic mutation，而不是在 test seeds 上调。
+
+## 13.3 Evidence
+
+正式 evidence 不再直接使用旧 plan_eval。
+
+候选计划至少包含：
+
+- G：shared predicted official return；
+- U_LWM：ensemble member return disagreement；
+- C：LLM checkpoint consistency；
+- O：operational burden feature。
+
+O 首选定义：
+
+- 由 action duration 与 traffic-policy mismatch 等可观测 operational burden 构成；
+- 只作为 PPO 输入 feature；
+- 不自动等于额外 reward penalty。
+
+## 13.4 Evidence normalization
+
+G/U/C/O 的数值尺度可能差异很大。
+
+正式 PPO 前增加 train-only running normalizer 或固定 feature scaling。
+
+必须避免：
+
+- 用 test episodes 拟合；
+- candidate 数变化导致尺度漂移。
+
+---
+
+# 14. Gate A 详细实施
+
+## A1 — Shared Action Contract
+
+状态：PASS。
+
+审核记录：
+- docs/step3-A1.md
+
+完成：
+- 五动作语义；
+- ID；
+- CC4 action type placeholder；
+- duration metadata；
+- legacy isolation。
+
+## A2 — Local-online Action Adapter
+
+状态：PASS。
+
+审核记录：
+- docs/step3-A2.md
+
+完成：
+- LocalThreatState；
+- 五类不同 transition semantics；
+- partial observability；
+- risk_proxy from observable events；
+- reward=0 Gate B placeholder；
+- 31 个 Gate A tests。
+
+## A3 — Official CybORG / CC4 Action Adapter
+
+状态：CURRENT。
+
+### A3 目标
+
+把五个高层 action 映射到真实 CC4 可执行 action，冻结 target selection、duration/availability 处理和 traffic-control lifecycle。
+
+### A3 子任务
+
+A3.1 Wrapper probe
+- 初始化正式 EnterpriseScenario + BlueFixedActionWrapper；
+- 枚举 blue_agent_0..4；
+- 保存 action_labels；
+- 保存 action_mask；
+- 保存 hosts；
+- 保存 subnets；
+- 明确 padding 行为。
+
+A3.2 no_op
+- high-level no_op -> Sleep；
+- 验证 Monitor 自动执行；
+- 不把 Monitor 当显式 no-op。
+
+A3.3 Host actions
+- Analyse / Remove / Restore；
+- 从 valid labels 中按 shared host resolver 选 target；
+- 若 host 不存在或被 padding，不能选 invalid index。
+
+A3.4 control_traffic
+- 解析 BlockTrafficZone label；
+- 解析 from_subnet / to_subnet；
+- 验证 blue_agent_0..4；
+- 验证 block persistence；
+- 验证 AllowTraffic cleanup；
+- 冻结第 8 节 lifecycle 方案。
+
+A3.5 Duration / decision availability
+- 实测 Analyse=2 / Remove=3 / Restore=5 的实际 wrapper 行为；
+- 确认何时 agent 再次可选择新动作；
+- 冻结 decision-epoch replay 定义。
+
+A3.6 Multi-agent scope
+- 正式主实验默认支持 blue_agent_0..4；
+- blue_agent_4 多 subnet 必须通过；
+- 如果因论文范围必须只研究部分 region，其余 agent 的背景 policy 必须对所有方法完全相同，并在论文中说明；
+- 为保证 official team reward 和方案效果，优先支持全部 5 agent。
+
+### A3 新增文件建议
+
+- shared/cyborg_action_adapter.py
+- shared/cyborg_target_resolver.py
+- tests/test_gate_a_cyborg_adapter.py
+- experiments/probe_cc4_action_contract.py
+
+### A3 验收
+
+必须满足：
+
+- 5 个 high-level action 均可解析；
+- 所有 agent 不使用固定 action index；
+- 只用 label + mask；
+- 相同 observation 得到相同 target；
+- 无 latent / future leakage；
+- control_traffic lifecycle 已冻结；
+- decision-epoch timing 已冻结；
+- 形成 docs/step3-A3.md。
+
+## A4 — Formal State / Replay / World-model Compatibility
+
+### A4 目标
+
+在进入 Step 4 前冻结真正用于论文实验的 state/data/model contract。
+
+### A4 子任务
+
+A4.1 FormalStateEncoder
+- D8 vs D13 validation；
+- phase / block / policy feature 提取；
+- text summary 与 vector 同源。
+
+A4.2 Formal replay collector
+- train seeds；
+- all 5 agents；
+- decision-epoch transition；
+- stratified action coverage；
+- official reward accumulation。
+
+A4.3 旧数据兼容性
+- 正式声明旧 replay / WM / PPO legacy-only；
+- 不允许隐式加载旧 checkpoint。
+
+A4.4 Bootstrap dynamics ensemble
+- independent bootstrap；
+- state normalization；
+- model validation；
+- uncertainty-error calibration。
+
+A4.5 Reward model
+- official reward target；
+- Huber；
+- held-out MAE/RMSE。
+
+A4.6 Checkpoint bundle
+一个正式 checkpoint bundle 必须同时记录：
+- state schema version；
+- action contract version；
+- target resolver version；
+- train seed list；
+- normalizer；
+- ensemble members；
+- reward model；
+- config hash。
+
+A4.7 Config cleanup
+- compare_ug_cem_local_online.yaml 中旧 costs/delays/old D=8 formal assumption 改为 development-only；
+- 正式新增 formal comparison config；
+- 不再从 src/action_space.py 读取正式动作定义。
+
+### A4 验收
+
+- formal state frozen；
+- replay frozen；
+- WM quality Gate 通过；
+- reward model quality通过；
+- Ours / UG 可加载同一 model bundle；
+- 形成 docs/step3-A4.md。
+
+## A5 — Gate A Final Review
+
+检查：
+
+- action contract；
+- action execution；
+- control traffic lifecycle；
+- duration；
+- formal state；
+- replay；
+- bootstrap ensemble；
+- reward model；
+- legacy isolation；
+- no leakage。
+
+只有 A5 PASS 才进入 Step 4。
+
+---
+
+# 15. Step 0–3 状态
+
+Step 0：PASS  
+Step 1：PASS  
+Step 2 Categorical CEM：PASS，详见 docs/step2.md  
+Step 3 UG uncertainty：PASS，详见 docs/step3.md
+
+Step 2/3 不因 D8->D13 候选变化而重写，因为：
+
+- CEM 只依赖 A/H；
+- uncertainty 对 D 维度通用。
+
+---
+
+# 16. Step 4 — Vectorized Shared Rollout Evaluator
+
+## 目标
+
+给一批 plans[N,H] 和当前 state[D]，生成：
+
+- next_states[H,N,M,D]
+- member_returns[N,M]
+- expected_return[N]
+
+并作为 Ours / UG 的共享前瞻模型接口。
+
+## 设计
+
+- fixed member through whole horizon；
+- deterministic mu rollout；
+- 不做 aleatoric resampling；
+- 每个 horizon × member 一次 N-batch forward；
+- reward 由 shared reward model 预测；
+- tick-aware discount；
+- evaluator 不知道 CEM / PPO / LLM。
+
+## 性能
+
+forward 数量从：
+N*M*H
+降为：
+M*H
+
+可选 raw trajectory cache：
+- 仅当前真实 decision epoch；
+- 只缓存 raw model outputs；
+- uncertainty normalization 仍对 sampled population 正常计算。
+
+## 测试
+
+至少：
+
+- shape；
+- member fixed；
+- vectorized 与 slow reference 数值一致；
+- no stochastic resampling；
+- reward accumulation；
+- duration-aware discount；
+- CPU/GPU device；
+- nonfinite guard；
+- batch N=1/N=64；
+- D8/D13 兼容。
+
+---
+
+# 17. Step 5 — UGCEM Planner
+
+## 目标
+
+组合：
+
 Categorical CEM
-+
-Rollout Evaluator
-+
-UG Uncertainty
-```
++ SharedRolloutEvaluator
++ UGUncertainty
++ MPC warm-start
 
-每个 CEM iteration：
+## 正式 score
 
-```text
-plans
- -> rollout
- -> G
- -> omega
- -> score = G - beta*omega/(iteration+1)
- -> elites
- -> categorical update
-```
+第 k 个 CEM iteration：
 
-Planner 负责：
+J_i =
+G_i - beta * omega_i / (k+1)
 
-- initial uniform probs；
-- previous final_probs；
-- MPC shift warm-start；
-- reset；
-- 返回 best_plan[0]；
-- debug info。
+必须保留 /(k+1)。
 
-建议返回：
+## MPC
 
-```python
-action_id, info
-```
+- 每个 decision epoch 重新规划；
+- best sampled plan；
+- 只执行 plan[0]；
+- final_probs 左移；
+- 最后一行补 uniform；
+- episode reset 清空 warm-start。
 
-其中 info 至少包含：
+## Debug 输出
 
-```text
-best_plan
-best_score
-predicted_return
-uncertainty
-final_probs
-planning_time
-```
+至少：
+
+- best_plan
+- best_score
+- expected_return
+- uncertainty
+- final_probs entropy
+- CEM iteration history
+- planning latency
 
 ---
 
-## Step 6 — Normalizer Warm-up
+# 18. Step 6 — Uncertainty Normalizer Warm-up
 
-状态：待执行。
+## 目标
 
-实现官方的：
+对 obs_mean / obs_std / horizon_std 做 source-faithful calibration。
 
-```text
-100 planner calls
-keep_last_solution=False
-```
+## 数据
 
-APT 版：
+只能来自：
+- train；
+- calibration seeds。
 
-- 使用 calibration states；
-- warm-up 时不携带上一个 CEM solution；
-- 只更新 uncertainty normalizer；
-- 不执行/不学习正式测试 episode；
-- 完成后再打开 MPC probability warm-start。
+禁止：
+- test future state；
+- test labels；
+- 正式 test 结果。
 
-必须记录：
+## 流程
 
-```text
-obs_mean
-obs_std
-horizon_std
-```
+- 100 planner calls 为默认；
+- warm-up 不使用 previous_solution；
+- 每 agent/planner 维护匹配其模型分布的 normalizer；
+- 记录 finite；
+- warm-up 后默认继续在线 EMA，作为 source-faithful 主版本。
 
-是否 finite。
-
----
-
-## Step 7 — Local-online Smoke Test
-
-状态：待执行。
-
-文件：
-
-```text
-experiments/run_ug_cem_apt.py
-```
-
-第一轮只跑：
-
-```text
-1 episode × 20 steps
-```
-
-确认完整链路：
-
-```text
-env.reset
- -> summary.vec
- -> UG-CEM
- -> action
- -> env.step
- -> new state
- -> replan
-```
-
-日志至少记录：
-
-```text
-t
-risk
-best_plan
-pred_return
-uncertainty
-score
-action
-env_reward
-planning_time
-```
-
-通过后：
-
-```text
-5 episodes × 100 steps
-```
-
-用于稳定性和速度检查。
+敏感性：
+- freeze_after_warmup true/false。
 
 ---
 
-## Step 8 — 公平比较 Harness
+# 19. Step 7 — Integration Smoke Tests
 
-状态：待执行。
+## 7.1 Local smoke
 
-文件：
+用途仅为软件联调：
 
-```text
-experiments/run_compare_planners.py
-```
+- 1 episode x 20 decisions；
+- 5 episodes x 100 decisions。
 
-支持：
+允许 development-only return adapter。
 
-```text
---method ours
---method ug_cem
-```
+结果不能进入论文主表。
 
-### Ours 必须是“干净论文版本”
+## 7.2 Official train-seed smoke
 
-```text
-LLM prior
- -> build_evidence
- -> PPO
- -> plans[idx][0]
-```
+在正式 CC4 train seed 上：
+
+- 2 episodes x 50 ticks；
+- 检查 action adapter；
+- decision epochs；
+- reward model；
+- planner；
+- multi-agent。
+
+在 Gate B 前不生成最终 PPO 结果。
+
+---
+
+# 20. Gate B — Ours 的正式 reward / prior / PPO 冻结
+
+Gate B 在正式 PPO 重训前执行。
+
+## B1 Reward objective
+
+首选主目标：
+
+- official CC4 accumulated reward；
+- action duration 由环境真实体现；
+- 不再手工重复加旧 action cost / lambda_delay；
+- 不包含 early-warning lead steps。
+
+如果 PPO 收敛明显不稳定，可以研究 potential-based shaping：
+
+F(s,s') = gamma*Phi(s') - Phi(s)
+
+但必须：
+
+- train/validation 决定；
+- 不用 test；
+- Ours / shared plan-return 语义一致；
+- 正式报告 shaping 公式。
+
+## B2 LLM prior v2
+
+冻结：
+
+- model；
+- prompt；
+- temperature；
+- candidate K；
+- H=4；
+- parser；
+- fallback；
+- duplicate handling。
+
+## B3 Evidence
+
+冻结 G/U/C/O 定义和 normalization。
+
+## B4 PPO
+
+旧 PPO checkpoint 全部 legacy。
+
+正式 PPO：
+- 新 action semantics；
+- 新 evidence；
+- new reward；
+- train seeds；
+- validation model selection；
+- 固定 random seeds；
+- 保存 optimizer/config metadata。
+
+## B5 PPO 稳定性
+
+至少检查：
+
+- entropy；
+- KL / clip fraction；
+- value loss；
+- policy loss；
+- action distribution；
+- candidate-rank distribution；
+- validation official return。
+
+避免：
+- action collapse；
+- 永久 no_op；
+- 永久 restore；
+- 只靠 prior score 不看 evidence。
+
+---
+
+# 21. Step 8 — Fair Comparison Harness
+
+新增正式 evaluator，不复制旧 hybrid boost。
+
+统一 method API：
+
+method.observe(current_shared_state, current_raw_obs)
+method.plan()
+-> high_level_action_id
+
+之后统一：
+
+high_level_action
+-> shared target resolver
+-> shared CybORG adapter
+-> official environment
+
+## Primary planner-level comparison
+
+Ours：
+LLM prior -> shared evaluator/evidence -> PPO -> plan[0]
+
+UG：
+Categorical CEM -> shared evaluator -> UG penalty -> plan[0]
+
+CEM：
+与 UG 相同但 beta=0。
 
 不得加入：
 
-```text
-_heuristic_plan_score
-_obs_heuristic_action
-action_vote
-risk/severity hand rules
-```
+- _heuristic_plan_score
+- _obs_heuristic_action
+- action_vote
+- method-specific host resolver
+- risk threshold hard override
+- test-time bandit boost。
 
-因为现有 `run_deploy_region.py` 包含额外工程启发式，不适合作为公平主实验 Ours。
+## Coordinator 问题
 
-### UG-CEM
+若后续 full-system Ours 使用 region coordinator：
 
-```text
-summary.vec
- -> UGCEMPlanner
- -> best_plan[0]
-```
-
-### 必须共享
-
-```text
-environment
-seed
-summary
-action mapping
-world model checkpoint
-predicted return
-episode count
-episode length
-metrics
-```
+- 若 coordinator 与 planner 核心无关，UG/CEM 也必须共享；
+- 若 coordinator 是 Ours 的明确论文贡献，则必须另外报告“full-system comparison”，不能与“planner-level mechanism comparison”混成一张表。
 
 ---
 
-## Step 9 — Beta 验证和消融
+# 22. Step 9 — Validation、超参数与消融
 
-状态：待执行。
+## 22.1 Equal tuning budget
 
-比较：
+Ours / UG 的主要超参数必须使用相同 validation seed pool，并限制相似的 tuning budget。
 
-```text
-beta = 0
+禁止：
+- 只给 Ours 大量调参；
+- UG 用默认值然后直接比较。
+
+## 22.2 UG beta
+
+候选：
+
+0
+0.05
 0.1
 0.2
 0.3
 0.5
 1.0
-```
 
-用途：
+beta=0 = CEM-APT。
 
-```text
-beta=0        -> CEM
-beta=best_val -> UG-CEM
-```
+## 22.3 CEM compute
 
-这会直接得到：
+validation 比较：
 
-> “不确定性引导是否真正有效”的消融实验。
+- N=64/I=4
+- N=128/I=5
+- N=200/I=5
+
+同时记录：
+- return；
+- latency；
+- plan diversity。
+
+## 22.4 Ours ablation
+
+至少：
+
+- Full LWM-RL
+- w/o LLM prior（uniform prior）
+- w/o U evidence
+- w/o PPO（greedy predicted G 或固定规则，必须提前冻结）
+- 可选 w/o world-model foresight
+
+## 22.5 Model ablation
+
+可选论文附录：
+
+- non-bootstrap ensemble
+- bootstrap ensemble
+
+用于证明 uncertainty quality 变化。
 
 ---
 
-## Step 10 — 正式 CybORG / CC4 对比
+# 23. Step 10 — 正式 CybORG / CC4 主实验
 
-状态：待执行。
+## 23.1 主实验范围
 
-基于：
+优先：
 
-```text
-experiments/run_region_official_cyborg_eval.py
-```
+- blue_agent_0..4 全部受控；
+- 100 episodes；
+- 500 global ticks；
+- FiniteStateRedAgent；
+- EnterpriseGreenAgent；
+- 完全相同 environment seeds。
 
-新建统一 evaluator，而不是直接复制 hybrid boost。
-
-正式 evaluator 必须：
-
-- Ours 与 UG 共用相同 CybORG；
-- 相同 red/green agent；
-- 相同 episode seeds；
-- 相同 target region；
-- 相同 high-level -> CybORG action adapter；
-- 相同 official reward；
-- 不给任意一方额外 tactical heuristic。
+如果计算资源不足：
 
 先：
+- 20 x 100 validation smoke；
 
-```text
-2 episodes × 50 steps
-```
+最终至少：
+- 按计算能力给出 100x500 或清楚解释缩减原因。
 
-再：
+## 23.2 Paired evaluation
 
-```text
-20 episodes × 100 steps
-```
+同一 episode seed：
 
-最后论文设置：
+- Ours
+- UG
+- CEM
 
-```text
-100 episodes × 500 steps
-```
+使用完全相同环境初始化。
 
-如果计算量过高，先报告 runtime，再决定是否调整 CEM population；不能悄悄只降低 UG 的资源而不记录。
+## 23.3 Training-seed robustness
 
----
+理想：
+- 3 个 learned-model / PPO training seeds；
+- 每个 seed 小规模 paired evaluation。
 
-## Step 11 — 指标、日志与统计
-
-正式结果至少统一输出：
-
-```text
-mean episode return
-std episode return
-planning latency
-action distribution
-predicted return
-uncertainty
-```
-
-如果论文主指标需要：
-
-```text
-average recovery time
-recovery precision
-```
-
-`early-warning lead steps / 提前预警步数` 已从最终指标中删除。
-
-必须让两个方法使用同一 metric evaluator。
-
-建议使用完全相同的 episode seed 列表，因此结果天然形成 paired samples。
-
-可以补充：
-
-- 95% bootstrap CI；
-- paired significance test；
-
-但论文主表仍以统一指标为主。
+主表可使用冻结后的正式 checkpoint + 100 paired environment seeds；
+附录报告 training-seed sensitivity。
 
 ---
 
-## Step 12 — 最终复现实验与论文表格
+# 24. Step 11 — Metrics 与统计
 
-最终至少形成：
+## Primary
 
-```text
-LWM-RL (Ours)
-UG-CEM-APT
-CEM-APT (beta=0)
-```
+- official team episode return；
+- mean；
+- std；
+- median；
+- 95% bootstrap CI。
 
-以及后续其它论文 baseline：
+## Secondary
 
-```text
-UA-MCTS-APT
-CAICS-APT
-```
+- per-agent / per-region return；
+- green availability penalty；
+- red impact/access penalty；
+- action success rate；
+- fallback-to-Sleep rate；
+- Analyse/Control/Remove/Restore distribution；
+- block-induced service penalty；
+- Restore frequency；
+- planning latency；
+- decision count；
+- average decision_dt。
 
-最终报告中必须清楚写明：
+## Model diagnostics
 
-> 所有对比方法均在保持其核心决策机制的基础上适配至本文状态空间、动作空间及 CC4 实验接口，因此属于领域适配实现，而非逐行完全复现原作者环境。
+- one-step WM error；
+- H=4 rollout error；
+- reward model MAE；
+- uncertainty-error correlation；
+- uncertainty quantiles。
 
----
+## Statistical comparison
 
-# 13. 正式比较时禁止的行为
+由于相同 episode seed 配对：
 
-以下行为一律视为“不公平实验”：
+- paired bootstrap CI；
+- 配对显著性检验；
+- 同时报告 effect size。
 
-1. UG 使用不同 world model checkpoint；
-2. Ours 使用额外 heuristic，UG 不使用；
-3. 只有 UG 被额外收取动作成本；
-4. 只有一个方法看到未来真实状态；
-5. 使用 test seed 调 beta；
-6. 使用 test 攻击标签做 planner 输入；
-7. replay 固定轨迹环境用于证明在线控制性能；
-8. Ours 和 UG 使用不同 episode seed；
-9. 为了提高 UG 结果临时改变 reward；
-10. 为了提高 Ours 结果保留 `run_deploy_region.py` 中额外启发式。
+不再使用：
 
----
-
-# 14. 代码审核标准
-
-每个 Step push 后，ChatGPT 必须直接读取 GitHub 审核。
-
-## Step 2 审核
-
-检查：
-
-- categorical sampling；
-- elite 数；
-- alpha 方向；
-- prob floor；
-- probability normalization；
-- best plan；
-- seed；
-- 测试覆盖。
-
-## Step 3 审核
-
-检查：
-
-- canonical shape `[H,N,M,D]`；
-- std 是否沿 M；
-- obs stats；
-- horizon stats；
-- `/(i+1)` 是否由 planner 正确使用；
-- epsilon 是否仅用于数值稳定。
-
-## Step 4 审核
-
-检查：
-
-- member 是否固定；
-- batch rollout；
-- 是否错误使用 aleatoric sampling；
-- 是否共享原世界模型；
-- predicted reward 是否一致。
-
-## Step 5 审核
-
-检查：
-
-- CEM + uncertainty 组合；
-- MPC warm-start；
-- 只执行首动作；
-- reset；
-- logging。
-
-## Step 8+ 审核
-
-检查：
-
-- 公平性；
-- seed；
-- checkpoint；
-- action mapping；
-- reward；
-- label leakage；
-- hidden heuristic。
+- early-warning lead steps。
 
 ---
 
-# 15. Git 提交原则
+# 25. Step 12 — 最终论文表格
 
-建议一个阶段一个 commit。
+至少形成：
 
-示例：
+主表：
+- LWM-RL
+- UG-CEM-APT
+- CEM-APT
 
-```text
-Step 1
-chore(ug-cem): add baseline scaffold and comparison config
+消融表：
+- LWM-RL full
+- no LLM
+- no U
+- no PPO
 
-Step 2
-feat(ug-cem): implement categorical CEM optimizer
+模型质量表：
+- bootstrap ensemble quality
+- reward model quality
+- uncertainty calibration
 
-Step 3
-feat(ug-cem): add uncertainty normalization
+效率表：
+- planning latency
+- runtime
+- model forward count
 
-Step 4
-feat(ug-cem): add vectorized world-model rollout evaluator
+论文必须清楚写：
 
-Step 5
-feat(ug-cem): integrate uncertainty-guided planner
-
-Step 7
-test(ug-cem): add local online smoke evaluation
-
-Step 8
-feat(eval): add fair planner comparison harness
-```
-
-不要：
-
-- 一个 commit 同时改十几个无关模块；
-- 把 `__pycache__`、`.pyc`、临时日志一起提交；
-- 直接改 `me`；
-- 改 UG 官方源码。
+> 对比方法保留其核心决策机制，但共享本文统一状态、动作、世界模型、reward objective 与 CC4 adapter，因此属于 domain-adapted implementation，而非逐行复现原作者环境。
 
 ---
 
-# 16. 当前进度
+# 26. 影响最终效果的优先优化顺序
 
-截至 2026-09-15：
+如果时间有限，优化优先级固定为：
 
-```text
-[x] Step 0  创建 ug-cem-apt 分支
-[x] Step 1  baseline scaffold + comparison config
-[x] Step 2  Categorical CEM
-[x] Step 3  UG uncertainty
-[~] Gate A  进行中：A1/A2 已完成，当前 A3
-[ ] Step 4  Vectorized rollout evaluator
-[ ] Step 5  UGCEM planner
-[ ] Step 6  Normalizer warm-up
-[ ] Step 7  Local-online smoke test
-[ ] Gate B  冻结新的 PPO reward 并重训正式 PPO
-[ ] Step 8  Fair comparison harness
-[ ] Step 9  Beta validation + ablation
-[ ] Step 10 Official CybORG/CC4 comparison
-[ ] Step 11 Metrics/statistics
-[ ] Step 12 Final experiments / thesis tables
-```
+P0：
+1. 正确的 CC4 action adapter；
+2. action duration / decision epoch；
+3. D13 mission/policy context；
+4. 重新采集正式 replay；
+5. bootstrap ensemble；
+6. reward model 对齐 official reward；
+7. 新 LLM action vocabulary；
+8. PPO 重训。
 
-当前下一步：
+P1：
+9. evidence normalization；
+10. candidate diversity；
+11. beta validation；
+12. vectorized planning。
 
-> **Gate A3：在不污染旧 evaluator 的前提下，新增共享 CybORG/CC4 action adapter，验证 no_op / analyse / control_traffic / remove / restore 的真实底层执行映射，尤其完成 BlockTraffic 的 subnet-pair 参数与 action availability 验证。A3 完成后继续 A4 replay / world-model compatibility。**
+P2：
+13. raw trajectory cache；
+14. delta-model ablation；
+15. extra statistical analyses。
 
----
+禁止为了追求表面效果优先做：
 
-# 17. 每次继续时的固定口令
-
-用户可以直接说：
-
-```text
-下一步
-```
-
-或：
-
-```text
-Step X 已 push，请审核
-```
-
-ChatGPT 收到后必须先读取：
-
-```text
-chapter2_region_detection/docs/UG_CEM_APT_REPRODUCTION_PLAN.md
-```
-
-再读取当前分支 diff 和本阶段相关源码，然后继续。
-
-如果后续讨论中出现与本文件不同的新方案：
-
-1. 先说明为什么要改；
-2. 确认是否属于 bug fix、效率优化还是算法改变；
-3. 算法改变必须先更新本文件；
-4. 再修改实现。
+- test-time heuristics；
+- Ours-only action override；
+- test seed 调参；
+- hidden red-state leakage。
 
 ---
 
-# 18. 一句话记住整个方案
+# 27. 正式比较时的禁止项
 
-```text
-共享状态 + 共享世界模型 + 在 Gate B 后冻结的统一 reward/预测回报，
-只把 LLM+PPO 规划选择器替换成
-Categorical CEM + 官方风格 trajectory uncertainty，
-每步只执行最佳计划的第一个动作，
-最后在相同 CybORG/CC4 条件下做 paired comparison。
-```
+1. Ours / UG 使用不同 state；
+2. Ours / UG 使用不同 WM checkpoint；
+3. Ours / UG 使用不同 reward model；
+4. 只给 Ours 看 mission phase / policy；
+5. 只给 Ours 更强 target resolver；
+6. 只给 UG 收 action cost；
+7. 使用 test seed 调 beta；
+8. 使用 test seed 调 PPO；
+9. 使用 true red host/location；
+10. 把 action ID 当连续强度；
+11. 忽略 action_mask；
+12. 假设不同 Blue agent 的同 index action 相同；
+13. 使用旧 replay / checkpoint 冒充新语义；
+14. 使用 local simulator 结果替代正式 CC4 主结果；
+15. 把 early-warning lead steps 重新塞回 reward；
+16. 保留 run_deploy / hybrid 脚本中的隐藏 heuristic 做主实验。
+
+---
+
+# 28. 每阶段审核模板
+
+每次 push 后必须审核：
+
+1. Git diff 是否只包含本阶段；
+2. 是否修改 legacy src；
+3. 是否改变已冻结 contract；
+4. 是否有未来信息；
+5. 是否有 method-specific heuristic；
+6. unit tests；
+7. numerical finite；
+8. seed reproducibility；
+9. config consistency；
+10. 文档状态。
+
+每个 Gate A 子阶段完成后新增：
+
+- docs/step3-A1.md
+- docs/step3-A2.md
+- docs/step3-A3.md
+- docs/step3-A4.md
+- docs/step3-A5.md
+
+---
+
+# 29. 当前进度
+
+[x] Step 0  experimental branch  
+[x] Step 1  baseline scaffold  
+[x] Step 2  Categorical CEM  
+[x] Step 3  UG uncertainty  
+
+Gate A：
+[x] A1  Shared Action Contract  
+[x] A2  Local-online Action Adapter  
+[ ] A3  Official CybORG / CC4 Action Adapter  <- CURRENT  
+[ ] A4  Formal State / Replay / Bootstrap WM / Reward Model  
+[ ] A5  Gate A Final Review  
+
+之后：
+[ ] Step 4  Vectorized Shared Rollout Evaluator  
+[ ] Step 5  UGCEM Planner  
+[ ] Step 6  Normalizer Warm-up  
+[ ] Step 7  Integration Smoke Tests  
+[ ] Gate B  Formal Reward / LLM Prior / Evidence / PPO Freeze  
+[ ] Step 8  Fair Comparison Harness  
+[ ] Step 9  Validation + Ablation  
+[ ] Step 10 Official CC4 Main Experiment  
+[ ] Step 11 Metrics + Statistics  
+[ ] Step 12 Final Thesis Tables  
+
+---
+
+# 30. 下一步固定要求
+
+当前下一步不是直接写 A3 代码。
+
+进入 A3 实现前先完成：
+
+1. 阅读本任务书；
+2. 运行真实 CC4 action-space probe；
+3. 确认 5 Blue agents 的 labels / masks / hosts / subnets；
+4. 确认 BlockTraffic / AllowTraffic lifecycle；
+5. 确认 action duration 与 decision availability；
+6. 再冻结 A3 adapter API；
+7. 最后开始编码。
+
+---
+
+# 31. 一句话记住 v2.0
+
+共享 current observation
++ phase/policy-aware formal state
++ shared bootstrap probabilistic dynamics ensemble
++ shared official-reward model
++ shared target/action adapter
++ 严格 train/val/calibration/test 分离，
+
+然后只把：
+
+LLM prior + PPO posterior
+
+与：
+
+Categorical CEM + source-faithful uncertainty penalty
+
+作为核心方法差异，
+
+最终在相同 5-agent CybORG/CC4 条件下做 paired comparison。
