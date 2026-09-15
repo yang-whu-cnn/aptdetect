@@ -4,7 +4,7 @@
 > 稳定备份分支：`me`  
 > 实验分支：`ug-cem-apt`  
 > 当前任务：将论文 **Risk Sensitive Model-Based Reinforcement Learning using Uncertainty Guided Planning** 的核心规划机制适配到本项目离散 APT 防御动作空间，形成 **UG-CEM-APT** 对比基线，并与 LWM-RL 做公平对比。  
-> 最后更新：2026-09-14
+> 最后更新：2026-09-15
 
 ---
 
@@ -1062,7 +1062,15 @@ PASS
 
 ## Step 2 — Categorical CEM
 
-状态：**下一步**
+状态：**已完成（审核通过）**
+
+审核记录：
+
+```text
+chapter2_region_detection/docs/step2.md
+```
+
+最终结论：**PASS**
 
 文件：
 
@@ -1241,7 +1249,7 @@ Git diff 只包含 Step 2 文件（外加本任务书修订）
 
 ## Step 3 — UG Uncertainty
 
-状态：待执行。
+状态：**下一步**。
 
 文件：
 
