@@ -1539,8 +1539,8 @@ A3.6 async extension 已通过：mixed-duration per-agent readiness 使用 sched
 - [x] A4.3 Incident bookkeeping + response reward implementation
 - [x] A4.4 Bootstrap probabilistic ensemble world model
 - [~] A4.5 Validation + planning-value readiness  <- CURRENT
-  - [~] A4.5a formal CC4 replay collection + train/validation split — implementation/smoke PASS; 32 train + 8 validation collection PENDING  <- CURRENT
-  - [ ] A4.5b WM held-out validation / rollout / uncertainty calibration
+  - [x] A4.5a formal CC4 replay collection + train/validation split
+  - [~] A4.5b WM held-out validation / rollout / uncertainty calibration  <- CURRENT
   - [ ] A4.5c response-reward prediction path decision / validation
 - [ ] A4.6 A4 integration review
 
@@ -1554,7 +1554,7 @@ A4.4 正式 dynamics contract 在实现前冻结：M=5、两层 MLP hidden=128�
 
 A4.5a 正式 replay collection contract：必须使用真实 EnterpriseGreenAgent + FiniteStateRedAgent + BlueFixedActionWrapper，不允许 probe-only fp/reliability/attack 注入；planner/collection action selection 只能使用 observable tracker state。每个 agent 使用 scheduler-local executed duration 独立异步进入 decision epoch；requested action 采用 deterministic stratified round-robin exploration，target scores 只来自 ObservableHostEvidenceTracker；hidden controller state 仅用于 IncidentResponseBookkeeper / LWF reward bookkeeping。split 按完整 episode seed 划分，严禁 random transition split。冻结 seeds：train=1000..1031（32），validation=2000..2007（8），calibration=3000..3007（8），test=4000..4019（20）；A4.5 阶段只采集 train + validation，calibration/test 保持未触碰。默认 episode steps=100（CC4 EnterpriseScenarioGenerator 官方默认）。
 
-A4.5a implementation/smoke 已通过：seed=1000 真实 CC4 产生 320 decision transitions，四类 requested action 各 80；executed Sleep/Analyse/Remove/Restore=248/21/23/28；valid-target rate=0.30；fallback rate=0.525；23 incident hosts；JSONL 的 27D state、decision continuity、executed-duration、terminal incomplete 与 response-reward consistency 全部通过。该 fallback 比例属于 partial-observability 下的真实 adapter 行为，不使用 hidden truth 优化 collection policy。正式关闭 A4.5a 前仍需完成并审核 32 train + 8 validation episodes。 正式 A4.5a collection 统一使用 pad_spaces=False（wrapper 原生各 agent action-space size）；padding 仅属于 A3 compatibility coverage，不作为正式 replay data-generation setting。
+A4.5a 已完成正式 replay：train seeds 1000..1031 共 9041 transitions（8952 completed），validation seeds 2000..2007 共 2336 transitions（2315 completed）；四类 requested action 近似均衡；train executed Sleep/Analyse/Remove/Restore=6114/925/984/1018，validation=1641/214/233/248；train/validation fallback rate=0.428824/0.455479，valid-target rate=0.430188/0.395111；五个 Blue agent 与 incident hosts 均有充分覆盖。无需 collection-policy 优化；action imbalance 作为真实 partial-observability/fallback 现象保留，并在 A4.5b 增加 per-executed-action WM error 诊断。正式 collection 统一 pad_spaces=False；calibration/test seeds 未触碰。
 
 ---
 
@@ -1576,3 +1576,6 @@ LLM prior
 
 UG-CEM 与 CEM 使用完全相同的 state / action / WM / response reward，
 只比较 planning / posterior-selection 机制差异。
+
+
+A4.5b selection rule（在看到 WM 结果前冻结）：absolute 与 delta 使用完全相同 train replay、architecture、bootstrap/model seeds、epochs 与 validation episodes。Primary selector 为 held-out H=4 final-state RMSE。只有当 delta 的 aggregate H=4 RMSE 至少比 absolute 低 2%，且 8 个 validation episodes 中至少 6 个 episode 的 H=4 RMSE 更低时，才切换到 delta；否则保留 absolute。Selected model quality Gate：one-step RMSE 与 H=4 RMSE 都必须优于 persistence baseline；epistemic disagreement 对 per-sample prediction error 的 aggregate Spearman 必须 >0，且至少 5/8 validation episodes 为正。报告 mixture Gaussian NLL、H=2/H=4 RMSE、27维 per-feature、per-executed-action、per-agent diagnostics、high-error AUROC 与 uncertainty quantile calibration。不得使用 calibration/test seeds。
