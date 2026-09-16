@@ -5,7 +5,7 @@ A4.5b 已完成并正式选择 absolute Bootstrap Probabilistic WM：one-step RM
 > 仓库：yang-whu-cnn/aptdetect  
 > 稳定备份分支：me  
 > 实验分支：ug-cem-apt  
-> 当前阶段：Gate A、Step 4、Step 5 已 PASS / CLOSED；当前进入 Step 6 — Uncertainty Normalizer Warm-up  
+> 当前阶段：Gate A、Step 4–6 已 PASS / CLOSED；当前进入 Step 7 — Integration Smoke Tests  
 > 最后更新：2026-09-16  
 > 本文件是后续实现、审核、实验和论文撰写的唯一总路线图。若后续方案发生实质变化，必须先更新本文件，再改实现。
 
@@ -1076,6 +1076,10 @@ G_i - beta * omega_i / (k+1)
 
 # 19. Step 7 — Integration Smoke Tests
 
+当前状态：**SOURCE READY / LOCAL TEST + REAL SMOKE PENDING**  
+记录：`docs/step7.md`  
+实现：normalizer restore + local state smoke + official train-seed CC4 smoke
+
 ## 7.1 Local smoke
 
 用途仅为软件联调：
@@ -1504,8 +1508,8 @@ Gate A：
 
 [x] Step 4  Vectorized Shared Rollout Evaluator
 [x] Step 5  UGCEM Planner
-[~] Step 6  Normalizer Warm-up  <- CURRENT
-[ ] Step 7  Integration Smoke Tests
+[x] Step 6  Normalizer Warm-up
+[~] Step 7  Integration Smoke Tests  <- CURRENT
 [ ] Gate B  Four-action LLM Prior + PPO Freeze
 [ ] Step 8  Fair Comparison Harness
 [ ] Step 9  Validation + Ablation
@@ -1657,3 +1661,5 @@ Step 5 local closure：`tests.test_ug_cem_planner` 14/14 PASS，Step 2–5 combi
 Step 6b formal calibration pipeline 已实现：`collect_ug_calibration_states.py` 只从 calibration seeds 3000..3007 采集并落盘 planner-visible state/provenance，不保存 incident/reward/hidden/future 字段；`calibrate_ug_normalizer.py` 加载 v2 absolute WM + shared reward predictor，为 blue_agent_0..4 分别建立独立 UG normalizer，并从 8 seeds deterministic round-robin 选 100 states/agent。主版本输出 `outputs/ug_cem_v2/step6/ug_normalizers_online.pt` 与 JSON report，warm-up 后继续 online EMA。新增 9 个 6b guards；Step 6 专用 tests=23，Step2–6 combined=78。由于 runtime-freeze fix 与 6b code 都在上一轮 14/69 PASS 后新增，需本地 23/78 rerun 后再执行真实 calibration。
 
 Step 6a 最终 closure：runtime-freeze fix 后重新执行 Step 6 dedicated 23 tests 与 Step 2–6 combined 78 tests，结果均 `OK`；combined 仅 `test_cuda_device` 因本机无 CUDA 按预设规则 skip。6a 正式 PASS。当前只剩 6b real calibration：先运行 calibration state-only collector（seeds 3000..3007），再运行 per-agent 100-call UG normalizer calibration；结果必须 5 agents ×100 calls、all calibration seeds covered、finite=True、all_warm_starts_disabled=True、online_updates_after_warmup=True、pass=True 后才能关闭 Step 6。
+
+Step 6 real calibration 已完成并 CLOSED：calibration state-only collection 2301 records，5 个 Blue agent 分别 436/484/507/554/320 states，3000..3007 全覆盖，hidden_truth=False、reward_labels=False；formal normalizer run 为 5 agents ×100 calls=500，所有 agent all_warm_starts_disabled=True、finite=True，主版本 online_updates_after_warmup=True，最终 pass=True。Step 7 source 已实现：新增 per-agent calibrated normalizer restore interface 和 unified local/official smoke runner。local smoke 固定 1×20 + 5×100 planner calls；official smoke 固定 train seeds 1000/1001 ×50 ticks，闭环验证 5-agent planner/adapter/duration/async scheduler。新增 20 tests；当前待本地 20/98 regression 与 real smoke，通过前不进入 Gate B。
