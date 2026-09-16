@@ -1,3 +1,5 @@
+
+A4.5b 已完成并正式选择 absolute Bootstrap Probabilistic WM：one-step RMSE=0.132581 < persistence 0.180653；H=4 RMSE=0.191241 < persistence 0.218748；H=4 epistemic-error Spearman=0.695511，8/8 validation episodes 为正；delta H=4 RMSE=0.193774，仅赢 1/8 episodes，因此不满足冻结切换规则。selected target_mode=absolute。MAE 并非全面优于 persistence，论文只按实际结果报告，不事后改 Gate。
 # UG-CEM-APT 复现、领域适配与公平对比总任务书（v2.1）
 
 > 仓库：yang-whu-cnn/aptdetect  
@@ -1540,8 +1542,8 @@ A3.6 async extension 已通过：mixed-duration per-agent readiness 使用 sched
 - [x] A4.4 Bootstrap probabilistic ensemble world model
 - [~] A4.5 Validation + planning-value readiness  <- CURRENT
   - [x] A4.5a formal CC4 replay collection + train/validation split
-  - [~] A4.5b WM held-out validation / rollout / uncertainty calibration  <- CURRENT
-  - [ ] A4.5c response-reward prediction path decision / validation
+  - [x] A4.5b WM held-out validation / rollout / uncertainty calibration
+  - [~] A4.5c response-reward prediction path decision / validation  <- CURRENT
 - [ ] A4.6 A4 integration review
 
 A4.1 必须基于真实 CC4 Blue observation 构造 planner-visible state / host evidence；不得读取 hidden red sessions、true compromise labels、future information 或 A3 probe-only synthetic scores。A4.1a 已确认 reset Processes 属于 baseline，不得直接当 threat evidence；正式 tracker 仅允许 post-reset Monitor / Analyse evidence 提升 host threat state。
@@ -1579,3 +1581,14 @@ UG-CEM 与 CEM 使用完全相同的 state / action / WM / response reward，
 
 
 A4.5b selection rule（在看到 WM 结果前冻结）：absolute 与 delta 使用完全相同 train replay、architecture、bootstrap/model seeds、epochs 与 validation episodes。Primary selector 为 held-out H=4 final-state RMSE。只有当 delta 的 aggregate H=4 RMSE 至少比 absolute 低 2%，且 8 个 validation episodes 中至少 6 个 episode 的 H=4 RMSE 更低时，才切换到 delta；否则保留 absolute。Selected model quality Gate：one-step RMSE 与 H=4 final-state RMSE 都必须优于 persistence baseline；与论文多步 plan uncertainty 对齐，Gate 使用 H=4 fixed-member mean rollout 的 ensemble disagreement 与 H=4 per-window final-state error：aggregate Spearman 必须 >0，且至少 5/8 validation episodes 为正。one-step uncertainty correlation 仍报告但不作为主 Gate。报告 mixture Gaussian NLL、H=2/H=4 RMSE、27维 per-feature、per-executed-action、per-agent diagnostics、H=4 high-error AUROC 与 uncertainty quantile calibration。不得使用 calibration/test seeds。
+
+A4.5c reward-model contract（实现前冻结）：
+- 27D FormalState 不包含 hidden incident_active_ticks、incident_event_id/host_id 或 GreenLocalWork LWF penalty，因此不能从 predicted 27D state + action 精确 deterministic 重建论文 response reward；A4.5c 采用所有方法共享的 auxiliary response-reward predictor。
+- predictor 只能输入 planner-visible model-space variables：current 27D state、executed/canonical 4-action one-hot、next 27D state；hidden incident truth / incident IDs / host IDs / LWF breakdown 只作为 replay label bookkeeping，绝不能作为 predictor input。
+- 监督 target 仍是 A4.3 冻结的 accumulated response_reward，不另造 surrogate；只使用 completed train transitions，terminal incomplete 与 dynamics 一致地排除。
+- architecture：2-layer MLP, hidden=128, ReLU；input=27 + 4 + 27；train-only state normalization + train-only scalar reward normalization；MSE on normalized reward；Adam lr=3e-4；batch=256；epochs=50；固定 seed。
+- selected A4.5b absolute WM 与 reward predictor 组合验证 H=4 planning value；reward predictor 使用 r_hat(s,a,s_next)，每个 fixed WM member 沿 horizon 独立累积 member return。
+- paper 只说明 gamma 为 discount factor、未给数值。实现统一冻结 gamma_tick=0.99，所有方法共享；variable-duration decision epoch 使用 gamma_tick^(cumulative elapsed global ticks) 做 duration-aware discount。该数值属于实现超参数，不宣称来自论文。
+- one-step reward Gate：held-out RMSE 必须优于 train-mean constant baseline，并报告 MAE / Pearson / Spearman。
+- H=4 planning-value Gate：WM+reward predicted expected return 的 RMSE 必须优于 train-derived constant-return baseline；aggregate Spearman 必须 >0.3；至少 5/8 validation episodes 的 Spearman >0。另报告 oracle-state reward-model H=4 value error，用于区分 reward-model error 与 dynamics compounding error。
+- train seeds 仅用于 predictor fitting；validation seeds 仅用于 design validation；calibration/test seeds 继续保持未触碰。
