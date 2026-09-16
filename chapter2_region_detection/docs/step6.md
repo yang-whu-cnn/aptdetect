@@ -1,7 +1,7 @@
 # Step 6 — Uncertainty Normalizer Warm-up
 
 日期：2026-09-16  
-状态：**6A TESTS PASS / RUNTIME-FREEZE FIX RERUN PENDING / 6B PENDING**
+状态：**6A/6B SOURCE READY / LOCAL 23+78 REGRESSION PENDING / REAL CALIBRATION PENDING**
 
 ---
 
@@ -290,3 +290,180 @@ warm-up end   -> planner.set_uncertainty_update_mode(not freeze_after_warmup)
 并强化现有 freeze sensitivity test：warm-up 后再次 `planner.plan()`，直接比较 `obs_mean / obs_std / horizon_std`，要求三者保持完全不变。
 
 该问题不影响主版本 `freeze_after_warmup=False` 的 intended online-EMA 语义，但必须在 6b 前完成回归。由于测试代码已强化，不能沿用修复前的 14/69 PASS 作为最终 6a closure；需本地 rerun。
+
+## 14. Formal 6b calibration pipeline
+
+新增 state-only collector：
+
+```text
+formal_experiments/data_collection/collect_ug_calibration_states.py
+```
+
+正式固定：
+
+```text
+seeds       = 3000..3007
+steps       = 100
+pad_spaces  = False
+state_dim   = 27
+agents      = blue_agent_0..4
+```
+
+collector 复用 Gate A 已冻结的真实 CC4 trajectory/state encoder，但落盘时只投影以下字段：
+
+```text
+split
+episode_seed
+agent_name
+decision_index
+global_tick_start
+state
+```
+
+输出文件明确不保存：
+
+- incident host/event identity；
+- response reward；
+- official reward；
+- hidden compromise truth；
+- next_state / future labels。
+
+并要求每个 Blue agent 至少有 100 个 calibration states，否则直接失败。
+
+正式 calibration runner：
+
+```text
+formal_experiments/evaluation/calibrate_ug_normalizer.py
+```
+
+默认加载：
+
+```text
+outputs/ug_cem_v2/step6/calibration_states.jsonl
+outputs/world_model_v2/a4_5b/world_model_absolute.pt
+outputs/world_model_v2/a4_5c/response_reward_predictor.pt
+```
+
+每个 agent 独立建立：
+
+```text
+Categorical CEM
++ SharedRolloutEvaluator(shared frozen WM/reward)
++ independent UGUncertainty
++ UGCEMPlanner
+```
+
+calibration planner profile：
+
+```text
+H=4
+A=4
+M=5
+N=64
+I=4
+elite_ratio=0.30
+alpha=0.10
+prob_floor=0.01
+beta=0.10   # calibration/development profile, not Step-9 final beta
+UG alpha=0.01
+```
+
+每 agent 从 8 个 calibration seeds 中 deterministic round-robin 选 100 个 states，确保主 run 覆盖全部 `3000..3007`，而不是让文件顺序导致 warm-up 偏向前几个 episode。
+
+主版本输出：
+
+```text
+outputs/ug_cem_v2/step6/ug_normalizers_online.pt
+outputs/ug_cem_v2/step6/ug_normalizers_online_report.json
+```
+
+bundle 保存 5 个 agent 各自的：
+
+- obs_mean[27]；
+- obs_std[27]；
+- horizon_std[4]；
+- calibration/planner profile metadata。
+
+report 记录每 agent 100 calls、实际 seed coverage、finite、no-warm-start 与 online update policy。
+
+## 15. Additional 6b tests
+
+新增：
+
+```text
+tests/test_ug_normalizer_calibration.py
+```
+
+共 9 tests，覆盖：
+
+1. state-only projection exact schema；
+2. 非 calibration seed rejection；
+3. all-agent >=100 + no hidden/reward label summary；
+4. loader 拒绝额外 hidden 字段；
+5. exact calibration schema loading；
+6. deterministic balanced selection + all 8 seed coverage；
+7. missing seed / insufficient state rejection；
+8. formal N64/I4/A4/H4 calibration profile；
+9. v2 default artifact binding + tensor finite summary。
+
+因此 Step 6 当前测试总数：
+
+```text
+warm-up mechanism        14
+formal calibration        9
+---------------------------
+Step 6 total             23
+```
+
+Step 2–6 combined total 变为：
+
+```text
+16 + 12 + 13 + 14 + 14 + 9 = 78
+```
+
+## 16. Updated local close sequence
+
+由于 runtime-freeze fix 与 6b pipeline 都是在上一轮 14/69 PASS 之后新增，必须重新执行：
+
+```bash
+python -m unittest \
+  tests.test_ug_normalizer_warmup \
+  tests.test_ug_normalizer_calibration -v
+```
+
+目标：
+
+```text
+Ran 23 tests
+OK
+```
+
+再执行：
+
+```bash
+python -m unittest \
+  tests.test_categorical_cem \
+  tests.test_ug_uncertainty \
+  tests.test_shared_rollout_evaluator \
+  tests.test_ug_cem_planner \
+  tests.test_ug_normalizer_warmup \
+  tests.test_ug_normalizer_calibration -v
+```
+
+目标：
+
+```text
+Ran 78 tests
+OK
+```
+
+然后才进行真实 6b：
+
+```bash
+python -m formal_experiments.data_collection.collect_ug_calibration_states
+python -m formal_experiments.evaluation.calibrate_ug_normalizer --device cpu
+```
+
+正式 main run 不加 `--freeze-after-warmup`；该 flag 只留给 Step 9 sensitivity。
+
+6b 最终必须输出 `pass: True`，5 个 agent 均为 100 calls、seeds=3000..3007、finite=True、all_warm_starts_disabled=True、online_updates_after_warmup=True。
