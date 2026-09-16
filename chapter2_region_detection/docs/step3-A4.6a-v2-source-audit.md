@@ -1,7 +1,7 @@
 # Step A4.6a v2 — Model-Space Action Consistency Source Audit
 
 日期：2026-09-16  
-状态：**RUNTIME PASS / SOURCE AUDIT BLOCKED**
+状态：**RUNTIME PASS / SOURCE FIXED / LOCAL RERUN PENDING**
 
 ---
 
@@ -54,45 +54,66 @@ tests/test_gate_a_model_space_action_consistency.py
 
 当前 GitHub commit 没有 CI workflow/status，因此本记录不把“测试文件存在”等同于“GitHub CI 已执行通过”。
 
-## 3. 阻塞问题：默认 artifact 路径仍指向旧 A4.5 产物
+## 3. 已修复：formal artifact binding
 
-当前 source 中 CLI 默认值仍为：
+已完成源码修复：
 
-```text
-outputs/formal_replay/{train,validation}.jsonl
-outputs/world_model/a4_5b/world_model_absolute.pt
-outputs/world_model/a4_5c/response_reward_predictor.pt
-outputs/world_model/a4_6a/action_consistency_report.json
-```
+- commit `444ad85e4584f455c087c146c2e90571078c8af3`：把 A4.6a evaluator 默认输入/输出绑定到 v2 artifact；
+- commit `5dc197d00838d53d8b25079c5782fd4e3186bc40`：新增 formal v2 default-path regression tests。
 
-但 corrective v2 已明确要求：
+当前正式默认路径为：
 
 ```text
-outputs/formal_replay_v2/{train,validation}.jsonl
-outputs/world_model_v2/a4_5b/...
-outputs/world_model_v2/a4_5c/...
+outputs/formal_replay_v2/train.jsonl
+outputs/formal_replay_v2/validation.jsonl
+outputs/world_model_v2/a4_5b/world_model_absolute.pt
+outputs/world_model_v2/a4_5c/response_reward_predictor.pt
+outputs/world_model_v2/a4_6a/action_consistency_report.json
 ```
 
-A4.5b-v2 文档已明确 selected world model 位于 `outputs/world_model_v2/a4_5b/world_model_absolute.pt`。
+源码中已不存在 `outputs/formal_replay/` 或 `outputs/world_model/` legacy 默认路径字面量。
 
-因此当前 evaluator 的算法逻辑与 v2 runtime contract 基本一致，但**默认执行入口存在 legacy artifact drift**。
+默认路径已提取为模块常量：
 
-如果直接无参数运行脚本，有可能重新读取已被 supersede 的旧 replay / checkpoint，从而破坏 A4.6a“必须使用 v2 artifacts”的冻结要求。
+- `DEFAULT_TRAIN_REPLAY`；
+- `DEFAULT_VALIDATION_REPLAY`；
+- `DEFAULT_WORLD_MODEL`；
+- `DEFAULT_REWARD_MODEL`；
+- `DEFAULT_REPORT_OUT`。
 
-## 4. 必须修复后才能关闭 A4.6a
+新增两个单元测试：
 
-至少完成以下一项正式方案，并写入测试/文档：
+- `test_formal_defaults_use_v2_artifacts`；
+- `test_formal_defaults_do_not_bind_legacy_artifacts`。
 
-### 方案 A：v2 defaults
+该测试文件现共有 9 个 `test_*`。
 
-把 A4.6a evaluator 默认路径统一改为 v2 artifact 目录，并新增测试或 source assertion，保证默认路径不再指向 legacy A4.5 产物。
+## 4. 当前仍需完成：本地 rerun
 
-### 方案 B：禁止隐式 defaults
+GitHub 仓库未提交 formal v2 replay / checkpoint 大产物，因此 connector 端无法执行真实 A4.6a numerical rerun。
 
-要求 formal Gate 运行必须显式传 train replay、validation replay、selected world model、response reward predictor、output path；缺失正式 artifact 参数时直接拒绝运行。
+必须在保存 v2 artifacts 的本地实验环境执行：
 
-无论采用哪一种，都必须确保 A4.6a formal command 不可能静默读取 superseded artifacts。
+```bash
+cd chapter2_region_detection
+python -m unittest tests.test_gate_a_model_space_action_consistency -v
+python -m formal_experiments.evaluation.audit_model_space_action_consistency --device cpu
+```
 
+无参数 evaluator 现在应直接读取 v2 artifacts。
+
+rerun 后必须确认：
+
+- 9 个 unit tests 全部 PASS；
+- train mapping accuracy = 1.0；
+- validation mapping accuracy = 1.0；
+- feature=1 but fallback = 0；
+- feature=0 but nonfallback = 0；
+- H4 state RMSE 仍优于 persistence；
+- H4 value RMSE 仍优于 constant baseline；
+- H4 value Spearman > 0.3；
+- 至少 5/8 validation episode Spearman > 0；
+- 结果与已记录 v2 runtime 数值无异常漂移。
 ## 5. 当前审核结论
 
 ```text
@@ -103,11 +124,11 @@ Evaluator source pushed : PASS
 Core canonical logic    : PASS
 Unit-test source present: PASS
 GitHub CI execution     : NOT AVAILABLE
-Formal artifact binding : BLOCKED (legacy default-path drift)
+Formal artifact binding : FIXED
+Local unit-test rerun   : PENDING
+Local numerical rerun   : PENDING
 
-FINAL STATUS: NOT CLOSED
+FINAL STATUS: SOURCE FIXED / RERUN PENDING
 ```
 
-A4.6a 的下一动作不是重新调 WM 或 reward predictor，而是修正 formal artifact binding，然后再次执行同一 v2 command / tests，确认报告数值与已记录 runtime PASS 一致。
-
-完成后才可进入 A4.6b formal v2.1 config freeze + legacy isolation。
+A4.6a 当前不需要重新调 WM 或 reward predictor。下一动作仅是在本地 v2 artifacts 上运行上述 9 个 tests 与 evaluator；结果确认后即可把 A4.6a 正式 CLOSED，并进入 A4.6b formal v2.1 config freeze + legacy isolation。
