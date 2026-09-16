@@ -57,7 +57,10 @@ FORMAL_STATE_FEATURE_NAMES = (
     # observable target summary
     "max_host_score",
     "mean_positive_host_score",
-    "any_observable_target",
+
+    # A4.1c:
+    # truly executable observable target exists
+    "any_valid_observable_target",
 
     # top-ranked observable host
     "top_host_has_process",
@@ -97,8 +100,7 @@ class HostEvidence:
     一个 Blue agent 对一台 host 的
     planner-visible evidence。
 
-    注意：
-        所有字段只能由 Blue observation 更新。
+    所有字段只能由 Blue observation 更新。
 
     禁止来源：
         controller true state
@@ -302,9 +304,6 @@ def _squash_nonnegative(
     x -> x / (1 + x)
 
     将非负无界量映射至 [0, 1)。
-
-    不依赖 seed / agent-specific max，
-    后续更适合统一 WM normalization。
     """
 
     x = float(
@@ -336,14 +335,8 @@ def _success_name(
     raw_success: Any,
 ) -> str:
     """
-    兼容：
-
-        TernaryEnum.TRUE
-        <TernaryEnum.TRUE: 1>
-        "TRUE"
-        bool
-
     输出固定四类：
+
         FALSE
         TRUE
         UNKNOWN
@@ -385,8 +378,6 @@ def _success_name(
         if name in text:
             return name
 
-    # 缺失或未来 wrapper 未知值
-    # 保守编码为 UNKNOWN。
     return "UNKNOWN"
 
 
@@ -425,30 +416,12 @@ class ObservableHostEvidenceTracker:
     """
     A4 正式 planner-visible host evidence tracker。
 
-    生命周期：
-
-        tracker = ObservableHostEvidenceTracker(agent)
-
-        tracker.reset(reset_observation)
-
-        tracker.update(
-            observation=...,
-            global_tick=...,
-            completed_action_family=...,
-            completed_target_host=...,
-            completed_action_success=...,
-        )
-
-    最重要的 contract：
-
     RESET:
         只建立 inventory + IP mapping。
-        RESET 中的 Processes 不算 threat evidence。
+        reset Processes 不算 threat evidence。
 
     POST-RESET:
-        Processes
-        Connections
-        Files
+        Processes / Connections / Files
         才进入 evidence。
 
     Ground truth:
@@ -507,10 +480,6 @@ class ObservableHostEvidenceTracker:
         self._reset_done = False
         self._last_global_tick = 0
 
-    # --------------------------------------------------------
-    # public properties
-    # --------------------------------------------------------
-
     @property
     def inventory(
         self,
@@ -558,11 +527,6 @@ class ObservableHostEvidenceTracker:
             Any,
         ],
     ) -> None:
-        """
-        只从 Blue reset observation 建 inventory。
-
-        不从 controller 获取 hostname。
-        """
 
         if not isinstance(
             reset_observation,
@@ -676,12 +640,6 @@ class ObservableHostEvidenceTracker:
             ip_map
         )
 
-        # ====================================================
-        # CRITICAL
-        #
-        # reset Processes are baseline,
-        # NOT threat evidence.
-        # ====================================================
         self._evidence = {
             hostname:
                 HostEvidence(
@@ -714,11 +672,6 @@ class ObservableHostEvidenceTracker:
             Mapping[str, Any]
         ] = None,
     ) -> Optional[str]:
-        """
-        hostname key 或 IP key -> reset inventory hostname。
-
-        未知 host 不进入 planner evidence。
-        """
 
         text = str(
             raw_key
@@ -781,15 +734,6 @@ class ObservableHostEvidenceTracker:
         self,
         hostname: str,
     ) -> None:
-        """
-        清除 planner-visible historical evidence。
-
-        正式语义：
-            successful Restore 可以调用。
-
-        Remove success 不调用，
-        因为 Remove != host definitely normal。
-        """
 
         hostname = str(
             hostname
@@ -825,18 +769,6 @@ class ObservableHostEvidenceTracker:
             bool
         ] = None,
     ) -> None:
-        """
-        用一次真实 Blue post-reset observation
-        更新 evidence。
-
-        completed_* 仅表示 Blue 自己刚执行的动作，
-        不是 hidden ground truth。
-
-        Restore success:
-            清除旧 evidence，
-            然后再处理当前 observation 中
-            新出现的 Monitor / Analyse evidence。
-        """
 
         if not self._reset_done:
             raise RuntimeError(
@@ -878,10 +810,6 @@ class ObservableHostEvidenceTracker:
                 "monotonic"
             )
 
-        # ====================================================
-        # Restore semantics
-        # ====================================================
-
         if (
             completed_action_family
             == "Restore"
@@ -917,8 +845,6 @@ class ObservableHostEvidenceTracker:
             )
 
             if hostname is None:
-                # 不允许 observation 中
-                # 未知 host 被自动扩展进 inventory。
                 continue
 
             (
@@ -1038,25 +964,29 @@ class ObservableHostEvidenceTracker:
             ]
         )
 
-        # 返回复制，避免调用方绕过 tracker
-        # 修改内部状态。
         return HostEvidence(
             hostname=item.hostname,
+
             process_events=int(
                 item.process_events
             ),
+
             connection_events=int(
                 item.connection_events
             ),
+
             file_events=int(
                 item.file_events
             ),
+
             observation_hits=int(
                 item.observation_hits
             ),
+
             first_seen_tick=(
                 item.first_seen_tick
             ),
+
             last_seen_tick=(
                 item.last_seen_tick
             ),
@@ -1087,28 +1017,6 @@ class ObservableHostEvidenceTracker:
         *,
         global_tick: int,
     ) -> float:
-        """
-        该 score 仅用于：
-
-            Analyse / Remove / Restore
-            的 observable target ranking。
-
-        它不是：
-            attack probability
-            PPO reward
-            world-model value
-
-        权重表达证据强度顺序：
-
-            process    1
-            connection 2
-            file       3
-
-        observation_hits 只提供小幅累积证据；
-        recency 只提供小幅时效信息。
-
-        所有方法共享同一规则。
-        """
 
         if (
             not evidence
@@ -1179,9 +1087,6 @@ class ObservableHostEvidenceTracker:
         str,
         float,
     ]:
-        """
-        A3 CybORGActionAdapter 的正式输入。
-        """
 
         if not self._reset_done:
             raise RuntimeError(
@@ -1218,7 +1123,9 @@ class ObservableHostEvidenceTracker:
             score = (
                 self._raw_evidence_score(
                     evidence,
-                    global_tick=global_tick,
+                    global_tick=(
+                        global_tick
+                    ),
                 )
             )
 
@@ -1243,12 +1150,6 @@ class ObservableHostEvidenceTracker:
     ) -> list[
         dict[str, Any]
     ]:
-        """
-        后续 Gate B 可由这里生成
-        LLM textual incident summary。
-
-        现在先冻结 observable-only source。
-        """
 
         if global_tick is None:
             global_tick = (
@@ -1366,19 +1267,25 @@ class ObservableHostEvidenceTracker:
 
 class FormalStateEncoder:
     """
-    A4.1b 正式固定维度 state encoder。
+    A4.1c 正式固定维度 state encoder。
 
     输出：
         np.ndarray shape=(27,)
         dtype=float32
 
-    输入只来自：
+    planner-visible 输入：
+
         ObservableHostEvidenceTracker
         当前 Blue observation
         当前 global tick
         episode_steps
+        any_valid_observable_target
 
-    不允许 env / controller 参数。
+    any_valid_observable_target 必须由
+    wrapper labels/mask + observable host scores
+    计算。
+
+    本类仍不允许读取 env/controller。
     """
 
     state_dim = (
@@ -1422,6 +1329,7 @@ class FormalStateEncoder:
         ],
         global_tick: int,
         episode_steps: int,
+        any_valid_observable_target: bool,
     ) -> np.ndarray:
 
         if not isinstance(
@@ -1470,8 +1378,17 @@ class FormalStateEncoder:
             or episode_steps <= 0
         ):
             raise ValueError(
-                "episode_steps must "
-                "be a positive int"
+                "episode_steps must be "
+                "a positive int"
+            )
+
+        if not isinstance(
+            any_valid_observable_target,
+            bool,
+        ):
+            raise TypeError(
+                "any_valid_observable_target "
+                "must be bool"
             )
 
         inventory_size = (
@@ -1493,6 +1410,28 @@ class FormalStateEncoder:
                 global_tick
             )
         )
+
+        # ----------------------------------------------------
+        # A4.1c consistency
+        #
+        # valid target -> observable evidence
+        #
+        # 反过来不成立：
+        #
+        # observable evidence
+        # !=
+        # currently valid action target
+        # ----------------------------------------------------
+
+        if (
+            any_valid_observable_target
+            and not scores
+        ):
+            raise ValueError(
+                "valid observable target "
+                "cannot exist without "
+                "observable host evidence"
+            )
 
         suspicious_hosts = (
             tracker.suspicious_hosts()
@@ -1572,7 +1511,7 @@ class FormalStateEncoder:
             mean_score = 0.0
 
         # ----------------------------------------------------
-        # recency of top host
+        # recency
         # ----------------------------------------------------
 
         top_recency = 0.0
@@ -1739,9 +1678,17 @@ class FormalStateEncoder:
         )
 
         # 17
+        #
+        # A4.1c:
+        #
+        # observable scored host
+        #       ∩
+        # wrapper-valid target host
+        #       != empty
+        #
         features.append(
             1.0
-            if scores
+            if any_valid_observable_target
             else 0.0
         )
 

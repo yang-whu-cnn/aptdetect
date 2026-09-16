@@ -1,6 +1,7 @@
 import unittest
 
 from shared.cyborg_target_resolver import (
+    observable_target_family_availability,
     resolve_sleep_action,
     resolve_target_action,
     valid_actions,
@@ -14,42 +15,45 @@ class TestGateACyborgTargetResolver(
     def setUp(
         self,
     ):
-        # 故意不使用真实 CC4 的 49 / 145。
-        #
-        # 这样可以证明 resolver
-        # 没有偷偷依赖固定 raw index。
         self.labels = [
             "Monitor",
+
             (
                 "[Invalid] "
                 "Analyse host_invalid"
             ),
+
             "Sleep",
+
             "Analyse host_b",
             "Analyse host_a",
+
             "Remove host_b",
             "Remove host_a",
+
             "Restore host_b",
             "Restore host_a",
+
             "BlockTrafficZone",
         ]
 
         self.mask = [
-            True,   # Monitor
-            False,  # invalid Analyse
-            True,   # Sleep
-            True,   # Analyse b
-            True,   # Analyse a
-            True,   # Remove b
-            True,   # Remove a
-            True,   # Restore b
-            True,   # Restore a
-            True,   # traffic action
+            True,
+            False,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
+            True,
         ]
 
     # =========================================================
-    # 1. only four-action valid candidates survive
+    # 1
     # =========================================================
+
     def test_valid_actions_filter_other_families(
         self,
     ):
@@ -60,7 +64,8 @@ class TestGateACyborgTargetResolver(
 
         families = [
             item.family
-            for item in got
+            for item
+            in got
         ]
 
         self.assertEqual(
@@ -77,8 +82,9 @@ class TestGateACyborgTargetResolver(
         )
 
     # =========================================================
-    # 2. invalid padded action excluded
+    # 2
     # =========================================================
+
     def test_invalid_padded_action_excluded(
         self,
     ):
@@ -89,7 +95,8 @@ class TestGateACyborgTargetResolver(
 
         labels = {
             item.label
-            for item in got
+            for item
+            in got
         }
 
         self.assertNotIn(
@@ -101,8 +108,9 @@ class TestGateACyborgTargetResolver(
         )
 
     # =========================================================
-    # 3. Sleep resolved dynamically
+    # 3
     # =========================================================
+
     def test_sleep_is_dynamic_not_fixed_index(
         self,
     ):
@@ -126,15 +134,19 @@ class TestGateACyborgTargetResolver(
         )
 
     # =========================================================
-    # 4. highest observable score
+    # 4
     # =========================================================
+
     def test_highest_observable_score_selected(
         self,
     ):
         got = resolve_target_action(
             family="Analyse",
+
             labels=self.labels,
+
             mask=self.mask,
+
             observable_host_scores={
                 "host_a": 0.30,
                 "host_b": 0.90,
@@ -156,15 +168,19 @@ class TestGateACyborgTargetResolver(
         )
 
     # =========================================================
-    # 5. deterministic tie break
+    # 5
     # =========================================================
+
     def test_equal_score_uses_host_name_tie_break(
         self,
     ):
         got = resolve_target_action(
             family="Analyse",
+
             labels=self.labels,
+
             mask=self.mask,
+
             observable_host_scores={
                 "host_b": 0.50,
                 "host_a": 0.50,
@@ -175,8 +191,6 @@ class TestGateACyborgTargetResolver(
             got
         )
 
-        # host_a 字典序优先，
-        # 即使它 raw index 更大。
         self.assertEqual(
             got.target_host,
             "host_a",
@@ -188,8 +202,9 @@ class TestGateACyborgTargetResolver(
         )
 
     # =========================================================
-    # 6. action family respected
+    # 6
     # =========================================================
+
     def test_requested_family_is_respected(
         self,
     ):
@@ -235,17 +250,22 @@ class TestGateACyborgTargetResolver(
         )
 
     # =========================================================
-    # 7. unknown observable host ignored
+    # 7
     # =========================================================
+
     def test_non_candidate_host_is_not_hallucinated(
         self,
     ):
         got = resolve_target_action(
             family="Remove",
+
             labels=self.labels,
+
             mask=self.mask,
+
             observable_host_scores={
-                "host_not_in_actions": 1.0,
+                "host_not_in_actions":
+                    1.0,
             },
         )
 
@@ -254,15 +274,19 @@ class TestGateACyborgTargetResolver(
         )
 
     # =========================================================
-    # 8. no observable evidence -> no target
+    # 8
     # =========================================================
+
     def test_no_observable_evidence_returns_none(
         self,
     ):
         got = resolve_target_action(
             family="Restore",
+
             labels=self.labels,
+
             mask=self.mask,
+
             observable_host_scores=None,
         )
 
@@ -271,8 +295,9 @@ class TestGateACyborgTargetResolver(
         )
 
     # =========================================================
-    # 9. invalid score rejected
+    # 9
     # =========================================================
+
     def test_nonfinite_score_rejected(
         self,
     ):
@@ -281,18 +306,23 @@ class TestGateACyborgTargetResolver(
         ):
             resolve_target_action(
                 family="Analyse",
+
                 labels=self.labels,
+
                 mask=self.mask,
+
                 observable_host_scores={
-                    "host_a": float(
-                        "nan"
-                    ),
+                    "host_a":
+                        float(
+                            "nan"
+                        ),
                 },
             )
 
     # =========================================================
-    # 10. malformed action-space rejected
+    # 10
     # =========================================================
+
     def test_labels_mask_length_mismatch_rejected(
         self,
     ):
@@ -304,14 +334,16 @@ class TestGateACyborgTargetResolver(
                     "Sleep",
                     "Analyse host_a",
                 ],
+
                 [
                     True,
                 ],
             )
 
     # =========================================================
-    # 11. unsupported family rejected
+    # 11
     # =========================================================
+
     def test_unsupported_target_family_rejected(
         self,
     ):
@@ -319,17 +351,23 @@ class TestGateACyborgTargetResolver(
             ValueError
         ):
             resolve_target_action(
-                family="BlockTrafficZone",
+                family=(
+                    "BlockTrafficZone"
+                ),
+
                 labels=self.labels,
+
                 mask=self.mask,
+
                 observable_host_scores={
                     "host_a": 1.0,
                 },
             )
 
     # =========================================================
-    # 12. no valid Sleep is explicit failure
+    # 12
     # =========================================================
+
     def test_no_valid_sleep_rejected(
         self,
     ):
@@ -350,6 +388,68 @@ class TestGateACyborgTargetResolver(
                 labels,
                 mask,
             )
+
+    # =========================================================
+    # 13
+    #
+    # A4.1c regression:
+    #
+    # 有 evidence 不代表 wrapper 中有合法 target。
+    # =========================================================
+
+    def test_observable_evidence_without_valid_host_is_unavailable(
+        self,
+    ):
+        got = (
+            observable_target_family_availability(
+                labels=self.labels,
+
+                mask=self.mask,
+
+                observable_host_scores={
+                    "host_invalid":
+                        1.0,
+                },
+            )
+        )
+
+        self.assertEqual(
+            got,
+            {
+                "Analyse": False,
+                "Remove": False,
+                "Restore": False,
+            },
+        )
+
+    # =========================================================
+    # 14
+    # =========================================================
+
+    def test_valid_observable_host_available_for_all_targeted_families(
+        self,
+    ):
+        got = (
+            observable_target_family_availability(
+                labels=self.labels,
+
+                mask=self.mask,
+
+                observable_host_scores={
+                    "host_a":
+                        1.0,
+                },
+            )
+        )
+
+        self.assertEqual(
+            got,
+            {
+                "Analyse": True,
+                "Remove": True,
+                "Restore": True,
+            },
+        )
 
 
 if __name__ == "__main__":

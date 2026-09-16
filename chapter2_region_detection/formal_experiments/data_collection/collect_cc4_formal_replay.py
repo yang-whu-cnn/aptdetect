@@ -71,10 +71,15 @@ from formal_experiments.data_collection.incident_response import (
 
 from shared.action_contract import (
     N_ACTIONS,
+    get_action,
 )
 
 from shared.cyborg_action_adapter import (
     CybORGActionAdapter,
+)
+
+from shared.cyborg_target_resolver import (
+    observable_target_family_availability,
 )
 
 from shared.formal_state import (
@@ -201,21 +206,6 @@ def stratified_requested_action_id(
     agent_name: str,
     decision_index: int,
 ) -> int:
-    """
-    Deterministic stratified exploration.
-
-    不读取：
-        hidden red truth
-        incident host truth
-        reward
-        future information
-
-    每个 agent 的 requested action
-    在 0..3 上轮转。
-
-    agent / seed offset 只是防止五个 agent
-    永远在同一 tick 请求同一种 action。
-    """
 
     if agent_name not in BLUE_AGENTS:
         raise ValueError(
@@ -266,12 +256,15 @@ def make_env(
 ):
     sg = EnterpriseScenarioGenerator(
         blue_agent_class=SleepAgent,
+
         green_agent_class=(
             EnterpriseGreenAgent
         ),
+
         red_agent_class=(
             FiniteStateRedAgent
         ),
+
         steps=int(
             steps
         ),
@@ -279,6 +272,7 @@ def make_env(
 
     cyborg = CybORG(
         scenario_generator=sg,
+
         seed=int(
             seed
         ),
@@ -286,6 +280,7 @@ def make_env(
 
     env = BlueFixedActionWrapper(
         cyborg,
+
         pad_spaces=bool(
             pad_spaces
         ),
@@ -295,7 +290,9 @@ def make_env(
         observations,
         info,
     ) = env.reset(
-        seed=int(seed)
+        seed=int(
+            seed
+        )
     )
 
     return (
@@ -306,26 +303,13 @@ def make_env(
 
 
 # ============================================================
-# Hidden truth — reward/evaluation side ONLY
+# Hidden truth — reward/evaluation ONLY
 # ============================================================
 
 def ground_truth_red_presence(
     controller,
     hostname: str,
 ) -> bool:
-    """
-    HIDDEN TRUTH.
-
-    只能进入：
-        IncidentResponseBookkeeper
-        reward / evaluation
-
-    禁止进入：
-        FormalStateEncoder
-        target resolver scores
-        action exploration policy
-        WM input
-    """
 
     hostname = str(
         hostname
@@ -362,9 +346,7 @@ def ground_truth_red_presence(
             )
         )
 
-        for session_id in (
-            session_ids
-        ):
+        for session_id in session_ids:
             session = (
                 sessions.get(
                     session_id
@@ -391,8 +373,11 @@ def red_presence_for_hosts(
         str(hostname):
             ground_truth_red_presence(
                 controller,
-                str(hostname),
+                str(
+                    hostname
+                ),
             )
+
         for hostname
         in hostnames
     }
@@ -402,10 +387,6 @@ def official_lwf_penalty(
     controller,
     hostname: str,
 ) -> float:
-    """
-    与 CC4 BlueRewardMachine 的
-    LWF lookup 保持一致。
-    """
 
     subnet = (
         controller
@@ -456,14 +437,6 @@ def green_local_work_failures(
 ) -> list[
     LocalWorkFailure
 ]:
-    """
-    复现 BlueRewardMachine 对
-    GreenLocalWork failure 的判定来源。
-
-    只产生 bookkeeping event，
-    不进入 planner state。
-    """
-
     result = []
 
     for (
@@ -500,8 +473,6 @@ def green_local_work_failures(
         ):
             continue
 
-        # BlueRewardMachine 本身就是读取
-        # observations[0].data["success"]。
         success = (
             observation_set
             .observations[
@@ -513,8 +484,6 @@ def green_local_work_failures(
             )
         )
 
-        # 与官方 reward machine
-        # 的 active-session 条件对齐。
         sessions = (
             controller
             .state
@@ -537,9 +506,7 @@ def green_local_work_failures(
         if not has_active_session:
             continue
 
-        for action in (
-            executed_actions
-        ):
+        for action in executed_actions:
 
             if not isinstance(
                 action,
@@ -547,8 +514,6 @@ def green_local_work_failures(
             ):
                 continue
 
-            # 使用和官方 BlueRewardMachine
-            # 相同的 False 判断语义。
             if not (
                 success == False
             ):
@@ -565,6 +530,7 @@ def green_local_work_failures(
             result.append(
                 LocalWorkFailure(
                     hostname=hostname,
+
                     raw_lwf_penalty=(
                         official_lwf_penalty(
                             controller,
@@ -616,6 +582,144 @@ def observation_success_bool(
 
 
 # ============================================================
+# A4.1c planner-visible availability
+# ============================================================
+
+def planner_visible_target_availability(
+    *,
+    env,
+    agent_name: str,
+    observable_host_scores,
+) -> tuple[
+    bool,
+    dict[str, bool],
+]:
+    """
+    只使用：
+
+        wrapper action_labels
+        wrapper action_mask
+        observable host scores
+
+    当前 frozen CC4 中 Analyse / Remove / Restore
+    应共享相同 host availability。
+
+    如果三者出现差异，直接失败，
+    不允许强行压缩成一个 state bit。
+    """
+
+    availability = (
+        observable_target_family_availability(
+            labels=(
+                env.action_labels(
+                    agent_name
+                )
+            ),
+
+            mask=(
+                env.action_mask(
+                    agent_name
+                )
+            ),
+
+            observable_host_scores=(
+                observable_host_scores
+            ),
+        )
+    )
+
+    values = set(
+        availability.values()
+    )
+
+    if len(values) != 1:
+        raise RuntimeError(
+            f"{agent_name}: targeted "
+            "family availability "
+            "diverged: "
+            f"{availability}"
+        )
+
+    return (
+        bool(
+            next(
+                iter(
+                    values
+                )
+            )
+        ),
+
+        availability,
+    )
+
+
+def encode_decision_state(
+    *,
+    env,
+    encoder: FormalStateEncoder,
+    tracker: ObservableHostEvidenceTracker,
+    observation,
+    agent_name: str,
+    global_tick: int,
+    episode_steps: int,
+):
+    """
+    正式 decision-epoch state helper。
+
+    evidence + action availability
+    全部来自 planner-visible 信息。
+    """
+
+    host_scores = (
+        tracker
+        .observable_host_scores(
+            global_tick
+        )
+    )
+
+    (
+        any_valid_target,
+        family_availability,
+    ) = (
+        planner_visible_target_availability(
+            env=env,
+
+            agent_name=(
+                agent_name
+            ),
+
+            observable_host_scores=(
+                host_scores
+            ),
+        )
+    )
+
+    state = encoder.encode(
+        tracker=tracker,
+
+        observation=observation,
+
+        global_tick=(
+            global_tick
+        ),
+
+        episode_steps=(
+            episode_steps
+        ),
+
+        any_valid_observable_target=(
+            any_valid_target
+        ),
+    )
+
+    return (
+        state,
+        host_scores,
+        family_availability,
+    )
+
+
+# ============================================================
 # One episode
 # ============================================================
 
@@ -631,23 +735,6 @@ def collect_episode(
     ],
     dict[str, Any],
 ]:
-    """
-    真实 CC4 decision-epoch replay。
-
-    Planner-visible path：
-        raw Blue observation
-        -> ObservableHostEvidenceTracker
-        -> FormalStateEncoder
-        -> observable_host_scores
-        -> action adapter
-
-    Hidden path：
-        controller red sessions
-        + GreenLocalWork result
-        -> IncidentResponseBookkeeper
-
-    两条路径不得交叉。
-    """
 
     (
         env,
@@ -743,6 +830,7 @@ def collect_episode(
                 episode_seed=int(
                     seed
                 ),
+
                 agent_name=agent,
             )
         )
@@ -754,6 +842,7 @@ def collect_episode(
                     tracker.inventory,
                 )
             ),
+
             global_tick=int(
                 controller.step_count
             ),
@@ -774,6 +863,7 @@ def collect_episode(
         < int(
             steps
         )
+
         and len(
             done_agents
         )
@@ -797,8 +887,6 @@ def collect_episode(
             if agent in done_agents:
                 continue
 
-            # busy agent:
-            # omitted from submitted actions.
             if (
                 active[
                     agent
@@ -813,16 +901,29 @@ def collect_episode(
                 ]
             )
 
-            state = encoder.encode(
+            (
+                state,
+                host_scores,
+                family_availability,
+            ) = encode_decision_state(
+                env=env,
+
+                encoder=encoder,
+
                 tracker=tracker,
+
                 observation=(
                     current_observation[
                         agent
                     ]
                 ),
+
+                agent_name=agent,
+
                 global_tick=(
                     tick_start
                 ),
+
                 episode_steps=int(
                     steps
                 ),
@@ -833,7 +934,9 @@ def collect_episode(
                     episode_seed=int(
                         seed
                     ),
+
                     agent_name=agent,
+
                     decision_index=(
                         decision_index[
                             agent
@@ -842,24 +945,125 @@ def collect_episode(
                 )
             )
 
-            # Only observable evidence.
-            host_scores = (
-                tracker
-                .observable_host_scores(
-                    tick_start
-                )
-            )
-
             resolution = (
                 adapter.resolve(
                     env=env,
+
                     agent_name=agent,
-                    action_id=action_id,
+
+                    action_id=(
+                        action_id
+                    ),
+
                     observable_host_scores=(
                         host_scores
                     ),
                 )
             )
+
+            # =================================================
+            # A4.1c exact consistency assertion
+            # =================================================
+
+            requested_contract = (
+                get_action(
+                    action_id
+                )
+            )
+
+            requested_family = str(
+                requested_contract
+                .cyborg_action
+            )
+
+            if requested_family == "Sleep":
+
+                if resolution.fallback:
+                    raise RuntimeError(
+                        f"{agent}: requested "
+                        "Sleep must never "
+                        "fallback"
+                    )
+
+                if (
+                    resolution
+                    .executed_action_family
+                    != "Sleep"
+                ):
+                    raise RuntimeError(
+                        f"{agent}: requested "
+                        "Sleep must execute "
+                        "Sleep"
+                    )
+
+            else:
+
+                if (
+                    requested_family
+                    not in family_availability
+                ):
+                    raise RuntimeError(
+                        f"{agent}: missing "
+                        "availability for "
+                        f"{requested_family}"
+                    )
+
+                expected_available = bool(
+                    family_availability[
+                        requested_family
+                    ]
+                )
+
+                expected_fallback = (
+                    not expected_available
+                )
+
+                if (
+                    bool(
+                        resolution.fallback
+                    )
+                    != expected_fallback
+                ):
+                    raise RuntimeError(
+                        f"{agent}: planner-visible "
+                        "availability disagrees "
+                        "with production adapter: "
+                        f"requested_family="
+                        f"{requested_family}, "
+                        f"availability="
+                        f"{family_availability}, "
+                        f"fallback="
+                        f"{resolution.fallback}"
+                    )
+
+                if expected_fallback:
+
+                    if (
+                        resolution
+                        .executed_action_family
+                        != "Sleep"
+                    ):
+                        raise RuntimeError(
+                            f"{agent}: fallback "
+                            "must execute Sleep"
+                        )
+
+                else:
+
+                    if (
+                        resolution
+                        .executed_action_family
+                        != requested_family
+                    ):
+                        raise RuntimeError(
+                            f"{agent}: valid "
+                            "targeted action "
+                            "changed family: "
+                            f"requested="
+                            f"{requested_family}, "
+                            f"executed="
+                            f"{resolution.executed_action_family}"
+                        )
 
             action_objects = list(
                 env.actions(
@@ -919,15 +1123,19 @@ def collect_episode(
 
             replay.begin_decision(
                 agent_name=agent,
+
                 decision_index=(
                     decision_index[
                         agent
                     ]
                 ),
+
                 global_tick_start=(
                     tick_start
                 ),
+
                 state=state,
+
                 resolution=resolution,
             )
 
@@ -991,10 +1199,6 @@ def collect_episode(
                 "exactly one global tick"
             )
 
-        # Global GreenLocalWork failures.
-        #
-        # Later filtered to each Blue
-        # observable inventory.
         all_lwf = (
             green_local_work_failures(
                 controller
@@ -1053,12 +1257,14 @@ def collect_episode(
                     global_tick_end=(
                         tick_end
                     ),
+
                     red_presence_after=(
                         red_presence_for_hosts(
                             controller,
                             tracker.inventory,
                         )
                     ),
+
                     local_work_failures=(
                         scoped_lwf
                     ),
@@ -1076,15 +1282,18 @@ def collect_episode(
 
             replay.record_tick(
                 agent_name=agent,
+
                 global_tick_end=(
                     tick_end
                 ),
+
                 official_reward=float(
                     rewards.get(
                         agent,
                         0.0,
                     )
                 ),
+
                 **accounting
                 .to_replay_kwargs(),
             )
@@ -1147,9 +1356,11 @@ def collect_episode(
 
             tracker.update(
                 observation=observation,
+
                 global_tick=(
                     tick_end
                 ),
+
                 completed_action_family=(
                     str(
                         meta[
@@ -1159,6 +1370,7 @@ def collect_episode(
                     if completed
                     else None
                 ),
+
                 completed_target_host=(
                     meta[
                         "target_host"
@@ -1166,6 +1378,7 @@ def collect_episode(
                     if completed
                     else None
                 ),
+
                 completed_action_success=(
                     completion_success
                     if completed
@@ -1178,40 +1391,52 @@ def collect_episode(
             ] = observation
 
             # ------------------------------------------------
-            # Decision epoch closes on:
-            #
-            # 1. actual action completion
-            # 2. terminal mid-action
+            # Decision closes
             # ------------------------------------------------
 
             if (
                 completed
                 or done
             ):
-                next_state = (
-                    encoder.encode(
-                        tracker=tracker,
-                        observation=(
-                            observation
-                        ),
-                        global_tick=(
-                            tick_end
-                        ),
-                        episode_steps=int(
-                            steps
-                        ),
-                    )
+                (
+                    next_state,
+                    _next_host_scores,
+                    _next_family_availability,
+                ) = encode_decision_state(
+                    env=env,
+
+                    encoder=encoder,
+
+                    tracker=tracker,
+
+                    observation=(
+                        observation
+                    ),
+
+                    agent_name=agent,
+
+                    global_tick=(
+                        tick_end
+                    ),
+
+                    episode_steps=int(
+                        steps
+                    ),
                 )
 
                 replay.end_decision(
                     agent_name=agent,
+
                     global_tick_end=(
                         tick_end
                     ),
+
                     next_state=(
                         next_state
                     ),
+
                     done=done,
+
                     completed_action_success=(
                         completion_success
                         if completed
@@ -1255,7 +1480,9 @@ def collect_episode(
 
     episode_summary = {
         "seed":
-            int(seed),
+            int(
+                seed
+            ),
 
         "global_ticks":
             int(
@@ -1278,6 +1505,7 @@ def collect_episode(
                         == agent
                     )
                 )
+
             for agent
             in BLUE_AGENTS
         },
@@ -1290,6 +1518,7 @@ def collect_episode(
                     ]
                     .all_events
                 )
+
             for agent
             in BLUE_AGENTS
         },
@@ -1302,6 +1531,7 @@ def collect_episode(
                     ]
                     .unresolved_event_count
                 )
+
             for agent
             in BLUE_AGENTS
         },
@@ -1407,21 +1637,22 @@ def build_collection_summary(
     )
 
     requested_counts = {
-        str(action_id):
+        str(
+            action_id
+        ):
             int(
                 requested.get(
                     action_id,
                     0,
                 )
             )
+
         for action_id
         in range(
             N_ACTIONS
         )
     }
 
-    # Stratified requested exploration
-    # 必须实际覆盖四动作。
     missing_requested = [
         action_id
         for action_id
@@ -1470,11 +1701,15 @@ def build_collection_summary(
 
     return {
         "split":
-            str(split),
+            str(
+                split
+            ),
 
         "seeds":
             [
-                int(seed)
+                int(
+                    seed
+                )
                 for seed
                 in seeds
             ],
@@ -1536,6 +1771,7 @@ def build_collection_summary(
                         0,
                     )
                 )
+
             for family
             in (
                 "Sleep",
@@ -1590,6 +1826,7 @@ def build_collection_summary(
                         0,
                     )
                 )
+
             for agent
             in BLUE_AGENTS
         },
@@ -1619,6 +1856,7 @@ def save_jsonl(
         DecisionEpochTransition
     ],
 ) -> None:
+
     path.parent.mkdir(
         parents=True,
         exist_ok=True,
@@ -1656,16 +1894,20 @@ def main():
 
     parser.add_argument(
         "--split",
+
         choices=(
             "train",
             "validation",
         ),
+
         required=True,
     )
 
     parser.add_argument(
         "--seeds",
+
         default=None,
+
         help=(
             "Optional comma-separated "
             "override. A4.5 smoke only."
@@ -1685,6 +1927,7 @@ def main():
 
     parser.add_argument(
         "--out-dir",
+
         default=(
             "outputs/formal_replay"
         ),
@@ -1705,7 +1948,6 @@ def main():
     )
 
     all_transitions = []
-
     episode_summaries = []
 
     for position, seed in enumerate(
@@ -1713,6 +1955,7 @@ def main():
         start=1,
     ):
         print()
+
         print(
             "=" * 80
         )
@@ -1729,10 +1972,14 @@ def main():
             transitions,
             episode_summary,
         ) = collect_episode(
-            seed=int(seed),
+            seed=int(
+                seed
+            ),
+
             steps=int(
                 args.steps
             ),
+
             pad_spaces=bool(
                 args.pad_spaces
             ),
@@ -1770,13 +2017,17 @@ def main():
     summary = (
         build_collection_summary(
             split=args.split,
+
             seeds=seeds,
+
             steps=int(
                 args.steps
             ),
+
             transitions=(
                 all_transitions
             ),
+
             episode_summaries=(
                 episode_summaries
             ),

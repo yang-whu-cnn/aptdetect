@@ -12,11 +12,10 @@ from shared.formal_state import (
 
 def reset_obs():
     """
-    特意让 reset 中存在正常 Processes。
+    reset 中故意保留正常 Processes。
 
-    A4.1a 已真实证明：
     reset Processes 是 baseline，
-    不能算 threat evidence。
+    不得作为 threat evidence。
     """
 
     return {
@@ -98,7 +97,7 @@ class TestGateAFormalState(
         return tracker
 
     # ========================================================
-    # 1. dimension frozen
+    # 1
     # ========================================================
 
     def test_state_dimension_is_27(
@@ -117,7 +116,7 @@ class TestGateAFormalState(
         )
 
     # ========================================================
-    # 2. reset builds inventory
+    # 2
     # ========================================================
 
     def test_reset_builds_inventory(
@@ -142,7 +141,7 @@ class TestGateAFormalState(
         )
 
     # ========================================================
-    # 3. IP mapping
+    # 3
     # ========================================================
 
     def test_reset_builds_ip_mapping(
@@ -160,7 +159,7 @@ class TestGateAFormalState(
         )
 
     # ========================================================
-    # 4. baseline Processes != threat
+    # 4
     # ========================================================
 
     def test_reset_processes_are_not_evidence(
@@ -190,7 +189,7 @@ class TestGateAFormalState(
         )
 
     # ========================================================
-    # 5. post-reset Process evidence
+    # 5
     # ========================================================
 
     def test_post_reset_process_event_counted(
@@ -212,6 +211,7 @@ class TestGateAFormalState(
                     ],
                 },
             },
+
             global_tick=1,
         )
 
@@ -237,7 +237,7 @@ class TestGateAFormalState(
         )
 
     # ========================================================
-    # 6. connection evidence
+    # 6
     # ========================================================
 
     def test_connection_event_counted(
@@ -256,16 +256,19 @@ class TestGateAFormalState(
                         {
                             "Connections": [
                                 {
-                                    "local_port": 22,
+                                    "local_port":
+                                        22,
                                 },
                                 {
-                                    "local_port": 80,
+                                    "local_port":
+                                        80,
                                 },
                             ]
                         }
                     ]
                 },
             },
+
             global_tick=1,
         )
 
@@ -286,7 +289,7 @@ class TestGateAFormalState(
         )
 
     # ========================================================
-    # 7. Analyse Files
+    # 7
     # ========================================================
 
     def test_file_evidence_counted(
@@ -309,6 +312,7 @@ class TestGateAFormalState(
                     ]
                 },
             },
+
             global_tick=2,
         )
 
@@ -328,7 +332,7 @@ class TestGateAFormalState(
         )
 
     # ========================================================
-    # 8. unknown host rejected from evidence
+    # 8
     # ========================================================
 
     def test_unknown_host_not_added(
@@ -351,6 +355,7 @@ class TestGateAFormalState(
                     ]
                 },
             },
+
             global_tick=1,
         )
 
@@ -365,7 +370,7 @@ class TestGateAFormalState(
         )
 
     # ========================================================
-    # 9. IP observation canonicalized
+    # 9
     # ========================================================
 
     def test_ip_observation_maps_to_hostname(
@@ -387,6 +392,7 @@ class TestGateAFormalState(
                     ]
                 },
             },
+
             global_tick=1,
         )
 
@@ -406,7 +412,7 @@ class TestGateAFormalState(
         )
 
     # ========================================================
-    # 10. evidence persists
+    # 10
     # ========================================================
 
     def test_evidence_persists_across_quiet_step(
@@ -428,6 +434,7 @@ class TestGateAFormalState(
                     ]
                 },
             },
+
             global_tick=1,
         )
 
@@ -435,6 +442,7 @@ class TestGateAFormalState(
             observation={
                 "success": "UNKNOWN",
             },
+
             global_tick=2,
         )
 
@@ -449,13 +457,14 @@ class TestGateAFormalState(
         )
 
         self.assertEqual(
-            tracker.current_stats
+            tracker
+            .current_stats
             .evidence_hosts,
             tuple(),
         )
 
     # ========================================================
-    # 11. Restore success clears old evidence
+    # 11
     # ========================================================
 
     def test_successful_restore_clears_target(
@@ -477,35 +486,42 @@ class TestGateAFormalState(
                     ]
                 },
             },
+
             global_tick=1,
         )
 
         self.assertIn(
             "host_a",
-            tracker.observable_host_scores(),
+            tracker
+            .observable_host_scores(),
         )
 
         tracker.update(
             observation={
                 "success": "TRUE",
             },
+
             global_tick=6,
+
             completed_action_family=(
                 "Restore"
             ),
+
             completed_target_host=(
                 "host_a"
             ),
+
             completed_action_success=True,
         )
 
         self.assertNotIn(
             "host_a",
-            tracker.observable_host_scores(),
+            tracker
+            .observable_host_scores(),
         )
 
     # ========================================================
-    # 12. Remove does not imply normal
+    # 12
     # ========================================================
 
     def test_remove_success_does_not_clear_evidence(
@@ -527,6 +543,7 @@ class TestGateAFormalState(
                     ]
                 },
             },
+
             global_tick=1,
         )
 
@@ -534,23 +551,28 @@ class TestGateAFormalState(
             observation={
                 "success": "TRUE",
             },
+
             global_tick=4,
+
             completed_action_family=(
                 "Remove"
             ),
+
             completed_target_host=(
                 "host_a"
             ),
+
             completed_action_success=True,
         )
 
         self.assertIn(
             "host_a",
-            tracker.observable_host_scores(),
+            tracker
+            .observable_host_scores(),
         )
 
     # ========================================================
-    # 13. stronger evidence ranks higher
+    # 13
     # ========================================================
 
     def test_file_evidence_scores_above_process_only(
@@ -581,6 +603,7 @@ class TestGateAFormalState(
                     ]
                 },
             },
+
             global_tick=1,
         )
 
@@ -590,12 +613,17 @@ class TestGateAFormalState(
         )
 
         self.assertGreater(
-            scores["host_b"],
-            scores["host_a"],
+            scores[
+                "host_b"
+            ],
+
+            scores[
+                "host_a"
+            ],
         )
 
     # ========================================================
-    # 14. ranked observable summary
+    # 14
     # ========================================================
 
     def test_ranked_host_evidence(
@@ -617,31 +645,37 @@ class TestGateAFormalState(
                     ]
                 },
             },
+
             global_tick=1,
         )
 
         ranked = (
-            tracker.ranked_host_evidence(
+            tracker
+            .ranked_host_evidence(
                 global_tick=1,
             )
         )
 
         self.assertEqual(
-            ranked[0][
+            ranked[
+                0
+            ][
                 "hostname"
             ],
             "host_a",
         )
 
         self.assertEqual(
-            ranked[0][
+            ranked[
+                0
+            ][
                 "process_events"
             ],
             1,
         )
 
     # ========================================================
-    # 15. state shape / dtype / finite
+    # 15
     # ========================================================
 
     def test_formal_state_shape_dtype_finite(
@@ -661,14 +695,21 @@ class TestGateAFormalState(
 
         vector = encoder.encode(
             tracker=tracker,
+
             observation=observation,
+
             global_tick=0,
+
             episode_steps=100,
+
+            any_valid_observable_target=False,
         )
 
         self.assertEqual(
             vector.shape,
-            (27,),
+            (
+                27,
+            ),
         )
 
         self.assertEqual(
@@ -685,7 +726,7 @@ class TestGateAFormalState(
         )
 
     # ========================================================
-    # 16. agent one-hot
+    # 16
     # ========================================================
 
     def test_agent_identity_one_hot(
@@ -703,15 +744,23 @@ class TestGateAFormalState(
 
         vector = encoder.encode(
             tracker=tracker,
+
             observation={
                 "success": "UNKNOWN",
             },
+
             global_tick=0,
+
             episode_steps=100,
+
+            any_valid_observable_target=False,
         )
 
         np.testing.assert_array_equal(
-            vector[:5],
+            vector[
+                :5
+            ],
+
             np.asarray(
                 [
                     0,
@@ -720,15 +769,16 @@ class TestGateAFormalState(
                     1,
                     0,
                 ],
+
                 dtype=np.float32,
             ),
         )
 
     # ========================================================
-    # 17. reset state no threat
+    # 17
     # ========================================================
 
-    def test_reset_state_has_no_observable_target(
+    def test_reset_state_has_no_valid_observable_target(
         self,
     ):
         tracker = (
@@ -741,15 +791,21 @@ class TestGateAFormalState(
 
         vector = encoder.encode(
             tracker=tracker,
+
             observation={
                 "success": "UNKNOWN",
             },
+
             global_tick=0,
+
             episode_steps=100,
+
+            any_valid_observable_target=False,
         )
 
         name_to_index = {
             name: idx
+
             for idx, name
             in enumerate(
                 FORMAL_STATE_FEATURE_NAMES
@@ -768,14 +824,14 @@ class TestGateAFormalState(
         self.assertEqual(
             vector[
                 name_to_index[
-                    "any_observable_target"
+                    "any_valid_observable_target"
                 ]
             ],
             0.0,
         )
 
     # ========================================================
-    # 18. evidence changes formal state
+    # 18
     # ========================================================
 
     def test_observable_evidence_changes_state(
@@ -804,6 +860,7 @@ class TestGateAFormalState(
 
         tracker.update(
             observation=observation,
+
             global_tick=1,
         )
 
@@ -813,13 +870,19 @@ class TestGateAFormalState(
 
         vector = encoder.encode(
             tracker=tracker,
+
             observation=observation,
+
             global_tick=1,
+
             episode_steps=100,
+
+            any_valid_observable_target=True,
         )
 
         name_to_index = {
             name: idx
+
             for idx, name
             in enumerate(
                 FORMAL_STATE_FEATURE_NAMES
@@ -838,7 +901,7 @@ class TestGateAFormalState(
         self.assertEqual(
             vector[
                 name_to_index[
-                    "any_observable_target"
+                    "any_valid_observable_target"
                 ]
             ],
             1.0,
@@ -854,7 +917,7 @@ class TestGateAFormalState(
         )
 
     # ========================================================
-    # 19. four success states
+    # 19
     # ========================================================
 
     def test_success_one_hot_contract(
@@ -877,6 +940,7 @@ class TestGateAFormalState(
 
         name_to_index = {
             name: idx
+
             for idx, name
             in enumerate(
                 FORMAL_STATE_FEATURE_NAMES
@@ -898,11 +962,16 @@ class TestGateAFormalState(
             ):
                 vector = encoder.encode(
                     tracker=tracker,
+
                     observation={
                         "success": raw,
                     },
+
                     global_tick=0,
+
                     episode_steps=100,
+
+                    any_valid_observable_target=False,
                 )
 
                 got = [
@@ -932,7 +1001,7 @@ class TestGateAFormalState(
                 )
 
     # ========================================================
-    # 20. deterministic
+    # 20
     # ========================================================
 
     def test_encoder_is_deterministic(
@@ -957,6 +1026,7 @@ class TestGateAFormalState(
 
         tracker.update(
             observation=observation,
+
             global_tick=2,
         )
 
@@ -966,16 +1036,26 @@ class TestGateAFormalState(
 
         a = encoder.encode(
             tracker=tracker,
+
             observation=observation,
+
             global_tick=2,
+
             episode_steps=100,
+
+            any_valid_observable_target=True,
         )
 
         b = encoder.encode(
             tracker=tracker,
+
             observation=observation,
+
             global_tick=2,
+
             episode_steps=100,
+
+            any_valid_observable_target=True,
         )
 
         np.testing.assert_array_equal(
@@ -984,7 +1064,7 @@ class TestGateAFormalState(
         )
 
     # ========================================================
-    # 21. monotonic global tick
+    # 21
     # ========================================================
 
     def test_nonmonotonic_tick_rejected(
@@ -998,6 +1078,7 @@ class TestGateAFormalState(
             observation={
                 "success": "UNKNOWN",
             },
+
             global_tick=5,
         )
 
@@ -1006,9 +1087,172 @@ class TestGateAFormalState(
         ):
             tracker.update(
                 observation={
-                    "success": "UNKNOWN",
+                    "success":
+                        "UNKNOWN",
                 },
+
                 global_tick=4,
+            )
+
+    # ========================================================
+    # 22
+    #
+    # A4.1c regression:
+    # evidence != valid action target
+    # ========================================================
+
+    def test_observable_evidence_does_not_imply_valid_target(
+        self,
+    ):
+        tracker = (
+            self.make_tracker()
+        )
+
+        observation = {
+            "success": "UNKNOWN",
+
+            "host_a": {
+                "Processes": [
+                    {
+                        "PID": 1,
+                    }
+                ]
+            },
+        }
+
+        tracker.update(
+            observation=observation,
+
+            global_tick=1,
+        )
+
+        self.assertTrue(
+            tracker
+            .observable_host_scores(
+                1
+            )
+        )
+
+        encoder = (
+            FormalStateEncoder()
+        )
+
+        vector = encoder.encode(
+            tracker=tracker,
+
+            observation=observation,
+
+            global_tick=1,
+
+            episode_steps=100,
+
+            any_valid_observable_target=False,
+        )
+
+        index = (
+            FORMAL_STATE_FEATURE_NAMES
+            .index(
+                "any_valid_observable_target"
+            )
+        )
+
+        self.assertEqual(
+            vector[
+                index
+            ],
+            0.0,
+        )
+
+    # ========================================================
+    # 23
+    # ========================================================
+
+    def test_valid_observable_target_feature(
+        self,
+    ):
+        tracker = (
+            self.make_tracker()
+        )
+
+        observation = {
+            "success": "UNKNOWN",
+
+            "host_a": {
+                "Processes": [
+                    {
+                        "PID": 1,
+                    }
+                ]
+            },
+        }
+
+        tracker.update(
+            observation=observation,
+
+            global_tick=1,
+        )
+
+        encoder = (
+            FormalStateEncoder()
+        )
+
+        vector = encoder.encode(
+            tracker=tracker,
+
+            observation=observation,
+
+            global_tick=1,
+
+            episode_steps=100,
+
+            any_valid_observable_target=True,
+        )
+
+        index = (
+            FORMAL_STATE_FEATURE_NAMES
+            .index(
+                "any_valid_observable_target"
+            )
+        )
+
+        self.assertEqual(
+            vector[
+                index
+            ],
+            1.0,
+        )
+
+    # ========================================================
+    # 24
+    # ========================================================
+
+    def test_valid_target_requires_observable_evidence(
+        self,
+    ):
+        tracker = (
+            self.make_tracker()
+        )
+
+        encoder = (
+            FormalStateEncoder()
+        )
+
+        with self.assertRaises(
+            ValueError
+        ):
+            encoder.encode(
+                tracker=tracker,
+
+                observation={
+                    "success":
+                        "UNKNOWN",
+                },
+
+                global_tick=0,
+
+                episode_steps=100,
+
+                any_valid_observable_target=True,
             )
 
 

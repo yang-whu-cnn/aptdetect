@@ -11,6 +11,10 @@ from typing import (
 )
 
 
+# ============================================================
+# Frozen targeted action families
+# ============================================================
+
 TARGETED_FAMILIES: Tuple[
     str,
     ...,
@@ -20,6 +24,10 @@ TARGETED_FAMILIES: Tuple[
     "Restore",
 )
 
+
+# ============================================================
+# Valid action record
+# ============================================================
 
 @dataclass(frozen=True)
 class ValidCyborgAction:
@@ -46,6 +54,10 @@ class ValidCyborgAction:
     family: str
     target_host: Optional[str]
 
+
+# ============================================================
+# Internal validation / parsing
+# ============================================================
 
 def _validate_labels_and_mask(
     labels: Sequence[object],
@@ -78,9 +90,8 @@ def _parse_label(
         target_host
         explicitly_invalid
 
-    注意：
-        这里只使用精确 action family 前缀，
-        不使用模糊 substring 匹配。
+    这里只使用精确 action family 前缀，
+    不使用模糊 substring 匹配。
     """
 
     text = str(
@@ -99,10 +110,11 @@ def _parse_label(
 
     if explicitly_invalid:
         text = text[
-            len(invalid_prefix):
+            len(
+                invalid_prefix
+            ):
         ].strip()
 
-    # no-op
     if text == "Sleep":
         return (
             "Sleep",
@@ -110,7 +122,6 @@ def _parse_label(
             explicitly_invalid,
         )
 
-    # host-specific actions
     for family in TARGETED_FAMILIES:
         prefix = (
             family
@@ -121,7 +132,9 @@ def _parse_label(
             prefix
         ):
             host = text[
-                len(prefix):
+                len(
+                    prefix
+                ):
             ].strip()
 
             if not host:
@@ -137,13 +150,16 @@ def _parse_label(
                 explicitly_invalid,
             )
 
-    # Monitor / traffic / decoy / others
     return (
         "other",
         None,
         explicitly_invalid,
     )
 
+
+# ============================================================
+# Four-action valid candidate extraction
+# ============================================================
 
 def valid_actions(
     labels: Sequence[object],
@@ -157,15 +173,12 @@ def valid_actions(
     提取真正合法的四动作候选。
 
     规则：
-    1. action_mask=False 一律排除；
-    2. label 带 [Invalid] 一律排除；
+
+    1. action_mask=False 排除；
+    2. [Invalid] 排除；
     3. 只允许：
-       - Sleep
-       - Analyse
-       - Remove
-       - Restore
-    4. Monitor / traffic / decoy
-       不进入当前论文四动作空间。
+       Sleep / Analyse / Remove / Restore；
+    4. Monitor / traffic / decoy 等排除。
     """
 
     _validate_labels_and_mask(
@@ -184,11 +197,6 @@ def valid_actions(
             mask,
         )
     ):
-        # A3.1 已真实确认：
-        # invalid padded slots 的底层 action
-        # 可能实际变成 Sleep。
-        #
-        # 所以第一层必须先看 mask。
         if not bool(
             raw_valid
         ):
@@ -202,10 +210,6 @@ def valid_actions(
             raw_label
         )
 
-        # 防御性检查：
-        # 即使未来 wrapper 异常地把
-        # [Invalid] slot mask 成 True，
-        # 也禁止使用。
         if explicitly_invalid:
             continue
 
@@ -221,10 +225,13 @@ def valid_actions(
                 index=int(
                     index
                 ),
+
                 label=str(
                     raw_label
                 ).strip(),
+
                 family=family,
+
                 target_host=(
                     target_host
                 ),
@@ -236,19 +243,18 @@ def valid_actions(
     )
 
 
+# ============================================================
+# Sleep resolver
+# ============================================================
+
 def resolve_sleep_action(
     labels: Sequence[object],
     mask: Sequence[object],
 ) -> ValidCyborgAction:
     """
-    动态寻找当前真正有效的 Sleep。
+    动态寻找真正有效的 Sleep。
 
-    禁止依赖 A3.1 probe 中观察到的：
-        blue_agent_0..3 -> 49
-        blue_agent_4    -> 145
-
-    这些 index 只能用于 probe，
-    不能进入正式 adapter 逻辑。
+    禁止依赖 probe 观察到的固定 raw index。
     """
 
     candidates = [
@@ -272,19 +278,16 @@ def resolve_sleep_action(
             "is available"
         )
 
-    # 正常 CC4 当前只有一个 valid Sleep。
-    #
-    # 若未来 wrapper 返回多个，
-    # 使用最小当前 raw index
-    # 作为 deterministic tie-break。
-    #
-    # 这不是固定 index。
     return min(
         candidates,
         key=lambda item:
             item.index,
     )
 
+
+# ============================================================
+# Observable host-score validation
+# ============================================================
 
 def _validate_host_scores(
     host_scores: Mapping[
@@ -296,16 +299,9 @@ def _validate_host_scores(
     float,
 ]:
     """
-    验证来自当前 Blue observation
-    的 host score。
+    验证 planner-visible host score。
 
-    score 的具体构造方式不属于 A3.3；
-    A4 正式 state/evidence 阶段再冻结。
-
-    当前这里只保证 resolver：
-    - 不读取 hidden truth；
-    - 输入是有限实数；
-    - 输出完全 deterministic。
+    不读取 hidden truth。
     """
 
     checked: dict[
@@ -365,6 +361,111 @@ def _validate_host_scores(
     return checked
 
 
+# ============================================================
+# A4.1c
+# Planner-visible targeted action availability
+# ============================================================
+
+def observable_target_family_availability(
+    labels: Sequence[object],
+    mask: Sequence[object],
+    observable_host_scores: Mapping[
+        str,
+        Real,
+    ] | None,
+) -> dict[
+    str,
+    bool,
+]:
+    """
+    判断 Analyse / Remove / Restore
+    当前是否存在真正合法且可观察的 target。
+
+    A4.6a 已证明：
+
+        observable evidence exists
+
+    并不等价于：
+
+        valid observable action target exists
+
+    因此这里判断的是：
+
+        observable scored host
+              ∩
+        wrapper current valid targets
+              != empty
+
+    输入只来自：
+
+        action_labels
+        action_mask
+        observable_host_scores
+
+    不读取：
+
+        controller true state
+        Red sessions
+        compromise truth
+        incident truth
+        reward
+        future information
+    """
+
+    _validate_labels_and_mask(
+        labels,
+        mask,
+    )
+
+    if not observable_host_scores:
+        return {
+            family: False
+            for family
+            in TARGETED_FAMILIES
+        }
+
+    scores = (
+        _validate_host_scores(
+            observable_host_scores
+        )
+    )
+
+    candidates = valid_actions(
+        labels,
+        mask,
+    )
+
+    result: dict[
+        str,
+        bool,
+    ] = {}
+
+    for family in TARGETED_FAMILIES:
+        result[
+            family
+        ] = any(
+            (
+                item.family
+                == family
+
+                and item.target_host
+                is not None
+
+                and item.target_host
+                in scores
+            )
+
+            for item
+            in candidates
+        )
+
+    return result
+
+
+# ============================================================
+# Targeted action resolver
+# ============================================================
+
 def resolve_target_action(
     family: str,
     labels: Sequence[object],
@@ -377,38 +478,21 @@ def resolve_target_action(
     ValidCyborgAction
 ]:
     """
-    为：
-        Analyse
-        Remove
-        Restore
-
+    为 Analyse / Remove / Restore
     选择一个 host-specific low-level action。
 
-    observable_host_scores 必须由调用方
-    根据“当前 Blue 可观察信息”产生。
+    规则：
 
-    本 resolver 自己：
-    - 不读取 Red agent；
-    - 不读取真实 compromise state；
-    - 不读取 future state；
-    - 不读取 test label；
-    - 不读取攻击脚本真值。
+    1. action_mask=True；
+    2. 非 [Invalid]；
+    3. family 必须匹配；
+    4. target host 必须存在于 observable scores；
+    5. score 最大优先；
+    6. 同分 hostname 字典序；
+    7. 再按 raw index；
+    8. 无合法 target 返回 None。
 
-    选择规则：
-
-    1. 先验证 labels + mask；
-    2. 只保留 action_mask=True；
-    3. 只保留 requested family；
-    4. 只考虑 observable_host_scores
-       中实际出现的 host；
-    5. score 最高者优先；
-    6. score 相同：
-       host 名字字典序优先；
-    7. 同 host 再按 raw index；
-    8. 没有合法 observable target
-       时返回 None。
-
-    Adapter 收到 None 后统一 fallback Sleep。
+    Adapter 收到 None 后 fallback Sleep。
     """
 
     if family not in TARGETED_FAMILIES:
@@ -418,8 +502,6 @@ def resolve_target_action(
             f"got {family!r}"
         )
 
-    # 即使 host score 为空，
-    # labels/mask contract 也必须有效。
     _validate_labels_and_mask(
         labels,
         mask,
@@ -444,8 +526,10 @@ def resolve_target_action(
         if (
             item.family
             == family
+
             and item.target_host
             is not None
+
             and item.target_host
             in scores
         )
@@ -454,9 +538,6 @@ def resolve_target_action(
     if not candidates:
         return None
 
-    # min + -score：
-    # 等价于 score 最大优先，
-    # 然后 deterministic host/index tie-break。
     return min(
         candidates,
         key=lambda item: (
