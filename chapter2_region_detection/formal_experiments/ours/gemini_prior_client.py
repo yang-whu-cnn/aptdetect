@@ -100,12 +100,20 @@ def masked_detected_proxies(env: Mapping[str, str] | None = None) -> dict[str, s
 
     # urllib.request.getproxies() reflects the same family of OS/env proxy
     # discovery used by the SDK/httpx environment path.
-    detected = urllib.request.getproxies() if env is None else {
-        key[:-6].lower(): value
-        for key, value in env.items()
-        if key.lower() in {"http_proxy", "https_proxy", "all_proxy"}
-        and str(value).strip()
-    }
+    if env is None:
+        raw_detected = urllib.request.getproxies()
+        detected = {
+            key: value
+            for key, value in raw_detected.items()
+            if str(key).lower() in {"http", "https", "all", "ftp"}
+        }
+    else:
+        detected = {
+            key[:-6].lower(): value
+            for key, value in env.items()
+            if key.lower() in {"http_proxy", "https_proxy", "all_proxy"}
+            and str(value).strip()
+        }
     out: dict[str, str] = {}
     for name, raw in detected.items():
         try:
@@ -116,6 +124,35 @@ def masked_detected_proxies(env: Mapping[str, str] | None = None) -> dict[str, s
         except Exception:
             out[str(name)] = "<configured>"
     return out
+
+def classify_live_exception(exc: Exception) -> str:
+    """Classify B2-live failures without depending on private SDK classes."""
+    message = f"{type(exc).__name__}: {exc}".lower()
+    if (
+        "429" in message
+        or "quota exceeded" in message
+        or "rate limit" in message
+        or "too_many_requests" in message
+        or "resource_exhausted" in message
+    ):
+        return "quota_blocked"
+    if (
+        "401" in message
+        or "403" in message
+        or "api key" in message
+        or "permission_denied" in message
+        or "unauthenticated" in message
+    ):
+        return "auth_blocked"
+    if (
+        "ssl" in message
+        or "connecterror" in message
+        or "connection" in message
+        or "timeout" in message
+        or "proxy" in message
+    ):
+        return "network_blocked"
+    return "api_error"
 
 def prior_response_schema() -> dict:
     return {
