@@ -1,7 +1,7 @@
 # Step 7 — Integration Smoke Tests
 
 日期：2026-09-16  
-状态：**SOURCE READY / LOCAL TEST + REAL SMOKE PENDING**
+状态：**SOURCE FIXED / LOCAL 22+100 REGRESSION PENDING / REAL SMOKE RERUN PENDING**
 
 ---
 
@@ -201,9 +201,9 @@ beta=0.10
 
 ```text
 tests/test_ug_normalizer_bundle.py       8 tests
-tests/test_ug_cem_step7_smoke.py        12 tests
+tests/test_ug_cem_step7_smoke.py        14 tests
 -----------------------------------------------
-Step 7 source tests                     20 tests
+Step 7 source tests                     22 tests
 ```
 
 覆盖：
@@ -226,9 +226,9 @@ Step 2–6 combined 已为 78 tests。
 
 ```text
 Step 2–6  78
-Step 7    20
+Step 7    22
 -------------
-TOTAL     98
+TOTAL    100
 ```
 
 ## 10. Local test Gate
@@ -244,7 +244,7 @@ python -m unittest \
 目标：
 
 ```text
-Ran 20 tests
+Ran 22 tests
 OK
 ```
 
@@ -265,7 +265,7 @@ python -m unittest \
 目标：
 
 ```text
-Ran 98 tests
+Ran 100 tests
 OK
 ```
 
@@ -301,8 +301,8 @@ pass = True
 
 Step 7 只有在：
 
-- Step 7 20 tests PASS；
-- Step 2–7 98-test regression 最终 OK；
+- Step 7 22 tests PASS；
+- Step 2–7 100-test regression 最终 OK；
 - real local smoke 20 + 500 calls PASS；
 - official train-seed 1000/1001 ×50 ticks PASS；
 
@@ -318,9 +318,62 @@ Local smoke harness          : READY
 Official CC4 smoke harness   : READY
 Five-agent async scheduler   : READY
 Adapter/duration checks      : READY
-Unit-test source             : READY (20)
+Unit-test source             : READY (22)
 Local test execution         : PENDING
 Real smoke execution         : PENDING
 
 FINAL STATUS: SOURCE READY / TEST + REAL SMOKE PENDING
 ```
+
+
+## 14. Official-smoke controller tick correction
+
+首次 real smoke 时 local smoke 与全部 unit regression 已通过，但 official episode 在结束检查处报：
+
+```text
+RuntimeError: official smoke ended at tick 49, expected 50
+```
+
+该失败发生在 episode 结束后的额外 assertion，而不是 planner / adapter / normalizer / scheduler 中间检查。
+
+对照 Gate A collector 后确认：Gate A 从未把 `controller.step_count` 的最终编号当作 episode length；CC4 controller 可以在 reset 后以 `step_count=-1` 开始，因此真实调用 50 次 `env.step()` 后最终 controller tick 为 49 是合法的。
+
+Step 7 初版错误地把：
+
+```text
+controller final tick == requested steps
+```
+
+作为硬条件。
+
+现改为：
+
+```text
+environment_steps_executed == requested_steps
+controller_tick_end - controller_tick_start == environment_steps_executed
+all_agents_done == True
+```
+
+并继续保留每次 step 内：
+
+```text
+tick_end == tick_start + 1
+```
+
+因此不是简单放宽 `49`，而是直接按真实 `env.step()` 次数验证 50-tick smoke，同时要求 controller 连续推进且所有 Blue agent 正常 terminated/truncated。
+
+report 新增：
+
+- `environment_steps_executed`；
+- `controller_tick_start`；
+- `controller_tick_end`；
+- `all_agents_done`。
+
+并新增 2 个 regression tests：
+
+1. `controller -1 -> 49` + 50 次 env.step 合法；
+2. 49 次 env.step 或 50 次后 agents 未结束必须拒绝。
+
+因此 Step 7 source tests 从 20 增至 22，Step 2–7 combined 从 98 增至 100。
+
+该修复后必须重新执行 22/100 tests，再 rerun real smoke；旧失败不能作为 Step 7 PASS。
