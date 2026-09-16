@@ -1,7 +1,7 @@
 # Step 6 — Uncertainty Normalizer Warm-up
 
 日期：2026-09-16  
-状态：**6A/6B SOURCE READY / LOCAL 23+78 REGRESSION PENDING / REAL CALIBRATION PENDING**
+状态：**6A PASS / 6B REAL CALIBRATION PENDING**
 
 ---
 
@@ -269,10 +269,10 @@ Main online-EMA policy         : READY
 Freeze sensitivity policy      : READY
 Unit-test source               : READY (14)
 Initial local tests            : PASS (14/14; combined 69/69)
-Runtime freeze source fix      : APPLIED / RERUN PENDING
+Runtime freeze source fix      : PASS / VERIFIED
 Real 100-call calibration      : PENDING
 
-FINAL STATUS: 6A FIX RERUN PENDING / 6B PENDING
+FINAL STATUS: 6A PASS / 6B REAL CALIBRATION PENDING
 ```
 
 
@@ -467,3 +467,38 @@ python -m formal_experiments.evaluation.calibrate_ug_normalizer --device cpu
 正式 main run 不加 `--freeze-after-warmup`；该 flag 只留给 Step 9 sensitivity。
 
 6b 最终必须输出 `pass: True`，5 个 agent 均为 100 calls、seeds=3000..3007、finite=True、all_warm_starts_disabled=True、online_updates_after_warmup=True。
+
+## 17. Final 6a local regression result
+
+在 `.venv_cc4` 修复后的最终本地回归结果：
+
+```text
+Step 6 dedicated:
+Ran 23 tests in 0.053s
+OK
+
+Step 2–6 combined:
+Ran 78 tests in 0.122s
+OK (skipped=1)
+```
+
+唯一 skip：
+
+```text
+tests.test_shared_rollout_evaluator.TestSharedRolloutEvaluator.test_cuda_device
+reason: CUDA not available
+```
+
+该项为 Step 4 预先允许的 hardware-dependent skip，不影响 CPU formal run。
+
+因此：
+
+```text
+6a warm-up/runtime source      : PASS
+runtime freeze behavior        : PASS
+6b calibration guards          : PASS
+Step 2–6 regression            : PASS
+real numerical calibration     : PENDING
+```
+
+Step 6 当前只剩 6b 的真实 per-agent 100-call calibration，尚未 CLOSED。
