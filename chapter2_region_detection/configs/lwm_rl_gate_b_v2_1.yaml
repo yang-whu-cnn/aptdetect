@@ -1,0 +1,132 @@
+config:
+  name: lwm_rl_gate_b_v2_1
+  version: "2.1"
+  status: gate_b_b1_b3_contract
+  source_of_truth: docs/UG_CEM_APT_REPRODUCTION_PLAN.md
+
+shared_contract:
+  state_dim: 27
+  n_actions: 4
+  horizon: 4
+  gamma_tick: 0.99
+  actions:
+    - no_op
+    - analyse
+    - remove
+    - restore
+  world_model: outputs/world_model_v2/a4_5b/world_model_absolute.pt
+  response_reward_predictor: outputs/world_model_v2/a4_5c/response_reward_predictor.pt
+  response_objective:
+    lambda_time: 1.0
+    lambda_failure: 1.0
+    early_warning_lead_reward: false
+    fixed_action_cost: false
+    lambda_delay: false
+
+llm_prior:
+  provider: google_gemini
+  thesis_model_label: Gemini-3.1
+  api_model: gemini-3.1-pro-preview
+  generation_temperature: 0.2
+  k_candidates: 6
+  plan_horizon: 4
+  prompt_version: lwm_rl_gate_b_v2_1
+  planner_visible_state_only: true
+  host_target_selection: false
+  output_format: strict_json
+  parser:
+    candidate_key: candidates
+    action_key: actions
+    prior_score_key: prior_score
+    valid_action_names: [no_op, analyse, remove, restore]
+    exact_plan_length_required: true
+    prior_score_range: [0.0, 1.0]
+    reject_unknown_actions: true
+  duplicate_handling:
+    exact_plan_dedup: true
+    keep: highest_prior_score
+  fallback:
+    strategy: deterministic_uniform_plan_space_sample
+    seed: 20260916
+    state_dependent: false
+    hidden_truth_dependent: false
+    fallback_raw_prior_score: 0.0
+
+posterior_observation:
+  selector_action: candidate_plan_index
+  candidate_count: 6
+  state_dim: 27
+  plan_encoding: categorical_one_hot
+  plan_one_hot_dim: 16
+  prior_dim: 1
+  value_dim: 1
+  uncertainty_dim: 1
+  candidate_feature_dim: 46
+  components:
+    - current_state
+    - candidate_plan
+    - llm_prior_preference
+    - predicted_value
+    - predictive_uncertainty
+  predicted_value: ensemble_member_cumulative_response_return_mean
+  predictive_uncertainty: ensemble_member_cumulative_response_return_population_std
+  action_cost_evidence: false
+  checkpoint_coverage_evidence: false
+  delay_evidence: false
+  early_warning_evidence: false
+
+ppo_pretrain_contract:
+  old_checkpoints_legacy: true
+  candidate_count: 6
+  formal_action_space: 4
+  learning_rate: 0.0003
+  rollout_length: 128
+  update_epochs: 5
+  clip_epsilon: 0.2
+  gae_lambda: 0.95
+  entropy_coefficient: 0.01
+  gamma_tick: 0.99
+  duration_aware_discount: true
+  train_seeds:
+    - 1000
+    - 1001
+    - 1002
+    - 1003
+    - 1004
+    - 1005
+    - 1006
+    - 1007
+    - 1008
+    - 1009
+    - 1010
+    - 1011
+    - 1012
+    - 1013
+    - 1014
+    - 1015
+    - 1016
+    - 1017
+    - 1018
+    - 1019
+    - 1020
+    - 1021
+    - 1022
+    - 1023
+    - 1024
+    - 1025
+    - 1026
+    - 1027
+    - 1028
+    - 1029
+    - 1030
+    - 1031
+  validation_seeds: [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007]
+  calibration_test_forbidden: true
+  b4_network_and_training_details: pending
+
+legacy_isolation:
+  src_llm_prior_allowed: false
+  src_ppo_posterior_allowed: false
+  src_plan_eval_allowed: false
+  src_env_region_allowed: false
+  old_a5_checkpoint_allowed: false
