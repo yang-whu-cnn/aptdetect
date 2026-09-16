@@ -1537,15 +1537,16 @@ A3.6 async extension 已通过：mixed-duration per-agent readiness 使用 sched
 - [x] A4.1 Formal State contract + observable host evidence
   - [x] A4.1a raw Blue observation contract probe
   - [x] A4.1b ObservableHostEvidenceTracker + FormalStateEncoder
+  - [~] A4.1c valid-target availability correction  <- CURRENT
 - [x] A4.2 Decision-epoch replay schema / collector
 - [x] A4.3 Incident bookkeeping + response reward implementation
 - [x] A4.4 Bootstrap probabilistic ensemble world model
 - [~] A4.5 Validation + planning-value readiness  <- CURRENT
-  - [x] A4.5a formal CC4 replay collection + train/validation split
-  - [x] A4.5b WM held-out validation / rollout / uncertainty calibration
-  - [x] A4.5c response-reward prediction path decision / validation
+  - [~] A4.5a formal CC4 replay collection + train/validation split — previous replay superseded by A4.1c state semantic change
+  - [~] A4.5b WM held-out validation / rollout / uncertainty calibration — rerun required after A4.1c replay
+  - [~] A4.5c response-reward prediction path decision / validation — rerun required after A4.1c replay
 - [~] A4.6 A4 integration review  <- CURRENT
-  - [~] A4.6a model-space requested→executed action consistency audit  <- CURRENT
+  - [!] A4.6a model-space requested→executed action consistency audit — FAILED; corrective state revision required
   - [ ] A4.6b formal v2.1 config freeze + legacy isolation
   - [ ] A4.6c A4 final integration review
 
@@ -1602,3 +1603,5 @@ A4.5c 已完成：auxiliary response-reward predictor 输入仅为 planner-visib
 A4.6 integration review 必须在进入 Step 4 前解决 model-space requested→executed action consistency。A4.4/A4.5 dynamics 与 reward predictor 都学习 executed/canonical action，但未来 LLM/CEM/PPO 输出 requested high-level action；真实 CC4 targeted action 可能因无合法 observable target fallback Sleep。因此必须先在冻结 replay 上审计：FormalState feature any_observable_target 与真实 fallback 的关系、是否存在 feature=1 但某 targeted family 仍 fallback、以及能否仅从 planner-visible state + requested action 无泄漏地重建 canonical action。若不能近乎确定重建，不得直接把 requested action ID 送入 executed-action WM；需要在 A4.6 冻结新的 model-space action-availability representation 或其它所有方法共享、无 hidden truth 的一致接口。
 
 A4.6a frozen audit rule（运行前冻结）：FormalState feature any_observable_target 是当前 model-space 唯一 action-availability signal。先用真实 replay 检验 canonicalize(requested,state)：no_op 始终 Sleep；targeted action 在 any_observable_target<0.5 时映射 Sleep，否则保持 requested。硬条件：train 与 validation 的 true-state requested→executed family 重建必须 100% 一致；若出现 feature=1 但真实 targeted fallback，或 feature=0 但真实 targeted non-fallback，则 27D state 不足以无泄漏重建 executed action，必须在进入 Step4 前扩展 action-availability representation，不能用近似 heuristic 掩盖。若 true-state mapping PASS，再用 selected absolute WM + reward predictor 做 H=4 requested-plan integrated rollout：每个 member 每一步根据其 predicted current state 独立 canonicalize requested action，再预测 next_state/reward。集成 Gate：H=4 final-state RMSE 仍须优于 persistence；H=4 predicted response return RMSE 仍须优于 train-derived constant baseline；aggregate value Spearman >0.3，至少 5/8 validation episodes 为正。另报告 targeted-action canonicalization match rate 作为诊断，不用 validation 结果事后改阈值。
+
+A4.6a runtime failure confirms feature 17 representation insufficiency：train/validation mapping accuracy=0.992368/0.990582；feature=1 but real fallback=69/22；feature=0 but real non-fallback=0。Current `any_observable_target` only checks non-empty observable evidence, while production resolver requires intersection with current wrapper-valid host actions. Corrective A4.1c keeps D=27 but replaces feature 17 semantics/name with `any_valid_observable_target`, computed only from planner-visible labels/mask + observable_host_scores. Exact Gate is NOT relaxed. Existing formal replay/WM/reward checkpoints are superseded for final use and must be regenerated/revalidated after A4.1c.
