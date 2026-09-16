@@ -62,6 +62,7 @@ CEM_PROB_FLOOR = 0.01
 CEM_SEED_BASE = 20260916
 UG_ALPHA = 0.01
 UG_EPS = 1e-8
+CALIBRATION_SEED_ORDER = tuple(sorted(CALIBRATION_SEEDS))
 
 ALLOWED_STATE_KEYS = frozenset({
     "split",
@@ -152,7 +153,7 @@ def select_balanced_warmup_states(
     ):
         raise ValueError("planner_calls must be positive int")
 
-    by_seed: dict[int, list[dict]] = {seed: [] for seed in CALIBRATION_SEEDS}
+    by_seed: dict[int, list[dict]] = {seed: [] for seed in CALIBRATION_SEED_ORDER}
     for item in records:
         warmup = item["warmup"]
         if warmup.agent_name != agent_name:
@@ -163,7 +164,7 @@ def select_balanced_warmup_states(
     if missing:
         raise ValueError(f"{agent_name}: missing calibration seeds {missing}")
 
-    for seed in CALIBRATION_SEEDS:
+    for seed in CALIBRATION_SEED_ORDER:
         by_seed[seed].sort(
             key=lambda item: (
                 item["decision_index"],
@@ -171,12 +172,12 @@ def select_balanced_warmup_states(
             )
         )
 
-    cursors = {seed: 0 for seed in CALIBRATION_SEEDS}
+    cursors = {seed: 0 for seed in CALIBRATION_SEED_ORDER}
     selected: list[WarmupState] = []
 
     while len(selected) < planner_calls:
         progressed = False
-        for seed in CALIBRATION_SEEDS:
+        for seed in CALIBRATION_SEED_ORDER:
             cursor = cursors[seed]
             rows = by_seed[seed]
             if cursor >= len(rows):
@@ -328,7 +329,7 @@ def main() -> None:
         report = runner.run(selected)
 
         used_seeds = tuple(sorted(set(report.unique_episode_seeds)))
-        if used_seeds != tuple(CALIBRATION_SEEDS):
+        if used_seeds != CALIBRATION_SEED_ORDER:
             raise RuntimeError(
                 f"{agent_name}: warm-up did not cover all calibration seeds: "
                 f"{used_seeds}"
@@ -371,7 +372,7 @@ def main() -> None:
     bundle = {
         "format_version": 1,
         "source_split": "calibration",
-        "calibration_seeds": tuple(CALIBRATION_SEEDS),
+        "calibration_seeds": CALIBRATION_SEED_ORDER,
         "planner_calls_per_agent": PLANNER_CALLS_PER_AGENT,
         "freeze_after_warmup": bool(args.freeze_after_warmup),
         "online_updates_after_warmup": not bool(args.freeze_after_warmup),
@@ -401,7 +402,7 @@ def main() -> None:
     json_report = {
         "status": "PASS" if overall_pass else "FAIL",
         "source_split": "calibration",
-        "calibration_seeds": list(CALIBRATION_SEEDS),
+        "calibration_seeds": list(CALIBRATION_SEED_ORDER),
         "planner_calls_per_agent": PLANNER_CALLS_PER_AGENT,
         "total_planner_calls": PLANNER_CALLS_PER_AGENT * len(BLUE_AGENTS),
         "freeze_after_warmup": bool(args.freeze_after_warmup),
