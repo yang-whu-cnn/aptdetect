@@ -32,6 +32,7 @@ llm_prior:
   plan_horizon: 4
   prompt_version: lwm_rl_gate_b_v2_1
   planner_visible_state_only: true
+  prior_preference_normalization: nonnegative_linear_sum_to_one
   host_target_selection: false
   output_format: strict_json
   parser:
