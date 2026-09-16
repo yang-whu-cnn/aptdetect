@@ -1544,9 +1544,9 @@ A3.6 async extension 已通过：mixed-duration per-agent readiness 使用 sched
 - [~] A4.5 Validation + planning-value readiness
   - [x] A4.5a formal CC4 replay recollection + train/validation split
   - [x] A4.5b WM held-out validation / rollout / uncertainty calibration
-  - [~] A4.5c response-reward prediction path decision / validation  <- CURRENT
-- [ ] A4.6 A4 integration review
-  - [!] A4.6a model-space requested→executed action consistency audit — FAILED; corrective state revision required
+  - [x] A4.5c response-reward prediction path decision / validation
+- [~] A4.6 A4 integration review  <- CURRENT
+  - [~] A4.6a model-space requested→executed action consistency audit — corrective rerun on v2 artifacts  <- CURRENT
   - [ ] A4.6b formal v2.1 config freeze + legacy isolation
   - [ ] A4.6c A4 final integration review
 
@@ -1615,3 +1615,5 @@ A4.5b corrective rerun 仍按原冻结 absolute-vs-delta selection rule重新选
 A4.5a v2 recollection 已完成：train/validation transition counts、requested/executed action counts、fallback/valid-target rates、incident-host counts 与旧正式 collection 完全一致；full exact mapping train/validation overall+targeted accuracy 均为 1.0，feature=1 fallback=0，feature=0 nonfallback=0。Old-vs-v2 integrity audit 进一步确认除 feature17 外其余 26 维 state/next_state 与全部 non-state replay fields 完全相同；train state17/next17 分别变化 103/109 条，validation 分别变化 30/30 条。A4.5a v2 PASS。
 
 A4.5b v2 rerun 已完成：absolute one-step RMSE=0.132232 < persistence 0.180830；absolute H4 RMSE=0.191052 < persistence 0.219133；H4 epistemic-error Spearman=0.687621，8/8 validation episodes 为正。delta H4 RMSE=0.192143，relative improvement=-0.005709，且仅 2/8 episode wins，因此按原冻结 selection rule 继续选择 absolute。Selected absolute quality Gate 全部 PASS。MAE 并未全面优于 persistence，但 MAE 不是冻结 Gate，故不事后调参。A4.5b v2 PASS。
+
+A4.5c v2 rerun 已完成：one-step RMSE=2.258064 < train-mean baseline 4.854820；oracle-state H4 RMSE=6.944553、Spearman=0.746864；selected absolute-WM + reward predictor H4 RMSE=7.626011 < constant baseline 15.522030，Spearman=0.670119，8/8 validation episodes 为正；return-uncertainty / true-error Spearman=0.630400。Frozen A4.5c Gate 全部 PASS。A4.5c v2 PASS。下一步重新执行 A4.6a，必须使用 v2 replay + v2 absolute WM + v2 reward checkpoint，原 100% requested→executed mapping hard Gate 与 H4 integrated rollout Gate 均不放宽。
