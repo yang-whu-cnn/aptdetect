@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from numbers import Integral
 from typing import Iterable, Tuple
 
@@ -185,11 +185,9 @@ class UGNormalizerWarmup:
         agent_name = next(iter(agent_names))
 
         # Warm-up itself must update EMA irrespective of the post-warm-up
-        # sensitivity setting. Preserve beta; change only update policy.
-        self.planner.config = replace(
-            self.planner.config,
-            update_uncertainty_stats=True,
-        )
+        # sensitivity setting. Use the planner's runtime switch because
+        # plan() reads that switch directly.
+        self.planner.set_uncertainty_update_mode(True)
 
         train_calls = 0
         calibration_calls = 0
@@ -221,10 +219,7 @@ class UGNormalizerWarmup:
         self.planner.reset_episode()
 
         online_updates = not self.config.freeze_after_warmup
-        self.planner.config = replace(
-            self.planner.config,
-            update_uncertainty_stats=online_updates,
-        )
+        self.planner.set_uncertainty_update_mode(online_updates)
 
         finite = all(
             torch.isfinite(item).all().item()
