@@ -54,6 +54,7 @@ class TestGateBLLMPriorPosteriorContract(unittest.TestCase):
         self.assertEqual(llm["k_candidates"],6)
         self.assertEqual(llm["plan_horizon"],4)
         self.assertEqual(llm["generation_temperature"],0.2)
+        self.assertEqual(llm["prior_preference_normalization"],"nonnegative_linear_sum_to_one")
 
     def test_prompt_uses_only_four_action_vocab_and_d27_state(self):
         state=np.arange(FORMAL_STATE_DIM,dtype=np.float32)/100.0
