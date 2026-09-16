@@ -134,3 +134,11 @@ legacy_isolation:
   legacy_config_allowed_for_formal_runs: false
   old_replay_allowed_for_formal_runs: false
   old_world_model_allowed_for_formal_runs: false
+
+ug_cem_runtime:
+  normalizer_bundle: outputs/ug_cem_v2/step6/ug_normalizers_online.pt
+  normalizer_report: outputs/ug_cem_v2/step6/ug_normalizers_online_report.json
+  normalizer_source_split: calibration
+  normalizer_calibration_seeds: [3000, 3001, 3002, 3003, 3004, 3005, 3006, 3007]
+  normalizer_calls_per_agent: 100
+  normalizer_online_updates_after_warmup: true
