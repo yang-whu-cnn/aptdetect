@@ -5,6 +5,11 @@ import torch
 
 from formal_experiments.evaluation.audit_model_space_action_consistency import (
     ANY_TARGET_INDEX,
+    DEFAULT_REPORT_OUT,
+    DEFAULT_REWARD_MODEL,
+    DEFAULT_TRAIN_REPLAY,
+    DEFAULT_VALIDATION_REPLAY,
+    DEFAULT_WORLD_MODEL,
     canonicalize_requested_action,
     canonicalize_requested_tensor,
     quality_gate,
@@ -176,6 +181,68 @@ class TestGateAModelSpaceActionConsistency(
             canonicalize_requested_action(
                 state(1.0),
                 4,
+            )
+
+    def test_formal_defaults_use_v2_artifacts(
+        self,
+    ):
+        self.assertEqual(
+            DEFAULT_TRAIN_REPLAY,
+            "outputs/formal_replay_v2/train.jsonl",
+        )
+
+        self.assertEqual(
+            DEFAULT_VALIDATION_REPLAY,
+            "outputs/formal_replay_v2/validation.jsonl",
+        )
+
+        self.assertEqual(
+            DEFAULT_WORLD_MODEL,
+            (
+                "outputs/world_model_v2/"
+                "a4_5b/"
+                "world_model_absolute.pt"
+            ),
+        )
+
+        self.assertEqual(
+            DEFAULT_REWARD_MODEL,
+            (
+                "outputs/world_model_v2/"
+                "a4_5c/"
+                "response_reward_predictor.pt"
+            ),
+        )
+
+        self.assertEqual(
+            DEFAULT_REPORT_OUT,
+            (
+                "outputs/world_model_v2/"
+                "a4_6a/"
+                "action_consistency_report.json"
+            ),
+        )
+
+    def test_formal_defaults_do_not_bind_legacy_artifacts(
+        self,
+    ):
+        formal_paths = (
+            DEFAULT_TRAIN_REPLAY,
+            DEFAULT_VALIDATION_REPLAY,
+            DEFAULT_WORLD_MODEL,
+            DEFAULT_REWARD_MODEL,
+            DEFAULT_REPORT_OUT,
+        )
+
+        for path in formal_paths:
+            self.assertNotIn(
+                "outputs/formal_replay/",
+                path,
+            )
+
+            self.assertNotIn(
+                "outputs/world_model/",
+                path,
             )
 
     def test_quality_gate(
