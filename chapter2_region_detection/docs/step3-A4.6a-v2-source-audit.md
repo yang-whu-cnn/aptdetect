@@ -1,7 +1,7 @@
 # Step A4.6a v2 — Model-Space Action Consistency Source Audit
 
 日期：2026-09-16  
-状态：**RUNTIME PASS / SOURCE FIXED / LOCAL RERUN PENDING**
+状态：**PASS / CLOSED**
 
 ---
 
@@ -88,32 +88,44 @@ outputs/world_model_v2/a4_6a/action_consistency_report.json
 
 该测试文件现共有 9 个 `test_*`。
 
-## 4. 当前仍需完成：本地 rerun
+## 4. 本地 rerun 结果
 
-GitHub 仓库未提交 formal v2 replay / checkpoint 大产物，因此 connector 端无法执行真实 A4.6a numerical rerun。
+本地 `.venv_cc4` 环境已完成 rerun。
 
-必须在保存 v2 artifacts 的本地实验环境执行：
+单元测试：
 
-```bash
-cd chapter2_region_detection
+```text
 python -m unittest tests.test_gate_a_model_space_action_consistency -v
-python -m formal_experiments.evaluation.audit_model_space_action_consistency --device cpu
+Ran 9 tests
+OK
 ```
 
-无参数 evaluator 现在应直接读取 v2 artifacts。
+numerical evaluator：
 
-rerun 后必须确认：
+```text
+train mapping accuracy: 1.0
+validation mapping accuracy: 1.0
+train feature=1 fallback: 0
+validation feature=1 fallback: 0
+train feature=0 nonfallback: 0
+validation feature=0 nonfallback: 0
+integrated H4 state RMSE: 0.2000148377762988
+persistence state RMSE: 0.21913333903939589
+integrated H4 value RMSE: 7.608134616100138
+constant value baseline RMSE: 15.522029956815578
+integrated H4 value Spearman: 0.6814048261786793
+positive episode value Spearman: 8
+targeted member-step match rate: 0.9175398633257403
+quality_gate.pass: True
+```
 
-- 9 个 unit tests 全部 PASS；
-- train mapping accuracy = 1.0；
-- validation mapping accuracy = 1.0；
-- feature=1 but fallback = 0；
-- feature=0 but nonfallback = 0；
-- H4 state RMSE 仍优于 persistence；
-- H4 value RMSE 仍优于 constant baseline；
-- H4 value Spearman > 0.3；
-- 至少 5/8 validation episode Spearman > 0；
-- 结果与已记录 v2 runtime 数值无异常漂移。
+report 输出位置：
+
+```text
+outputs/world_model_v2/a4_6a/action_consistency_report.json
+```
+
+本次无参数运行成功读取 v2 default artifacts，证明 formal artifact binding 修复已生效。
 ## 5. 当前审核结论
 
 ```text
@@ -122,13 +134,12 @@ A4.6a v2
 Runtime hard Gate       : PASS
 Evaluator source pushed : PASS
 Core canonical logic    : PASS
-Unit-test source present: PASS
-GitHub CI execution     : NOT AVAILABLE
-Formal artifact binding : FIXED
-Local unit-test rerun   : PENDING
-Local numerical rerun   : PENDING
+Formal artifact binding : PASS
+Local unit-test rerun   : PASS (9/9)
+Local numerical rerun   : PASS
+quality_gate.pass       : True
 
-FINAL STATUS: SOURCE FIXED / RERUN PENDING
+FINAL STATUS: PASS / CLOSED
 ```
 
-A4.6a 当前不需要重新调 WM 或 reward predictor。下一动作仅是在本地 v2 artifacts 上运行上述 9 个 tests 与 evaluator；结果确认后即可把 A4.6a 正式 CLOSED，并进入 A4.6b formal v2.1 config freeze + legacy isolation。
+A4.6a 已正式关闭。下一步进入 A4.6b formal v2.1 config freeze + legacy isolation；不重新训练或调节已冻结的 WM / reward predictor。
