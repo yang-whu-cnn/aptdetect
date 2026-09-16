@@ -5,7 +5,7 @@ A4.5b 已完成并正式选择 absolute Bootstrap Probabilistic WM：one-step RM
 > 仓库：yang-whu-cnn/aptdetect  
 > 稳定备份分支：me  
 > 实验分支：ug-cem-apt  
-> 当前阶段：Gate A4.6 integration review；A4.6a/A4.6b 已 CLOSED；A4.6c shared-layer integration source 已实现，待本地 26-test + numerical regression  
+> 当前阶段：A4 已 PASS / CLOSED；当前进入 A5 Gate A Final Review，待全量 191-test regression  
 > 最后更新：2026-09-16  
 > 本文件是后续实现、审核、实验和论文撰写的唯一总路线图。若后续方案发生实质变化，必须先更新本文件，再改实现。
 
@@ -914,6 +914,10 @@ A4.6 Config cleanup / integration review：
 - legacy isolation；
 - no leakage。
 
+
+当前状态：**A5 CURRENT — full Gate A regression 191 tests pending**  
+记录：`docs/step3-A5.md`
+
 ---
 
 # 15. Step 0–3 状态
@@ -1545,10 +1549,10 @@ A3.6 async extension 已通过：mixed-duration per-agent readiness 使用 sched
   - [x] A4.5a formal CC4 replay recollection + train/validation split
   - [x] A4.5b WM held-out validation / rollout / uncertainty calibration
   - [x] A4.5c response-reward prediction path decision / validation
-- [~] A4.6 A4 integration review  <- CURRENT
+- [x] A4.6 A4 integration review — PASS / CLOSED
   - [x] A4.6a model-space requested→executed action consistency audit — PASS / CLOSED
   - [x] A4.6b formal v2.1 config freeze + legacy isolation — PASS / CLOSED
-  - [~] A4.6c A4 final integration review — source ready；local 26-test + numerical regression pending  <- CURRENT
+  - [x] A4.6c A4 final integration review — PASS / CLOSED
 
 A4.1 必须基于真实 CC4 Blue observation 构造 planner-visible state / host evidence；不得读取 hidden red sessions、true compromise labels、future information 或 A3 probe-only synthetic scores。A4.1a 已确认 reset Processes 属于 baseline，不得直接当 threat evidence；正式 tracker 仅允许 post-reset Monitor / Analyse evidence 提升 host threat state。
 
@@ -1623,3 +1627,5 @@ A4.6a v2 runtime rerun 已通过：train/validation true-state requested→execu
 A4.6b formal v2.1 config 已冻结：新增 `configs/compare_ug_cem_formal_v2_1.yaml`，冻结 D=27、A=4、H=4、gamma_tick=0.99、M=5、hidden=128、selected target_mode=absolute、v2 replay/WM/reward artifacts 与 exact seed protocol；`compare_ug_cem_local_online.yaml` 已明确标记 LEGACY / DEVELOPMENT ONLY。`tests/test_gate_a_formal_comparison_config.py` 本地 `.venv_cc4` 9/9 tests PASS。A4.6b 正式 CLOSED；详见 `docs/step3-A4.6b.md`。
 
 A4.6c source review 已完成两项 integration cleanup：将 requested→canonical action 从 evaluation audit 层抽取到 `shared/model_space_action.py`，作为 Step 4 以后正式共享入口；同时在 formal v2.1 YAML 显式冻结 A4.3 response objective 的 `lambda_time=1.0` / `lambda_failure=1.0`。新增 `tests/test_gate_a_final_integration.py` 8 tests，并要求回归 A4.6a 9 tests + A4.6b 9 tests，共 26 targeted tests；通过后还需再次运行 A4.6a numerical evaluator，确认 shared refactor 不改变冻结数值 Gate。详见 `docs/step3-A4.6c.md`。
+
+A4.6c local closure 已完成：A4.6a/A4.6b/A4.6c targeted regression 共 26/26 tests PASS，shared canonicalizer refactor 后 A4.6a numerical audit 精确复现，quality_gate.pass=True。`docs/step3-A4.md` 已生成 aggregate closure，A4 正式 PASS / CLOSED。当前进入 A5 Gate A Final Review；仓库现有 15 个 `test_gate_a_*.py` 共 191 tests，A5 只要求全量回归，不引入新算法逻辑。详见 `docs/step3-A5.md`。
