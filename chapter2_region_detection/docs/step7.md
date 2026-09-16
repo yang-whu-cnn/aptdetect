@@ -1,7 +1,7 @@
 # Step 7 — Integration Smoke Tests
 
 日期：2026-09-16  
-状态：**SOURCE FIXED / LOCAL 22+100 REGRESSION PENDING / REAL SMOKE RERUN PENDING**
+状态：**PASS / CLOSED**
 
 ---
 
@@ -319,10 +319,10 @@ Official CC4 smoke harness   : READY
 Five-agent async scheduler   : READY
 Adapter/duration checks      : READY
 Unit-test source             : READY (22)
-Local test execution         : PENDING
-Real smoke execution         : PENDING
+Local test execution         : PASS (22/22; combined 100/100)
+Real smoke execution         : PASS
 
-FINAL STATUS: SOURCE READY / TEST + REAL SMOKE PENDING
+FINAL STATUS: PASS / CLOSED
 ```
 
 
@@ -442,3 +442,55 @@ runner report/summary 现在明确区分：
 原 Section 14 保留作为第一次失败历史，但其 `-1 -> 49 + 50 env.step` 解释已被本节正式 supersede。
 
 Step 7 tests 数量不变：bundle 8 + smoke 14 = 22；combined Step2–7=100。需要重新执行 22/100 regression 和 real smoke。
+
+## 16. Final Step-7 closure result
+
+修复 CC4 native scenario-step semantics 后，本地重新执行：
+
+```text
+Step 7 dedicated regression : 22/22 PASS
+Step 2–7 combined regression: 100/100 PASS
+```
+
+real smoke 最终输出：
+
+```text
+[STEP7 SUMMARY]
+local_short_calls: 20
+local_long_calls: 500
+official_seeds: [1000, 1001]
+official_scenario_ticks: [50, 50]
+official_post_reset_env_steps: [49, 49]
+official_decisions: [205, 182]
+pass: True
+```
+
+该结果说明：
+
+- local development smoke 20 + 500 planner calls 均完成；
+- official train-seed smoke 对 1000/1001 两个 episode 均按 CC4 `steps=50` 原生语义结束；
+- scenario ticks 与 post-reset wrapper env.step() 已正确区分；
+- 五 agent planner / adapter / multi-tick async scheduler 全链路未触发 contract error；
+- Step-6 per-agent normalizer restore + online EMA 在 closed-loop smoke 中保持可用；
+- smoke 结果仍为 integration evidence，不进入论文正式主表。
+
+正式 report：
+
+```text
+outputs/ug_cem_v2/step7/step7_smoke_report.json
+```
+
+因此：
+
+```text
+Step-6 normalizer restore  : PASS
+Local smoke                : PASS
+Official train smoke       : PASS
+Adapter/duration/scheduler : PASS
+Native CC4 tick semantics  : PASS
+Regression                 : PASS
+
+FINAL STATUS: STEP 7 PASS / CLOSED
+```
+
+Next: Gate B — LLM prior / PPO posterior retraining and freeze.
