@@ -1110,7 +1110,7 @@ G_i - beta * omega_i / (k+1)
 
 Gate B 在正式 PPO 重训前执行。
 
-当前状态：**B1–B3 PASS / CLOSED；B2-live NETWORK FIX READY / 13-test + real API smoke pending；B4/B5 PENDING**  
+当前状态：**B1–B3 PASS / CLOSED；B2-live TRANSPORT PASS / EXACT-MODEL QUOTA BLOCKED / 15-test + valid API response pending；B4/B5 PENDING**  
 记录：`docs/gate-b-B1-B3.md`  
 正式新模块：`formal_experiments/ours/llm_prior_v2.py` + `posterior_features.py`
 
@@ -1679,3 +1679,5 @@ Gate B B1–B3 source 已完成：旧 `src/llm_prior.py / ppo_posterior.py / pla
 Gate B B1–B3 local closure：15/15 tests PASS，正式 CLOSED。按 staged integration 新增 B2-live 子 Gate：使用官方 `google-genai` Interactions API，通过 `genai.Client()` 仅从 `GOOGLE_API_KEY/GEMINI_API_KEY` 环境变量认证，代码不接受或保存 key value。请求使用 `gemini-3.1-pro-preview`、temperature=0.2、`store=false`、JSON Schema exact K=6/H=4/A=4 structured output，再进入 frozen semantic parser。新增 live smoke runner 与 10 个 mock tests；真实调用默认使用 Step6 state-only artifact 的 blue_agent_0/seed3000 planner-visible D27 state。10 tests + real API smoke PASS 前不进入 B4 PPO。
 
 B2-live first real call failed before Gemini response in `httpcore._sync.http_proxy -> start_tls` with `SSL: UNEXPECTED_EOF_WHILE_READING`, indicating proxy/TLS transport failure rather than prior/parser/model logic. Added Gemini-specific network controls: default SDK environment proxy; `GEMINI_DISABLE_ENV_PROXY=1` for `trust_env=False` direct mode; or `GEMINI_PROXY_URL` for explicit Gemini-only proxy with `trust_env=False`. Added redacted proxy diagnostics (no userinfo/credentials) and `network_mode` report field. B2-live tests increased from 10 to 13; real API smoke still pending.
+
+B2-live second real call with `GEMINI_DISABLE_ENV_PROXY=1` successfully passed the previous proxy/TLS layer and reached Gemini quota evaluation. API returned 429 with `generate_content_free_tier_* limit: 0` for `gemini-3.1-pro`, which matches current official pricing where `gemini-3.1-pro-preview` has no Free Tier. Therefore transport is PASS, but exact-model inference remains quota-blocked. Do not silently swap to a free Flash model because B2 froze Gemini-3.1. Enable Paid Tier quota for the key's project, then rerun the same exact-model smoke. Runner now classifies quota/auth/network/API failures separately and filters non-proxy project env flags from proxy diagnostics. B2-live tests now total 15.
