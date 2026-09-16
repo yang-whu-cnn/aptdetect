@@ -377,3 +377,68 @@ report 新增：
 因此 Step 7 source tests 从 20 增至 22，Step 2–7 combined 从 98 增至 100。
 
 该修复后必须重新执行 22/100 tests，再 rerun real smoke；旧失败不能作为 Step 7 PASS。
+
+## 15. Native CC4 scenario-step correction (supersedes Section 14 interpretation)
+
+第二次 real smoke 在修复后仍报告：
+
+```text
+official smoke environment-step count mismatch:
+executed=49, requested=50
+```
+
+进一步核对 CC4 官方源码后确认，Section 14 中“reset tick=-1，因此 50 次 env.step 后到 49”的解释不准确，现正式废止。
+
+CC4 当前源码语义：
+
+```text
+SimulationController.reset():
+    step_count = 0
+
+SimulationController.step():
+    step_count += 1
+
+EnterpriseScenarioGenerator.determine_done():
+    return step_count >= (steps - 1)
+```
+
+因此 `EnterpriseScenarioGenerator(steps=50)` 的原生 episode 是：
+
+```text
+controller tick labels: 0..49
+scenario ticks:         50
+post-reset env.step():  49
+terminal tick:          49
+```
+
+这也与 CC4 official evaluation 的行为一致：evaluation 把 `steps=EPISODE_LENGTH` 传给 scenario，并在 term/trunc 全部为真时提前退出最多 `EPISODE_LENGTH` 次的调用循环。
+
+Step 7 现在按原生 CC4 语义验证：
+
+```text
+expected_terminal_tick = scenario_steps - 1
+controller_tick_end == expected_terminal_tick
+post_reset_env_steps == expected_terminal_tick - controller_tick_start
+controller_tick_end - controller_tick_start == post_reset_env_steps
+all_agents_done == True
+```
+
+对正式 `scenario_steps=50` 且 reset 后 start=0：
+
+```text
+controller_tick_end = 49
+post_reset_env_steps = 49
+scenario_ticks = 50
+```
+
+runner report/summary 现在明确区分：
+
+- `scenario_steps` / `scenario_ticks`；
+- `post_reset_env_steps` / `environment_steps_executed`；
+- `controller_tick_start/end`。
+
+因此任务书中的“2 episodes × 50 ticks”解释为 CC4 `EnterpriseScenarioGenerator(steps=50)` 的 **50 个 scenario ticks**，而不是 50 次 post-reset wrapper `env.step()` API 调用。
+
+原 Section 14 保留作为第一次失败历史，但其 `-1 -> 49 + 50 env.step` 解释已被本节正式 supersede。
+
+Step 7 tests 数量不变：bundle 8 + smoke 14 = 22；combined Step2–7=100。需要重新执行 22/100 regression 和 real smoke。
