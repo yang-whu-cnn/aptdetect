@@ -1,7 +1,7 @@
 # Step A5 — Gate A Final Review
 
 日期：2026-09-16  
-状态：**FINAL REGRESSION PENDING**
+状态：**PASS / GATE A CLOSED**
 
 ---
 
@@ -98,15 +98,15 @@ test_gate_a_world_model_validation.py       13
 TOTAL                                      191
 ```
 
-## 5. Local close command
+## 5. Local close result
 
-在 `.venv_cc4`、`chapter2_region_detection` 目录执行：
+在 `.venv_cc4`、`chapter2_region_detection` 目录已执行：
 
 ```bash
 python -m unittest discover -s tests -p "test_gate_a_*.py" -v
 ```
 
-关闭条件：
+实际结果：
 
 ```text
 Ran 191 tests
@@ -134,9 +134,9 @@ A2R local adapter               : PASS
 A3 official CC4 adapter         : PASS
 A4 formal model space           : PASS / CLOSED
 Full Gate A regression source   : READY (191 tests)
-Local full regression           : PENDING
+Local full regression           : PASS (191/191)
 
-FINAL STATUS: FINAL REGRESSION PENDING
+FINAL STATUS: PASS / GATE A CLOSED
 ```
 
-只有 191/191 tests PASS 后才将 Gate A 标记 CLOSED。
+本地 `.venv_cc4` 已完成 `test_gate_a_*.py` 全量回归：191/191 tests PASS，unittest 最终结果为 `OK`。Gate A 正式 CLOSED。下一步进入 Step 4：Vectorized Shared Rollout Evaluator。
