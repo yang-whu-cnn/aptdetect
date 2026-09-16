@@ -5,7 +5,7 @@ A4.5b 已完成并正式选择 absolute Bootstrap Probabilistic WM：one-step RM
 > 仓库：yang-whu-cnn/aptdetect  
 > 稳定备份分支：me  
 > 实验分支：ug-cem-apt  
-> 当前阶段：A4 已 PASS / CLOSED；当前进入 A5 Gate A Final Review，待全量 191-test regression  
+> 当前阶段：Gate A 已 PASS / CLOSED；当前进入 Step 4 — Vectorized Shared Rollout Evaluator  
 > 最后更新：2026-09-16  
 > 本文件是后续实现、审核、实验和论文撰写的唯一总路线图。若后续方案发生实质变化，必须先更新本文件，再改实现。
 
@@ -915,7 +915,8 @@ A4.6 Config cleanup / integration review：
 - no leakage。
 
 
-当前状态：**A5 CURRENT — full Gate A regression 191 tests pending**  
+当前状态：**PASS / GATE A CLOSED**  
+本地 full regression：191/191 PASS  
 记录：`docs/step3-A5.md`
 
 ---
@@ -1629,3 +1630,5 @@ A4.6b formal v2.1 config 已冻结：新增 `configs/compare_ug_cem_formal_v2_1.
 A4.6c source review 已完成两项 integration cleanup：将 requested→canonical action 从 evaluation audit 层抽取到 `shared/model_space_action.py`，作为 Step 4 以后正式共享入口；同时在 formal v2.1 YAML 显式冻结 A4.3 response objective 的 `lambda_time=1.0` / `lambda_failure=1.0`。新增 `tests/test_gate_a_final_integration.py` 8 tests，并要求回归 A4.6a 9 tests + A4.6b 9 tests，共 26 targeted tests；通过后还需再次运行 A4.6a numerical evaluator，确认 shared refactor 不改变冻结数值 Gate。详见 `docs/step3-A4.6c.md`。
 
 A4.6c local closure 已完成：A4.6a/A4.6b/A4.6c targeted regression 共 26/26 tests PASS，shared canonicalizer refactor 后 A4.6a numerical audit 精确复现，quality_gate.pass=True。`docs/step3-A4.md` 已生成 aggregate closure，A4 正式 PASS / CLOSED。当前进入 A5 Gate A Final Review；仓库现有 15 个 `test_gate_a_*.py` 共 191 tests，A5 只要求全量回归，不引入新算法逻辑。详见 `docs/step3-A5.md`。
+
+A5 Final Review 已完成：`.venv_cc4` 本地 `python -m unittest discover -s tests -p "test_gate_a_*.py" -v` 共 191/191 tests PASS，unittest 最终结果 `OK`。结合 A4.6a numerical `quality_gate.pass=True`，Gate A 正式 CLOSED。自此 A=4、D=27、target resolver、decision-epoch duration、response objective、selected absolute WM、shared reward predictor、v2 artifact binding 与 formal seed protocol 全部冻结；除非显式重新打开 Gate A，不得在 Step 4/5 中修改。当前进入 Step 4 Vectorized Shared Rollout Evaluator。
