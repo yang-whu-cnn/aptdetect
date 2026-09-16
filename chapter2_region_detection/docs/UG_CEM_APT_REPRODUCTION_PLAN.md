@@ -5,7 +5,7 @@ A4.5b 已完成并正式选择 absolute Bootstrap Probabilistic WM：one-step RM
 > 仓库：yang-whu-cnn/aptdetect  
 > 稳定备份分支：me  
 > 实验分支：ug-cem-apt  
-> 当前阶段：Gate A4.6 integration review；A4.6a v2 runtime PASS，source audit 发现 formal artifact 默认路径仍指向 legacy 产物，待修正后关闭 A4.6a  
+> 当前阶段：Gate A4.6 integration review；A4.6a v2 runtime PASS，formal artifact binding 已修复并锁定 v2 defaults，待本地 9-test + numerical rerun 后关闭 A4.6a  
 > 最后更新：2026-09-16  
 > 本文件是后续实现、审核、实验和论文撰写的唯一总路线图。若后续方案发生实质变化，必须先更新本文件，再改实现。
 
@@ -1546,7 +1546,7 @@ A3.6 async extension 已通过：mixed-duration per-agent readiness 使用 sched
   - [x] A4.5b WM held-out validation / rollout / uncertainty calibration
   - [x] A4.5c response-reward prediction path decision / validation
 - [~] A4.6 A4 integration review  <- CURRENT
-  - [~] A4.6a model-space requested→executed action consistency audit — v2 runtime PASS；source pushed；formal artifact binding 待修正  <- CURRENT
+  - [~] A4.6a model-space requested→executed action consistency audit — v2 runtime PASS；source/default binding FIXED；local rerun pending  <- CURRENT
   - [ ] A4.6b formal v2.1 config freeze + legacy isolation
   - [ ] A4.6c A4 final integration review
 
@@ -1618,4 +1618,4 @@ A4.5b v2 rerun 已完成：absolute one-step RMSE=0.132232 < persistence 0.18083
 
 A4.5c v2 rerun 已完成：one-step RMSE=2.258064 < train-mean baseline 4.854820；oracle-state H4 RMSE=6.944553、Spearman=0.746864；selected absolute-WM + reward predictor H4 RMSE=7.626011 < constant baseline 15.522030，Spearman=0.670119，8/8 validation episodes 为正；return-uncertainty / true-error Spearman=0.630400。Frozen A4.5c Gate 全部 PASS。A4.5c v2 PASS。下一步重新执行 A4.6a，必须使用 v2 replay + v2 absolute WM + v2 reward checkpoint，原 100% requested→executed mapping hard Gate 与 H4 integrated rollout Gate 均不放宽。
 
-A4.6a v2 runtime rerun 已通过：train/validation true-state requested→executed mapping overall/targeted accuracy 均为 1.0，feature=1 fallback=0，feature=0 nonfallback=0；integrated requested-plan H4 state RMSE=0.200015 < persistence 0.219133，value RMSE=7.608135 < constant baseline 15.522030，value Spearman=0.681405，8/8 validation episodes 为正。targeted member-step match rate=0.917540 仅为 predicted-state rollout diagnostic，不是 hard Gate。A4.6a evaluator 与 7 个配套 unit-test source 已在 commit 843e2ecdf979c31f9c34205da2b83c293805dba5 push；source audit 发现 evaluator 默认 artifact 路径仍指向 superseded outputs/formal_replay 与 outputs/world_model，而 v2 必须绑定 outputs/formal_replay_v2 与 outputs/world_model_v2。故当前状态为 RUNTIME PASS / SOURCE AUDIT BLOCKED，详见 docs/step3-A4.6a-v2-source-audit.md；修正 formal artifact binding 后才能关闭 A4.6a。
+A4.6a v2 runtime rerun 已通过：train/validation true-state requested→executed mapping overall/targeted accuracy 均为 1.0，feature=1 fallback=0，feature=0 nonfallback=0；integrated requested-plan H4 state RMSE=0.200015 < persistence 0.219133，value RMSE=7.608135 < constant baseline 15.522030，value Spearman=0.681405，8/8 validation episodes 为正。targeted member-step match rate=0.917540 仅为 predicted-state rollout diagnostic，不是 hard Gate。A4.6a evaluator/source 已 push；随后已修复 formal artifact binding：默认 replay/checkpoint/output 统一指向 outputs/formal_replay_v2 与 outputs/world_model_v2，并新增两项 regression tests，测试文件现共 9 个 test_*。GitHub 不保存 formal v2 大产物且无 CI，因此当前状态为 RUNTIME PASS / SOURCE FIXED / LOCAL RERUN PENDING；详见 docs/step3-A4.6a-v2-source-audit.md。
