@@ -123,7 +123,7 @@ def make_state(index=0):
 
 def record(index, *, split="train", seed=None, agent="blue_agent_0"):
     if seed is None:
-        seed = 1000 + index
+        seed = 1000 + index if split == "train" else 3000 + index
     return WarmupState(
         state=make_state(index),
         split=split,
@@ -142,9 +142,24 @@ class TestUGNormalizerWarmup(unittest.TestCase):
     def test_warmup_state_rejects_validation_and_test(self):
         for split in ("validation", "test"):
             with self.assertRaises(ValueError):
-                record(0, split=split)
+                WarmupState(
+                    state=make_state(),
+                    split=split,
+                    episode_seed=2000 if split == "validation" else 4000,
+                    agent_name="blue_agent_0",
+                )
 
-    def test_warmup_state_validates_shape_and_finite(self):
+    def test_warmup_state_rejects_seed_split_mismatch_and_test_seed_disguise(self):
+        with self.assertRaises(ValueError):
+            record(0, split="train", seed=3000)
+        with self.assertRaises(ValueError):
+            record(0, split="calibration", seed=1000)
+        with self.assertRaises(ValueError):
+            record(0, split="train", seed=4000)
+        with self.assertRaises(ValueError):
+            record(0, split="calibration", seed=4000)
+
+    def test_warmup_state_validates_shape_finite_and_integer_seed(self):
         with self.assertRaises(ValueError):
             WarmupState(
                 state=np.zeros(26, dtype=np.float32),
@@ -160,6 +175,14 @@ class TestUGNormalizerWarmup(unittest.TestCase):
                 state=bad,
                 split="train",
                 episode_seed=1000,
+                agent_name="blue_agent_0",
+            )
+
+        with self.assertRaises(ValueError):
+            WarmupState(
+                state=make_state(),
+                split="train",
+                episode_seed=1000.0,
                 agent_name="blue_agent_0",
             )
 
@@ -199,6 +222,7 @@ class TestUGNormalizerWarmup(unittest.TestCase):
         self.assertEqual(report.train_calls, 2)
         self.assertEqual(report.calibration_calls, 2)
         self.assertEqual(report.unique_episode_seeds, (1000, 1001, 3000, 3001))
+        self.assertEqual(report.agent_name, "blue_agent_0")
 
     def test_snapshot_is_initialized_finite_and_has_formal_shapes(self):
         runner = UGNormalizerWarmup(
@@ -253,26 +277,26 @@ class TestUGNormalizerWarmup(unittest.TestCase):
             [
                 record(0, seed=1000),
                 record(1, seed=1001),
-                record(2, seed=9999),
+                record(31, seed=1031),
             ]
         )
         self.assertEqual(report.planner_calls, 2)
         self.assertEqual(report.unique_episode_seeds, (1000, 1001))
         self.assertEqual(planner.rollout_evaluator.calls, 2)
 
-    def test_agent_names_are_audited(self):
+    def test_one_runner_rejects_mixed_agents(self):
         runner = UGNormalizerWarmup(
             planner=make_planner(),
             config=UGNormalizerWarmupConfig(planner_calls=3),
         )
-        report = runner.run(
-            [
-                record(0, agent="blue_agent_0"),
-                record(1, agent="blue_agent_1"),
-                record(2, agent="blue_agent_0"),
-            ]
-        )
-        self.assertEqual(report.agent_names, ("blue_agent_0", "blue_agent_1"))
+        with self.assertRaises(ValueError):
+            runner.run(
+                [
+                    record(0, agent="blue_agent_0"),
+                    record(1, agent="blue_agent_1"),
+                    record(2, agent="blue_agent_0"),
+                ]
+            )
 
     def test_normalizers_are_not_implicitly_shared_between_planners(self):
         planner_a = make_planner()
