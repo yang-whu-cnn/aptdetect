@@ -1,7 +1,7 @@
 # Step A4.5a — Formal CC4 Replay Collection 审核记录
 
 日期：2026-09-16  
-状态：IMPLEMENTATION PASS / FORMAL COLLECTION PENDING
+状态：PASS
 
 ## Git 范围
 
@@ -81,14 +81,44 @@ Reason:
 - one smoke episode already provides nonzero Analyse / Remove / Restore execution and usable H=4 trajectories；
 - final action coverage must be judged after all 32 train episodes rather than tuned on one episode.
 
-## Remaining A4.5a requirement
+## Frozen formal replay results
 
-Implementation and smoke are complete, but A4.5a is not finally closed until the frozen full replay is collected and audited:
+Train split（seeds 1000..1031, 32 episodes, steps=100）：
 
-- train seeds 1000..1031 (32 episodes)；
-- validation seeds 2000..2007 (8 episodes)；
-- steps=100；
-- calibration/test remain untouched。
+- transitions = 9041；
+- completed = 8952；
+- terminal incomplete = 89；
+- requested = 2237 / 2260 / 2276 / 2268；
+- executed Sleep / Analyse / Remove / Restore = 6114 / 925 / 984 / 1018；
+- valid-target rate = 0.430188；
+- fallback rate = 0.428824；
+- all five Blue agents covered；
+- incident-host coverage = 97。
 
-FINAL IMPLEMENTATION STATUS: PASS  
-A4.5a FORMAL DATA STATUS: PENDING
+Validation split（seeds 2000..2007, 8 episodes, steps=100）：
+
+- transitions = 2336；
+- completed = 2315；
+- terminal incomplete = 21；
+- requested = 577 / 584 / 588 / 587；
+- executed Sleep / Analyse / Remove / Restore = 1641 / 214 / 233 / 248；
+- valid-target rate = 0.395111；
+- fallback rate = 0.455479；
+- all five Blue agents covered；
+- incident-host coverage = 81。
+
+Train / validation requested-action distributions remain essentially identical by construction. Executed-action distributions are also close enough for held-out validation: validation Sleep is about +2.62 percentage points vs train, while each targeted family differs by roughly 0.6–1.1 percentage points. No data-collection policy change is justified.
+
+Terminal incomplete rates are below 1% in both splits and are excluded from standard dynamics training by A4.4 contract.
+
+Calibration seeds 3000..3007 and test seeds 4000..4019 remain untouched.
+
+## Final conclusion
+
+A4.5a formal replay collection is complete.
+
+No collection-policy optimization is required before A4.5b. Action imbalance is treated as a real partial-observability / fallback property and will be diagnosed per executed action during WM validation instead of being corrected with hidden-truth-guided collection.
+
+FINAL STATUS: PASS
+
+Next: A4.5b held-out WM validation / rollout / uncertainty calibration.
