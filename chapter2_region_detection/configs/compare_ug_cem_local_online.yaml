@@ -1,3 +1,6 @@
+# LEGACY / DEVELOPMENT ONLY — DO NOT USE FOR FORMAL v2.1 EXPERIMENTS
+# Superseded for formal comparison by: configs/compare_ug_cem_formal_v2_1.yaml
+# Historical A=5 / D=8 / cost-delay settings are intentionally retained for provenance.
 # configs/compare_ug_cem_local_online.yaml
 # LWM-RL 与 UG-CEM-APT 的统一公平比较配置
 
