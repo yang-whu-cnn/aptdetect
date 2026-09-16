@@ -25,7 +25,7 @@ Step 0 的唯一目标是把 UG-CEM / CEM 对比复现工作从稳定实现中�
 
 - `me` 当前基准 commit：`b79cbeeedcda4ac4677b1cf15526a91a7906aede`
 - `ug-cem-apt` 与 `me` 的 merge base 为同一 commit；
-- 当前 `ug-cem-apt` 相对 `me`：ahead 98 commits，behind 0；
+- 审核时确认 `ug-cem-apt` 相对 `me` 为单向 ahead、behind 0；后续文档提交会继续增加 ahead commit 数，因此不把具体 ahead 数作为冻结验收值；
 - 所有 UG-CEM / Gate A 新增实现均保留在实验分支。
 
 这说明实验分支是在稳定备份之上单向前进，没有要求把实验性代码反向写入 `me`。
