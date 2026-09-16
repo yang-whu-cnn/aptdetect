@@ -5,7 +5,7 @@ A4.5b 已完成并正式选择 absolute Bootstrap Probabilistic WM：one-step RM
 > 仓库：yang-whu-cnn/aptdetect  
 > 稳定备份分支：me  
 > 实验分支：ug-cem-apt  
-> 当前阶段：Gate A 与 Step 4 已 PASS / CLOSED；当前进入 Step 5 — UGCEM Planner  
+> 当前阶段：Gate A、Step 4、Step 5 已 PASS / CLOSED；当前进入 Step 6 — Uncertainty Normalizer Warm-up  
 > 最后更新：2026-09-16  
 > 本文件是后续实现、审核、实验和论文撰写的唯一总路线图。若后续方案发生实质变化，必须先更新本文件，再改实现。
 
@@ -993,10 +993,10 @@ M*H
 
 # 17. Step 5 — UGCEM Planner
 
-当前状态：**SOURCE READY / LOCAL TEST PENDING**  
+当前状态：**PASS / CLOSED**  
+本地：Step-5 14/14 tests PASS；Step 2–5 combined 55/55 PASS  
 记录：`docs/step5.md`  
 实现：`baselines/ug_cem_apt/planner.py`  
-测试：`tests/test_ug_cem_planner.py`（14 tests）  
 设计核对：任务书 + Step2/3/4 + vendored UG official source 一致；无方案阻塞项
 
 ## 目标
@@ -1041,6 +1041,10 @@ G_i - beta * omega_i / (k+1)
 ---
 
 # 18. Step 6 — Uncertainty Normalizer Warm-up
+
+当前状态：**6A RUNTIME-FREEZE FIX RERUN PENDING / 6B REAL CALIBRATION PENDING**  
+记录：`docs/step6.md`  
+初始本地回归：14/14 + combined 69/69 PASS；随后 source audit 修复 freeze runtime switch，需 rerun
 
 ## 目标
 
@@ -1488,8 +1492,8 @@ Gate A：
 [x] A1R Four-Action Contract Revision
 [x] A2R Local-online Adapter Revision
 [x] A3  Official CybORG / CC4 Four-Action Adapter（汇总见 docs/step3-A3.md）
-[~] A4  Formal State / Replay / Bootstrap WM / Response Reward  <- CURRENT
-[ ] A5  Gate A Final Review
+[x] A4  Formal State / Replay / Bootstrap WM / Response Reward
+[x] A5  Gate A Final Review
 
 历史记录：
 
@@ -1498,9 +1502,9 @@ Gate A：
 
 之后：
 
-[ ] Step 4  Vectorized Shared Rollout Evaluator
-[ ] Step 5  UGCEM Planner
-[ ] Step 6  Normalizer Warm-up
+[x] Step 4  Vectorized Shared Rollout Evaluator
+[x] Step 5  UGCEM Planner
+[~] Step 6  Normalizer Warm-up  <- CURRENT
 [ ] Step 7  Integration Smoke Tests
 [ ] Gate B  Four-action LLM Prior + PPO Freeze
 [ ] Step 8  Fair Comparison Harness
@@ -1647,3 +1651,5 @@ A5 Final Review 已完成：`.venv_cc4` 本地 `python -m unittest discover -s t
 Step 4 source 已实现：新增 `shared/rollout_evaluator.py`，输入 state[D] + plans[N,H]，输出 `next_states[H,N,M,D]`、`member_returns[N,M]`、`expected_return[N]`；使用 fixed-member deterministic mean rollout、shared canonical action、shared reward predictor 与 duration-aware tick discount。计算按 H×M 循环、N-batch vectorization，实现 world-model/reward forward call count M*H 而非 N*M*H。新增 `tests/test_shared_rollout_evaluator.py` 共 13 tests。当前待 `.venv_cc4` 本地测试；通过前不进入 Step 5。
 
 Step 5 source 已实现并完成静态设计审核：`UGCEMPlanner` 组合 Categorical CEM + SharedRolloutEvaluator + UGUncertainty + categorical MPC warm-start；score 严格为 `G - beta*omega/(iteration+1)`；CEM-APT 复用同一 planner 令 beta=0；每个 decision epoch 都重新规划，返回 best sampled plan 并仅执行 plan[0]，final_probs 左移、末行 uniform。episode reset 只清 warm-start，不自动清 uncertainty running stats，符合 vendored UG TrajectoryOptimizer reset 语义并为 Step 6 warm-up 保留接口。beta=0.10 仅为 development default，Step 9 才做正式 validation tuning。新增 `tests/test_ug_cem_planner.py` 14 tests；当前待本地 Step5 与 Step2–5 combined regression，通过前不进入 Step 6。
+
+Step 5 local closure：`tests.test_ug_cem_planner` 14/14 PASS，Step 2–5 combined 55/55 PASS，Step 5 正式 CLOSED。Step 6 initial source tests 14/14 与 Step 2–6 combined 69/69 已 PASS。进入 6b 前 source audit 发现 freeze sensitivity 初版只改 dataclass config，而 planner runtime 读取独立 update switch；已改为 `set_uncertainty_update_mode()` 并强化 test，使 freeze 后再次 plan 必须保持 normalizer tensors 不变。该修复需本地 rerun 后再锁定 6a，然后执行 calibration seeds 3000..3007 的真实 per-agent 100-call calibration。
