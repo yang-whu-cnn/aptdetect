@@ -122,6 +122,8 @@ gate_a:
   a4_6b_closed: true
   a4_6c_closed: true
   a4_closed: true
+  a5_closed: true
+  gate_a_closed: true
   selected_world_model_target_mode: absolute
   formal_state_dim: 27
   formal_n_actions: 4
