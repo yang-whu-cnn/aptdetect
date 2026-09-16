@@ -249,7 +249,7 @@ class TestUGNormalizerWarmup(unittest.TestCase):
         )
         report = runner.run([record(i) for i in range(3)])
         self.assertTrue(report.online_updates_after_warmup)
-        self.assertTrue(planner.config.update_uncertainty_stats)
+        self.assertTrue(planner.update_uncertainty_stats)
 
     def test_freeze_sensitivity_disables_future_ema_without_deleting_stats(self):
         planner = make_planner()
@@ -262,10 +262,29 @@ class TestUGNormalizerWarmup(unittest.TestCase):
         )
         report = runner.run([record(i) for i in range(3)])
         self.assertFalse(report.online_updates_after_warmup)
-        self.assertFalse(planner.config.update_uncertainty_stats)
+        self.assertFalse(planner.update_uncertainty_stats)
         self.assertIsNotNone(planner.uncertainty.obs_mean)
         self.assertIsNotNone(planner.uncertainty.obs_std)
         self.assertIsNotNone(planner.uncertainty.horizon_std)
+
+        before_mean = planner.uncertainty.obs_mean.detach().clone()
+        before_std = planner.uncertainty.obs_std.detach().clone()
+        before_horizon = planner.uncertainty.horizon_std.detach().clone()
+
+        planner.plan(make_state(10))
+
+        torch.testing.assert_close(
+            planner.uncertainty.obs_mean,
+            before_mean,
+        )
+        torch.testing.assert_close(
+            planner.uncertainty.obs_std,
+            before_std,
+        )
+        torch.testing.assert_close(
+            planner.uncertainty.horizon_std,
+            before_horizon,
+        )
 
     def test_only_first_configured_number_of_states_are_used(self):
         planner = make_planner()
