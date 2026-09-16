@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import isfinite
 from pathlib import Path
 from typing import Optional, Sequence
@@ -82,6 +82,33 @@ def _finite_float(
         )
 
     return value
+def _normalized_ids(
+    name: str,
+    values: Sequence[str],
+) -> set[str]:
+    if isinstance(
+        values,
+        (str, bytes),
+    ):
+        raise ValueError(
+            f"{name} must be "
+            "a sequence of IDs"
+        )
+
+    out: set[str] = set()
+
+    for raw in values:
+        value = str(raw).strip()
+
+        if not value:
+            raise ValueError(
+                f"{name} contains "
+                "an empty ID"
+            )
+
+        out.add(value)
+
+    return out
 
 
 @dataclass(frozen=True)
@@ -129,6 +156,8 @@ class DecisionEpochTransition:
 
     action_completed: bool
     completed_action_success: Optional[bool]
+    incident_event_ids: tuple[str, ...]
+    incident_host_ids: tuple[str, ...]
 
     # Interval-level bookkeeping.
     #
@@ -218,6 +247,12 @@ class DecisionEpochTransition:
             "completed_action_success":
                 self.completed_action_success,
 
+            "incident_event_ids":
+                list(self.incident_event_ids),
+
+            "incident_host_ids":
+                list(self.incident_host_ids),
+
             "incident_active_ticks":
                 int(
                     self.incident_active_ticks
@@ -265,6 +300,14 @@ class _OpenDecision:
 
     requested_duration_ticks: int
     executed_duration_ticks: int
+
+    incident_event_ids: set[str] = field(
+        default_factory=set
+    )
+
+    incident_host_ids: set[str] = field(
+        default_factory=set
+    )
 
     incident_active_ticks: int = 0
     incident_host_lwf_count: int = 0
@@ -579,15 +622,17 @@ class DecisionEpochReplayCollector:
         )
 
     def record_tick(
-        self,
-        *,
-        agent_name: str,
-        global_tick_end: int,
-        official_reward: float = 0.0,
-        incident_active_ticks: int = 0,
-        incident_host_lwf_count: int = 0,
-        incident_host_lwf_raw_penalty: float = 0.0,
-        response_reward: float = 0.0,
+            self,
+            *,
+            agent_name: str,
+            global_tick_end: int,
+            official_reward: float = 0.0,
+            incident_event_ids: Sequence[str] = (),
+            incident_host_ids: Sequence[str] = (),
+            incident_active_ticks: int = 0,
+            incident_host_lwf_count: int = 0,
+            incident_host_lwf_raw_penalty: float = 0.0,
+            response_reward: float = 0.0,
     ) -> None:
         """
         记录从上一个 accounted tick
@@ -615,6 +660,29 @@ class DecisionEpochReplayCollector:
         item = self._open[
             agent_name
         ]
+        event_ids = _normalized_ids(
+            "incident_event_ids",
+            incident_event_ids,
+        )
+
+        host_ids = _normalized_ids(
+            "incident_host_ids",
+            incident_host_ids,
+        )
+
+        if bool(event_ids) != bool(host_ids):
+            raise ValueError(
+                "incident_event_ids and "
+                "incident_host_ids must either "
+                "both be empty or both be non-empty"
+            )
+        item.incident_event_ids.update(
+            event_ids
+        )
+
+        item.incident_host_ids.update(
+            host_ids
+        )
 
         global_tick_end = (
             _nonnegative_int(
@@ -922,6 +990,18 @@ class DecisionEpochReplayCollector:
 
                 completed_action_success=(
                     completed_action_success
+                ),
+
+                incident_event_ids=tuple(
+                    sorted(
+                        item.incident_event_ids
+                    )
+                ),
+
+                incident_host_ids=tuple(
+                    sorted(
+                        item.incident_host_ids
+                    )
                 ),
 
                 incident_active_ticks=(

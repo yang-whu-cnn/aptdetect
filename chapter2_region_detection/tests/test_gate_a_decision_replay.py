@@ -109,6 +109,70 @@ def resolution(
 class TestDecisionEpochReplay(
     unittest.TestCase
 ):
+    def test_incident_ids_accumulate_across_interval(
+            self,
+    ):
+        c = DecisionEpochReplayCollector(
+            42
+        )
+
+        c.begin_decision(
+            agent_name="blue_agent_0",
+            decision_index=0,
+            global_tick_start=0,
+            state=state(),
+            resolution=resolution(
+                "blue_agent_0",
+                1,
+            ),
+        )
+
+        c.record_tick(
+            agent_name="blue_agent_0",
+            global_tick_end=1,
+            incident_event_ids=(
+                "event_a",
+            ),
+            incident_host_ids=(
+                "host_a",
+            ),
+        )
+
+        c.record_tick(
+            agent_name="blue_agent_0",
+            global_tick_end=2,
+            incident_event_ids=(
+                "event_a",
+                "event_b",
+            ),
+            incident_host_ids=(
+                "host_a",
+                "host_b",
+            ),
+        )
+
+        t = c.end_decision(
+            agent_name="blue_agent_0",
+            global_tick_end=2,
+            next_state=state(),
+            done=False,
+        )
+
+        self.assertEqual(
+            t.incident_event_ids,
+            (
+                "event_a",
+                "event_b",
+            ),
+        )
+
+        self.assertEqual(
+            t.incident_host_ids,
+            (
+                "host_a",
+                "host_b",
+            ),
+        )
 
     def test_sleep_transition_dt_one(
         self,
