@@ -6,3 +6,6 @@ torch>=1.10
 # Optional dependencies (install whepip install -e .n needed):
 # transformers  # for local HF LLM backend
 # requests      # for HTTP LLM backend
+
+# Gate B live Gemini prior (install only when running B2-live / PPO with Gemini):
+# google-genai  # install with: python -m pip install -U google-genai
