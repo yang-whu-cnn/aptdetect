@@ -1,7 +1,7 @@
 # Step 6 — Uncertainty Normalizer Warm-up
 
 日期：2026-09-16  
-状态：**SOURCE READY / LOCAL TEST PENDING**
+状态：**6A TESTS PASS / RUNTIME-FREEZE FIX RERUN PENDING / 6B PENDING**
 
 ---
 
@@ -268,8 +268,25 @@ Per-agent/planner isolation    : READY
 Main online-EMA policy         : READY
 Freeze sensitivity policy      : READY
 Unit-test source               : READY (14)
-Local tests                    : PENDING
+Initial local tests            : PASS (14/14; combined 69/69)
+Runtime freeze source fix      : APPLIED / RERUN PENDING
 Real 100-call calibration      : PENDING
 
-FINAL STATUS: SOURCE READY / LOCAL TEST PENDING
+FINAL STATUS: 6A FIX RERUN PENDING / 6B PENDING
 ```
+
+
+## 13. Runtime-freeze integration correction
+
+在进入真实 6b calibration 前进行 source audit 时发现：`UGCEMPlanner.plan()` 实际读取 runtime 字段 `_update_uncertainty_stats`，并通过 `set_uncertainty_update_mode()` 控制；Step 6 初版 warm-up 只替换 `planner.config.update_uncertainty_stats`，因此 `freeze_after_warmup=True` 的 config 表面值会变化，但 runtime compute 仍可能继续更新 EMA。
+
+已修复：
+
+```text
+warm-up start -> planner.set_uncertainty_update_mode(True)
+warm-up end   -> planner.set_uncertainty_update_mode(not freeze_after_warmup)
+```
+
+并强化现有 freeze sensitivity test：warm-up 后再次 `planner.plan()`，直接比较 `obs_mean / obs_std / horizon_std`，要求三者保持完全不变。
+
+该问题不影响主版本 `freeze_after_warmup=False` 的 intended online-EMA 语义，但必须在 6b 前完成回归。由于测试代码已强化，不能沿用修复前的 14/69 PASS 作为最终 6a closure；需本地 rerun。
