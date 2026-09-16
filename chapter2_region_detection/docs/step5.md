@@ -1,7 +1,7 @@
 # Step 5 — UGCEM Planner
 
 日期：2026-09-16  
-状态：**SOURCE READY / LOCAL TEST PENDING**
+状态：**PASS / CLOSED**
 
 ---
 
@@ -225,18 +225,17 @@ tests/test_ug_cem_planner.py
 13. 与真实 `CategoricalCEMOptimizer + UGUncertainty` integration smoke；
 14. warm-start shape / finite guards。
 
-## 10. Regression boundary
+## 10. Regression result
 
-Step 5 不修改：
+本地 `.venv_cc4` 已完成：
 
-- Step 2 Categorical CEM；
-- Step 3 UGUncertainty；
-- Step 4 SharedRolloutEvaluator；
-- Gate A frozen model-space contract。
+```text
+Step 5 planner tests       : 14/14 PASS
+Step 2–5 combined tests    : 55/55 PASS
+unittest final result      : OK
+```
 
-因此本阶段本地关闭时建议同时回归四个 planner components。
-
-当前测试数量：
+联合回归覆盖：
 
 ```text
 Step 2 Categorical CEM       16
@@ -246,61 +245,39 @@ Step 5 UGCEM planner         14
 TOTAL                        55
 ```
 
-## 11. Local Gate
+若本机 CUDA 不可用，Step 4 CUDA test 的 allowed skip 不影响 `OK` 判定。
 
-在 `.venv_cc4`、`chapter2_region_detection`：
+## 11. Freeze after PASS
 
-先跑 Step 5：
+Step 5 关闭后冻结：
 
-```bash
-python -m unittest tests.test_ug_cem_planner -v
-```
+- score 公式 `G - beta*omega/(k+1)`；
+- best sampled plan 语义；
+- execute plan[0]；
+- categorical MPC warm-start 左移规则；
+- episode reset 只清 warm-start；
+- CEM-APT 使用同 planner 且 beta=0；
+- Step 5 不承担 uncertainty calibration/freeze policy。
 
-预期：
+正式 beta 仍留到 Step 9 validation tuning，不因本阶段 PASS 提前固定。
 
-```text
-Ran 14 tests
-OK
-```
-
-再跑 Step 2–5 combined regression：
-
-```bash
-python -m unittest \
-  tests.test_categorical_cem \
-  tests.test_ug_uncertainty \
-  tests.test_shared_rollout_evaluator \
-  tests.test_ug_cem_planner -v
-```
-
-预期共 55 tests；若 CUDA 不可用，Step 4 CUDA test 允许 skip，最终 unittest 必须 `OK`。
-
-## 12. Close condition
-
-Step 5 只有在：
-
-- 14 个 planner tests PASS；
-- Step 2–5 combined regression 最终 OK；
-
-之后才能 CLOSED。
-
-Step 5 CLOSED 后进入 Step 6 — Uncertainty Normalizer Warm-up。
-
-## 13. Current conclusion
+## 12. Final conclusion
 
 ```text
 Paper/taskbook alignment       : PASS
 Official-source alignment      : PASS
-Score formula                  : READY
-Categorical CEM integration    : READY
-Shared rollout integration     : READY
-UG uncertainty integration     : READY
-MPC warm-start                 : READY
-Episode reset semantics        : READY
-CEM-APT beta=0 path            : READY
-Debug output                   : READY
-Unit-test source               : READY (14)
-Local execution                : PENDING
+Score formula                  : PASS
+Categorical CEM integration    : PASS
+Shared rollout integration     : PASS
+UG uncertainty integration     : PASS
+MPC warm-start                 : PASS
+Episode reset semantics        : PASS
+CEM-APT beta=0 path            : PASS
+Debug output                   : PASS
+Step 5 tests                   : PASS (14/14)
+Step 2–5 regression            : PASS (55/55)
 
-FINAL STATUS: SOURCE READY / LOCAL TEST PENDING
+FINAL STATUS: PASS / CLOSED
 ```
+
+Next: Step 6 — Uncertainty Normalizer Warm-up.
