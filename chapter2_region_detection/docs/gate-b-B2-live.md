@@ -1,7 +1,7 @@
 # Gate B — B2-live Gemini Prior Smoke
 
 日期：2026-09-16  
-状态：**NETWORK FIX READY / LOCAL 13-TEST + LIVE API SMOKE PENDING**
+状态：**TRANSPORT PASS / EXACT-MODEL QUOTA BLOCKED / LOCAL 15-TEST PENDING / LIVE RESPONSE PENDING**
 
 ---
 
@@ -153,7 +153,7 @@ outputs/lwm_rl_v2/gate_b/b2_live_prior_report.json
 tests/test_gate_b_b2_live_prior.py
 ```
 
-原始 10 tests + 3 network tests，共 13 tests：
+原始 10 tests + 3 network tests，当前共 15 tests：
 
 1. key env precedence / missing guard；
 2. structured-output exact K/H/action/score schema；
@@ -185,7 +185,7 @@ python -m unittest tests.test_gate_b_b2_live_prior -v
 目标：
 
 ```text
-Ran 13 tests
+Ran 15 tests
 OK
 ```
 
@@ -212,7 +212,7 @@ pass: True
 
 B2-live 只有在：
 
-- 13/13 mock tests PASS；
+- 15/15 mock tests PASS；
 - real Gemini API call PASS；
 - report 不含 key/raw prompt/raw response；
 
@@ -228,7 +228,7 @@ Gemini live client    : READY
 Structured output     : READY
 Key hygiene           : READY
 Stateless store=false : READY
-Mock tests            : READY (13)
+Mock tests            : READY (15)
 Live API execution    : PENDING
 
 FINAL STATUS: SOURCE READY / LIVE SMOKE PENDING
@@ -288,3 +288,64 @@ report 成功后额外记录 `network_mode`，仍不记录 proxy URL 或 credent
 13. proxy diagnostic userinfo redaction。
 
 因此 B2-live 当前共 13 tests。首次 SSL failure 作为网络 preflight 历史保留；13 tests + real API PASS 前 Gate 仍保持 OPEN。
+
+## 13. Second live result — transport PASS, quota BLOCKED
+
+在：
+
+```text
+GEMINI_DISABLE_ENV_PROXY=1
+network_mode=direct_no_env_proxy
+```
+
+下重新调用后，TLS/HTTP 已成功到达 Gemini API，错误变为：
+
+```text
+429 too_many_requests
+Quota exceeded for:
+  generate_content_free_tier_input_token_count
+  generate_content_free_tier_requests
+limit: 0
+model: gemini-3.1-pro
+```
+
+这证明上一阶段的 proxy/TLS transport 问题已经解决。
+
+Google 当前官方 pricing 对 `gemini-3.1-pro-preview` 明确标注 Free Tier 为 `Not available`；因此当前 API key/project 的 free-tier limit=0 与官方产品策略一致，不是 planner/parser bug。
+
+Gate-B 冻结的是 exact model：
+
+```text
+gemini-3.1-pro-preview
+```
+
+所以不允许为了免费额度静默换成 Flash/Flash-Lite 后把 B2-live 视为通过。
+
+正式解决方式：给该 API key 所属 project 在 Google AI Studio / Cloud Billing 开通 Paid Tier quota，然后用同一 exact-model smoke 重跑。
+
+当前状态解释：
+
+```text
+network transport        : PASS
+API endpoint reached     : PASS
+authentication/project   : sufficient to reach quota evaluation
+exact-model free quota   : BLOCKED (limit=0)
+valid model response     : PENDING
+B2-live Gate             : OPEN
+```
+
+runner 已新增 exception classification：
+
+- `quota_blocked`；
+- `auth_blocked`；
+- `network_blocked`；
+- `api_error`。
+
+同时修正 proxy diagnostic：`GEMINI_DISABLE_ENV_PROXY` 等项目私有变量不再被误显示为 detected proxy。
+
+新增 2 tests：
+
+14. quota/auth/network exception classification；
+15. non-proxy Gemini flags excluded from proxy diagnostics。
+
+因此 B2-live tests 当前总数为 15。
