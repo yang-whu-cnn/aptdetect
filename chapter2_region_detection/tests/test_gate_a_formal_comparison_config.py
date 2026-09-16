@@ -5,6 +5,7 @@ import yaml
 
 from shared.action_contract import ACTION_CONTRACTS, N_ACTIONS
 from shared.formal_state import FORMAL_STATE_DIM
+from formal_experiments.data_collection.incident_response import ResponseRewardConfig
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -54,6 +55,10 @@ class TestGateAFormalComparisonConfig(unittest.TestCase):
         self.assertEqual(action_cfg["actions"], expected)
         self.assertEqual(action_cfg["fallback_on_no_valid_observable_target"], "Sleep")
         self.assertTrue(action_cfg["record_requested_and_executed"])
+        self.assertEqual(
+            action_cfg["model_space_canonicalizer"],
+            "shared.model_space_action.canonicalize_requested_action",
+        )
 
     def test_formal_artifacts_are_v2(self):
         artifacts = self.config["artifacts"]
@@ -66,6 +71,7 @@ class TestGateAFormalComparisonConfig(unittest.TestCase):
     def test_world_model_and_reward_contract(self):
         wm = self.config["world_model"]
         reward = self.config["response_reward_predictor"]
+        objective = self.config["response_objective"]
         planning = self.config["planning_contract"]
 
         self.assertEqual(wm["state_dim"], 27)
@@ -85,6 +91,19 @@ class TestGateAFormalComparisonConfig(unittest.TestCase):
         self.assertEqual(planning["horizon"], 4)
         self.assertEqual(float(planning["gamma_tick"]), 0.99)
         self.assertTrue(planning["duration_aware_discount"])
+
+        source_objective = ResponseRewardConfig()
+        self.assertEqual(
+            float(objective["lambda_time"]),
+            float(source_objective.lambda_time),
+        )
+        self.assertEqual(
+            float(objective["lambda_failure"]),
+            float(source_objective.lambda_failure),
+        )
+        self.assertTrue(objective["attack_eradication_time"])
+        self.assertTrue(objective["incident_host_lwf_only"])
+        self.assertTrue(objective["official_team_reward_separate"])
 
     def test_seed_protocol_is_exact(self):
         seeds = self.config["seed_protocol"]
