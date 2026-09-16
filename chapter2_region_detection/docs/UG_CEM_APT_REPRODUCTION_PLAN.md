@@ -1076,7 +1076,7 @@ G_i - beta * omega_i / (k+1)
 
 # 19. Step 7 — Integration Smoke Tests
 
-当前状态：**SOURCE READY / LOCAL TEST + REAL SMOKE PENDING**  
+当前状态：**SOURCE FIXED / LOCAL 22+100 REGRESSION PENDING / REAL SMOKE RERUN PENDING**  
 记录：`docs/step7.md`  
 实现：normalizer restore + local state smoke + official train-seed CC4 smoke
 
@@ -1663,3 +1663,5 @@ Step 6b formal calibration pipeline 已实现：`collect_ug_calibration_states.p
 Step 6a 最终 closure：runtime-freeze fix 后重新执行 Step 6 dedicated 23 tests 与 Step 2–6 combined 78 tests，结果均 `OK`；combined 仅 `test_cuda_device` 因本机无 CUDA 按预设规则 skip。6a 正式 PASS。当前只剩 6b real calibration：先运行 calibration state-only collector（seeds 3000..3007），再运行 per-agent 100-call UG normalizer calibration；结果必须 5 agents ×100 calls、all calibration seeds covered、finite=True、all_warm_starts_disabled=True、online_updates_after_warmup=True、pass=True 后才能关闭 Step 6。
 
 Step 6 real calibration 已完成并 CLOSED：calibration state-only collection 2301 records，5 个 Blue agent 分别 436/484/507/554/320 states，3000..3007 全覆盖，hidden_truth=False、reward_labels=False；formal normalizer run 为 5 agents ×100 calls=500，所有 agent all_warm_starts_disabled=True、finite=True，主版本 online_updates_after_warmup=True，最终 pass=True。Step 7 source 已实现：新增 per-agent calibrated normalizer restore interface 和 unified local/official smoke runner。local smoke 固定 1×20 + 5×100 planner calls；official smoke 固定 train seeds 1000/1001 ×50 ticks，闭环验证 5-agent planner/adapter/duration/async scheduler。新增 20 tests；当前待本地 20/98 regression 与 real smoke，通过前不进入 Gate B。
+
+Step 7 first real official smoke exposed a CC4 controller-tick accounting bug in the smoke harness only: requested `steps=50` completed with final `controller.step_count=49`, causing the runner's overly strict `final_tick == steps` assertion to fail after the episode. Gate A collector never used that assumption. Step 7 now validates actual `env.step()` count instead: exactly 50 environment steps, controller delta exactly 50, every individual step +1, and all five agents terminated/truncated. Thus reset tick -1 -> final tick 49 is valid 50-step execution, while 49 actual env steps or unfinished agents still fail. Added 2 regression tests; Step 7 source total=22, Step2–7 combined=100. Must rerun tests and real smoke before Step 7 closure.
