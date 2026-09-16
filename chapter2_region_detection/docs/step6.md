@@ -1,7 +1,7 @@
 # Step 6 — Uncertainty Normalizer Warm-up
 
 日期：2026-09-16  
-状态：**6A PASS / 6B REAL CALIBRATION PENDING**
+状态：**PASS / CLOSED**
 
 ---
 
@@ -270,9 +270,9 @@ Freeze sensitivity policy      : READY
 Unit-test source               : READY (14)
 Initial local tests            : PASS (14/14; combined 69/69)
 Runtime freeze source fix      : PASS / VERIFIED
-Real 100-call calibration      : PENDING
+Real 100-call calibration      : PASS (5 agents x 100 calls)
 
-FINAL STATUS: 6A PASS / 6B REAL CALIBRATION PENDING
+FINAL STATUS: PASS / CLOSED
 ```
 
 
@@ -502,3 +502,81 @@ real numerical calibration     : PENDING
 ```
 
 Step 6 当前只剩 6b 的真实 per-agent 100-call calibration，尚未 CLOSED。
+
+## 18. Real 6b calibration result
+
+正式 calibration state collection：
+
+```text
+records: 2301
+per_agent:
+  blue_agent_0: 436
+  blue_agent_1: 484
+  blue_agent_2: 507
+  blue_agent_3: 554
+  blue_agent_4: 320
+per_seed:
+  3000: 325
+  3001: 261
+  3002: 284
+  3003: 275
+  3004: 293
+  3005: 268
+  3006: 326
+  3007: 269
+hidden_truth: False
+reward_labels: False
+```
+
+所有 agent 均明显超过 100 个可用 calibration states，且全部 8 个 calibration seeds 有覆盖。
+
+正式 main-mode per-agent warm-up：
+
+```text
+agents: 5
+calls_per_agent: 100
+total_calls: 500
+freeze_after_warmup: False
+online_updates_after_warmup: True
+pass: True
+```
+
+report 中每个 blue_agent_0..4 均满足：
+
+```text
+planner_calls = 100
+calibration_calls = 100
+unique_episode_seeds = 3000..3007
+all_warm_starts_disabled = True
+finite = True
+freeze_after_warmup = False
+online_updates_after_warmup = True
+obs_mean shape = [27]
+obs_std shape = [27]
+horizon_std shape = [4]
+```
+
+正式 artifacts：
+
+```text
+outputs/ug_cem_v2/step6/calibration_states.jsonl
+outputs/ug_cem_v2/step6/calibration_states_summary.json
+outputs/ug_cem_v2/step6/ug_normalizers_online.pt
+outputs/ug_cem_v2/step6/ug_normalizers_online_report.json
+```
+
+因此 Step 6 已满足 source/unit regression + leakage guards + real numerical calibration 三类关闭条件。
+
+```text
+6a source/tests             : PASS
+6b state-only collection   : PASS
+6b 5-agent warm-up         : PASS
+normalizer finite          : PASS
+no previous_solution       : PASS
+calibration-only seeds     : PASS
+main online EMA            : PASS
+
+FINAL STATUS: STEP 6 PASS / CLOSED
+```
+
+Next: Step 7 Integration Smoke Tests。
