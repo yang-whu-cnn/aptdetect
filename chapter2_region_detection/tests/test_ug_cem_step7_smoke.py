@@ -158,31 +158,40 @@ class TestUGCEMStep7Smoke(unittest.TestCase):
                 resolution=SimpleNamespace(fallback=False,executed_action_family="Restore")
             )
 
-    def test_episode_step_accounting_accepts_minus_one_to_49_for_50_steps(self):
+    def test_episode_step_accounting_accepts_native_cc4_50_tick_episode(self):
         _validate_episode_step_accounting(
-            controller_tick_start=-1,
+            controller_tick_start=0,
             controller_tick_end=49,
-            environment_steps_executed=50,
-            requested_steps=50,
+            environment_steps_executed=49,
+            scenario_steps=50,
             all_agents_done=True,
         )
 
-    def test_episode_step_accounting_rejects_short_or_unfinished_episode(self):
+    def test_episode_step_accounting_rejects_wrong_native_cc4_terminal_semantics(self):
         with self.assertRaises(RuntimeError):
             _validate_episode_step_accounting(
-                controller_tick_start=-1,
+                controller_tick_start=0,
                 controller_tick_end=48,
-                environment_steps_executed=49,
-                requested_steps=50,
+                environment_steps_executed=48,
+                scenario_steps=50,
                 all_agents_done=True,
             )
 
         with self.assertRaises(RuntimeError):
             _validate_episode_step_accounting(
-                controller_tick_start=-1,
+                controller_tick_start=0,
                 controller_tick_end=49,
-                environment_steps_executed=50,
-                requested_steps=50,
+                environment_steps_executed=48,
+                scenario_steps=50,
+                all_agents_done=True,
+            )
+
+        with self.assertRaises(RuntimeError):
+            _validate_episode_step_accounting(
+                controller_tick_start=0,
+                controller_tick_end=49,
+                environment_steps_executed=49,
+                scenario_steps=50,
                 all_agents_done=False,
             )
 
