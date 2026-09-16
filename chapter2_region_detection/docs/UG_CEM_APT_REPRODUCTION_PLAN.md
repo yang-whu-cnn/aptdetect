@@ -1543,8 +1543,8 @@ A3.6 async extension 已通过：mixed-duration per-agent readiness 使用 sched
 - [~] A4.5 Validation + planning-value readiness  <- CURRENT
   - [x] A4.5a formal CC4 replay collection + train/validation split
   - [x] A4.5b WM held-out validation / rollout / uncertainty calibration
-  - [~] A4.5c response-reward prediction path decision / validation  <- CURRENT
-- [ ] A4.6 A4 integration review
+  - [x] A4.5c response-reward prediction path decision / validation
+- [~] A4.6 A4 integration review  <- CURRENT
 
 A4.1 必须基于真实 CC4 Blue observation 构造 planner-visible state / host evidence；不得读取 hidden red sessions、true compromise labels、future information 或 A3 probe-only synthetic scores。A4.1a 已确认 reset Processes 属于 baseline，不得直接当 threat evidence；正式 tracker 仅允许 post-reset Monitor / Analyse evidence 提升 host threat state。
 
@@ -1592,3 +1592,8 @@ A4.5c reward-model contract（实现前冻结）：
 - one-step reward Gate：held-out RMSE 必须优于 train-mean constant baseline，并报告 MAE / Pearson / Spearman。
 - H=4 planning-value Gate：WM+reward predicted expected return 的 RMSE 必须优于 train-derived constant-return baseline；aggregate Spearman 必须 >0.3；至少 5/8 validation episodes 的 Spearman >0。另报告 oracle-state reward-model H=4 value error，用于区分 reward-model error 与 dynamics compounding error。
 - train seeds 仅用于 predictor fitting；validation seeds 仅用于 design validation；calibration/test seeds 继续保持未触碰。
+
+
+A4.5c 已完成：auxiliary response-reward predictor 输入仅为 planner-visible/model-space state + executed/canonical action + next_state，target 为冻结的两项 penalty 合成 response_reward；one-step RMSE=2.249156 < train-mean baseline 4.854820；oracle H4 value Spearman=0.729760；selected absolute-WM + reward predictor H4 RMSE=7.614861 < constant baseline 15.522030，Spearman=0.675280，8/8 validation episodes 为正。A4.5c PASS。
+
+A4.6 integration review 必须在进入 Step 4 前解决 model-space requested→executed action consistency。A4.4/A4.5 dynamics 与 reward predictor 都学习 executed/canonical action，但未来 LLM/CEM/PPO 输出 requested high-level action；真实 CC4 targeted action 可能因无合法 observable target fallback Sleep。因此必须先在冻结 replay 上审计：FormalState feature any_observable_target 与真实 fallback 的关系、是否存在 feature=1 但某 targeted family 仍 fallback、以及能否仅从 planner-visible state + requested action 无泄漏地重建 canonical action。若不能近乎确定重建，不得直接把 requested action ID 送入 executed-action WM；需要在 A4.6 冻结新的 model-space action-availability representation 或其它所有方法共享、无 hidden truth 的一致接口。
