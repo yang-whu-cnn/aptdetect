@@ -5,7 +5,7 @@ A4.5b 已完成并正式选择 absolute Bootstrap Probabilistic WM：one-step RM
 > 仓库：yang-whu-cnn/aptdetect  
 > 稳定备份分支：me  
 > 实验分支：ug-cem-apt  
-> 当前阶段：Gate A、Step 4–6 已 PASS / CLOSED；当前进入 Step 7 — Integration Smoke Tests  
+> 当前阶段：Gate A、Step 4–7 已 PASS / CLOSED；当前进入 Gate B — LLM Prior / PPO Posterior Retrain & Freeze  
 > 最后更新：2026-09-16  
 > 本文件是后续实现、审核、实验和论文撰写的唯一总路线图。若后续方案发生实质变化，必须先更新本文件，再改实现。
 
@@ -1076,7 +1076,7 @@ G_i - beta * omega_i / (k+1)
 
 # 19. Step 7 — Integration Smoke Tests
 
-当前状态：**SOURCE FIXED / LOCAL 22+100 REGRESSION PENDING / REAL SMOKE RERUN PENDING**  
+当前状态：**PASS / CLOSED**  
 记录：`docs/step7.md`  
 实现：normalizer restore + local state smoke + official train-seed CC4 smoke
 
@@ -1509,7 +1509,7 @@ Gate A：
 [x] Step 4  Vectorized Shared Rollout Evaluator
 [x] Step 5  UGCEM Planner
 [x] Step 6  Normalizer Warm-up
-[~] Step 7  Integration Smoke Tests  <- CURRENT
+[x] Step 7  Integration Smoke Tests
 [ ] Gate B  Four-action LLM Prior + PPO Freeze
 [ ] Step 8  Fair Comparison Harness
 [ ] Step 9  Validation + Ablation
@@ -1667,3 +1667,5 @@ Step 6 real calibration 已完成并 CLOSED：calibration state-only collection 
 Step 7 first real official smoke exposed a CC4 controller-tick accounting bug in the smoke harness only: requested `steps=50` completed with final `controller.step_count=49`, causing the runner's overly strict `final_tick == steps` assertion to fail after the episode. Gate A collector never used that assumption. Step 7 now validates actual `env.step()` count instead: exactly 50 environment steps, controller delta exactly 50, every individual step +1, and all five agents terminated/truncated. Thus reset tick -1 -> final tick 49 is valid 50-step execution, while 49 actual env steps or unfinished agents still fail. Added 2 regression tests; Step 7 source total=22, Step2–7 combined=100. Must rerun tests and real smoke before Step 7 closure.
 
 Step 7 second official-smoke failure resolved by checking CC4 source semantics. `SimulationController.reset()` sets step_count=0, each step increments by 1, while `EnterpriseScenarioGenerator.determine_done()` ends when `step_count >= steps-1`. Therefore scenario `steps=50` means controller ticks 0..49 (50 scenario ticks) and 49 post-reset `env.step()` calls. The previous -1/start interpretation is superseded. Step7 runner now validates native terminal tick 49, 49 post-reset steps, exact controller delta, and all-agent termination, while reporting scenario ticks separately from API step calls. 22/100 regression + real smoke rerun still required before closure.
+
+Step 7 最终 closure：Step7 dedicated 22/22 tests PASS，Step2–7 combined 100/100 PASS；real smoke 完成 local 20 + 500 planner calls，并在 official train seeds 1000/1001 上按 CC4 native `steps=50` 语义成功闭环，`official_scenario_ticks=[50,50]`、`official_post_reset_env_steps=[49,49]`、decisions=[205,182]、pass=True。Step 7 正式 CLOSED。当前进入 Gate B：必须按 v2.1 A=4 / H=4 / D=27 / no-cost-evidence 契约审计并重训 LLM prior / PPO posterior，旧 A=5 checkpoint 不得直接复用。
