@@ -1468,8 +1468,8 @@ Gate A：
 
 [x] A1R Four-Action Contract Revision
 [x] A2R Local-online Adapter Revision
-[~] A3  Official CybORG / CC4 Four-Action Adapter  <- CURRENT
-[ ] A4  Formal State / Replay / Bootstrap WM / Response Reward
+[x] A3  Official CybORG / CC4 Four-Action Adapter
+[~] A4  Formal State / Replay / Bootstrap WM / Response Reward  <- CURRENT
 [ ] A5  Gate A Final Review
 
 历史记录：
@@ -1494,7 +1494,7 @@ Gate A：
 
 # 30. 下一步固定要求
 
-A1R / A2R / A3.1 / A3.2 / A3.3 / A3.4 / A3.5 已完成。
+A1R / A2R / A3.1 / A3.2 / A3.3 / A3.4 / A3.5 / A3.6 已完成。
 
 当前继续 A3：
 
@@ -1503,7 +1503,7 @@ A1R / A2R / A3.1 / A3.2 / A3.3 / A3.4 / A3.5 已完成。
 - [x] A3.3 Analyse / Remove / Restore deterministic shared host resolver
 - [x] A3.4 multi-tick duration / next-decision availability
 - [x] A3.5 compromise/recovery + current incident host work-failure bookkeeping
-- [~] A3.6 multi-agent integration  <- CURRENT
+- [x] A3.6 multi-agent integration
 
 A3.4 已冻结 decision epoch：
 
@@ -1525,7 +1525,18 @@ A3.5 已冻结 bookkeeping：
 
 A3.6 必须确认五个 Blue agent 在真实 wrapper 中都可共用同一 action adapter / resolver，覆盖不同 action-space size、不同 host 数量与 blue_agent_4 多子网场景。
 
-A3.6 完成后进入 A4。
+A3 已全部完成并通过。
+
+当前进入 A4：
+
+- [~] A4.1 Formal State contract + observable host evidence  <- CURRENT
+- [ ] A4.2 Decision-epoch replay schema / collector
+- [ ] A4.3 Incident bookkeeping + response reward implementation
+- [ ] A4.4 Bootstrap probabilistic ensemble world model
+- [ ] A4.5 WM validation / rollout / uncertainty calibration
+- [ ] A4.6 A4 integration review
+
+A4.1 必须基于真实 CC4 Blue observation 构造 planner-visible state / host evidence；不得读取 hidden red sessions、true compromise labels、future information 或 A3 probe-only synthetic scores。
 
 ---
 
