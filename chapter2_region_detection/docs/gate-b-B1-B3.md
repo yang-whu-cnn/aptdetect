@@ -1,7 +1,7 @@
 # Gate B — B1–B3 Formal Prior / Posterior Contract
 
 日期：2026-09-16  
-状态：**SOURCE READY / LOCAL TEST PENDING**
+状态：**PASS / CLOSED**
 
 ---
 
@@ -294,7 +294,20 @@ B2 duplicate/fallback       : READY
 B3 posterior feature        : READY
 B3 value/uncertainty        : READY
 Legacy isolation            : READY
-Local execution             : PENDING
+Local execution             : PASS (15/15)
 
-FINAL STATUS: SOURCE READY / LOCAL TEST PENDING
+FINAL STATUS: PASS / CLOSED
 ```
+
+
+## 12. Local closure result
+
+`.venv_cc4` 已执行：
+
+```text
+tests.test_gate_b_llm_prior_posterior_contract
+Ran 15 tests
+OK
+```
+
+因此 B1–B3 正式 CLOSED。下一小 Gate 为 B2-live：只验证真实 Gemini authentication / request / structured output / parser 链路；B4 PPO 尚未开始。
