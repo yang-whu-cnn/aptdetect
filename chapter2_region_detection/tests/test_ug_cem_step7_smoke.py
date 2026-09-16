@@ -15,6 +15,7 @@ from formal_experiments.evaluation.run_ug_cem_step7_smoke import (
     OFFICIAL_TRAIN_SEEDS,
     _assert_resolution_contract,
     _ordered_local_records,
+    _validate_episode_step_accounting,
     run_local_state_smoke_profile,
 )
 from shared.formal_state import BLUE_AGENTS, FORMAL_STATE_DIM
@@ -155,6 +156,34 @@ class TestUGCEMStep7Smoke(unittest.TestCase):
             _assert_resolution_contract(
                 state=formal_state(False),action_id=3,
                 resolution=SimpleNamespace(fallback=False,executed_action_family="Restore")
+            )
+
+    def test_episode_step_accounting_accepts_minus_one_to_49_for_50_steps(self):
+        _validate_episode_step_accounting(
+            controller_tick_start=-1,
+            controller_tick_end=49,
+            environment_steps_executed=50,
+            requested_steps=50,
+            all_agents_done=True,
+        )
+
+    def test_episode_step_accounting_rejects_short_or_unfinished_episode(self):
+        with self.assertRaises(RuntimeError):
+            _validate_episode_step_accounting(
+                controller_tick_start=-1,
+                controller_tick_end=48,
+                environment_steps_executed=49,
+                requested_steps=50,
+                all_agents_done=True,
+            )
+
+        with self.assertRaises(RuntimeError):
+            _validate_episode_step_accounting(
+                controller_tick_start=-1,
+                controller_tick_end=49,
+                environment_steps_executed=50,
+                requested_steps=50,
+                all_agents_done=False,
             )
 
     def test_local_smoke_action_counts_sum_to_total(self):
