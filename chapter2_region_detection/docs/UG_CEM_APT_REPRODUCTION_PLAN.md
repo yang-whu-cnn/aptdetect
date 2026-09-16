@@ -1529,7 +1529,9 @@ A3 已全部完成并通过。
 
 当前进入 A4：
 
-- [x] A4.1 Formal State contract + observable host evidence\n  - [x] A4.1a raw Blue observation contract probe\n  - [x] A4.1b ObservableHostEvidenceTracker + FormalStateEncoder
+- [x] A4.1 Formal State contract + observable host evidence
+  - [x] A4.1a raw Blue observation contract probe
+  - [x] A4.1b ObservableHostEvidenceTracker + FormalStateEncoder
 - [~] A4.2 Decision-epoch replay schema / collector  <- CURRENT
 - [ ] A4.3 Incident bookkeeping + response reward implementation
 - [ ] A4.4 Bootstrap probabilistic ensemble world model
