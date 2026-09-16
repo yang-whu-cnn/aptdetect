@@ -14,6 +14,7 @@ from formal_experiments.evaluation.calibrate_ug_normalizer import (
 from formal_experiments.ours.gemini_prior_client import (
     GeminiPriorLiveClient,
     api_key_source,
+    classify_live_exception,
     gemini_network_mode,
     masked_detected_proxies,
 )
@@ -132,13 +133,33 @@ def main() -> None:
         result = client.generate(state, agent_name=str(args.agent))
     except Exception as exc:
         mode = gemini_network_mode()
+        failure_class = classify_live_exception(exc)
         proxies = masked_detected_proxies()
+
+        if failure_class == "quota_blocked":
+            guidance = (
+                "The request reached Gemini but this project/model has no usable "
+                "quota. For the frozen gemini-3.1-pro-preview contract, enable "
+                "billing/paid-tier quota for the API key's project."
+            )
+        elif failure_class == "auth_blocked":
+            guidance = (
+                "Check that the configured API key belongs to the intended "
+                "project and has Gemini API access."
+            )
+        elif failure_class == "network_blocked":
+            guidance = (
+                "If this is an SSL/proxy error, use "
+                "GEMINI_DISABLE_ENV_PROXY=1 for direct access or a valid "
+                "GEMINI_PROXY_URL for a Gemini-only proxy."
+            )
+        else:
+            guidance = "Inspect the underlying Gemini API error."
+
         raise RuntimeError(
-            "B2-live Gemini request failed before a valid response. "
-            f"network_mode={mode}; detected_proxies={proxies}. "
-            "If this is an SSL/proxy error, either set "
-            "GEMINI_DISABLE_ENV_PROXY=1 for direct access, or set a valid "
-            "GEMINI_PROXY_URL for a Gemini-only proxy. "
+            "B2-live Gemini request did not produce a valid prior. "
+            f"failure_class={failure_class}; network_mode={mode}; "
+            f"detected_proxies={proxies}. {guidance} "
             "Do not put proxy credentials or API keys in source."
         ) from exc
     report = build_report(
