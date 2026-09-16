@@ -1542,8 +1542,8 @@ A3.6 async extension 已通过：mixed-duration per-agent readiness 使用 sched
 - [x] A4.3 Incident bookkeeping + response reward implementation
 - [x] A4.4 Bootstrap probabilistic ensemble world model
 - [~] A4.5 Validation + planning-value readiness
-  - [~] A4.5a formal CC4 replay recollection + train/validation split  <- CURRENT
-  - [~] A4.5b WM held-out validation / rollout / uncertainty calibration — rerun required after A4.1c replay
+  - [x] A4.5a formal CC4 replay recollection + train/validation split
+  - [~] A4.5b WM held-out validation / rollout / uncertainty calibration  <- CURRENT
   - [~] A4.5c response-reward prediction path decision / validation — rerun required after A4.1c replay
 - [ ] A4.6 A4 integration review
   - [!] A4.6a model-space requested→executed action consistency audit — FAILED; corrective state revision required
@@ -1611,3 +1611,5 @@ A4.1c 已通过源码审核与 seed=1000 smoke：D 保持 27，第17维正式语
 A4.5a corrective recollection Gate：使用同一 frozen seeds train=1000..1031、validation=2000..2007、steps=100、pad_spaces=False，写入新的输出目录，禁止覆盖/混用旧 replay。完整新 replay 在任何 WM/reward training 前必须再次通过 train/validation requested→executed true-state exact mapping accuracy=1.0、feature=1 fallback=0、feature=0 nonfallback=0。若旧 replay 尚在，本轮还应核对 transition/requested/executed/fallback/incident trajectory statistics 与旧 collection 一致；feature17 state semantic 差异是预期变化。
 
 A4.5b corrective rerun 仍按原冻结 absolute-vs-delta selection rule重新选择，不预设 absolute 必然再次获选。A4.5c 只能在新的 A4.5b selected target mode 确定后 rerun；若仍选 absolute，现有 A4.5c implementation 可直接复用；若新结果选择 delta，则先把 A4.5c 的 world-model loading/validation 泛化为 selected target mode，不能强行使用旧 absolute 假设。
+
+A4.5a v2 recollection 已完成：train/validation transition counts、requested/executed action counts、fallback/valid-target rates、incident-host counts 与旧正式 collection 完全一致；full exact mapping train/validation overall+targeted accuracy 均为 1.0，feature=1 fallback=0，feature=0 nonfallback=0。Old-vs-v2 integrity audit 进一步确认除 feature17 外其余 26 维 state/next_state 与全部 non-state replay fields 完全相同；train state17/next17 分别变化 103/109 条，validation 分别变化 30/30 条。A4.5a v2 PASS。
