@@ -1110,6 +1110,10 @@ G_i - beta * omega_i / (k+1)
 
 Gate B 在正式 PPO 重训前执行。
 
+当前状态：**B1–B3 SOURCE READY / LOCAL 15-TEST PENDING；B4/B5 PENDING**  
+记录：`docs/gate-b-B1-B3.md`  
+正式新模块：`formal_experiments/ours/llm_prior_v2.py` + `posterior_features.py`
+
 ## B1 Response reward contract
 
 再次确认：
@@ -1510,7 +1514,7 @@ Gate A：
 [x] Step 5  UGCEM Planner
 [x] Step 6  Normalizer Warm-up
 [x] Step 7  Integration Smoke Tests
-[ ] Gate B  Four-action LLM Prior + PPO Freeze
+[~] Gate B  Four-action LLM Prior + PPO Freeze  <- CURRENT
 [ ] Step 8  Fair Comparison Harness
 [ ] Step 9  Validation + Ablation
 [ ] Step 10 Official CC4 Main Experiment
@@ -1669,3 +1673,5 @@ Step 7 first real official smoke exposed a CC4 controller-tick accounting bug in
 Step 7 second official-smoke failure resolved by checking CC4 source semantics. `SimulationController.reset()` sets step_count=0, each step increments by 1, while `EnterpriseScenarioGenerator.determine_done()` ends when `step_count >= steps-1`. Therefore scenario `steps=50` means controller ticks 0..49 (50 scenario ticks) and 49 post-reset `env.step()` calls. The previous -1/start interpretation is superseded. Step7 runner now validates native terminal tick 49, 49 post-reset steps, exact controller delta, and all-agent termination, while reporting scenario ticks separately from API step calls. 22/100 regression + real smoke rerun still required before closure.
 
 Step 7 最终 closure：Step7 dedicated 22/22 tests PASS，Step2–7 combined 100/100 PASS；real smoke 完成 local 20 + 500 planner calls，并在 official train seeds 1000/1001 上按 CC4 native `steps=50` 语义成功闭环，`official_scenario_ticks=[50,50]`、`official_post_reset_env_steps=[49,49]`、decisions=[205,182]、pass=True。Step 7 正式 CLOSED。当前进入 Gate B：必须按 v2.1 A=4 / H=4 / D=27 / no-cost-evidence 契约审计并重训 LLM prior / PPO posterior，旧 A=5 checkpoint 不得直接复用。
+
+Gate B B1–B3 source 已完成：旧 `src/llm_prior.py / ppo_posterior.py / plan_eval.py / env_region.py` 明确 legacy-only，不进行补丁式复用。B1 新增 executable equivalence test，证明冻结 bookkeeper 的逐 tick active penalty 对闭合事件精确等于 `T_erad=t_normal-t_compromise`。B2 正式 prior 继承原论文 K=6、H=4、Gemini-3.1、temperature=0.2，并适配 A=4；当前 API model ID 记录为 `gemini-3.1-pro-preview`。strict JSON parser、highest-score duplicate handling、state-independent deterministic neutral fallback 均已冻结。B3 posterior candidate input 仅含 state27 + plan one-hot16 + prior1 + value1 + uncertainty1=46D；value=member-return mean，uncertainty=member-return population std，沿用 A4.5c 已验证 machinery。新增 15 tests；本地通过前不进入 B4 PPO。
