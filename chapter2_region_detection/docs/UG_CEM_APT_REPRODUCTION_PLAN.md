@@ -1544,6 +1544,8 @@ A4.2 已冻结 decision-epoch replay：每个 agent 独立异步维护 open deci
 
 A4.3 已冻结 incident/event-level response objective：每 host False->True 新建 event、True->False 关闭 event；并发 incidents 分别累计 active ticks；只有 active incident host 的 GreenLocalWork failure 计入 LWF；response reward = -lambda_time * active incident-ticks + lambda_failure * raw LWF penalty；hidden truth 仅用于 reward/evaluation。
 
+A4.4 正式 dynamics contract 在实现前冻结：M=5、两层 MLP hidden=128、diagonal Gaussian、每成员独立初始化与独立 bootstrap sampling、train-only state normalizer。Dynamics 学习真实 executed action，而不是 fallback 前 requested action；未完成的 terminal mid-action transition 不进入 dynamics training，因此正式 WM 保持 p(s_next | s, executed_action)，不额外把 decision_dt 作为模型输入。默认先实现 absolute next-state target，同时保留 delta target 开关，A4.5 在相同 validation episodes 上比较 H=4 rollout error 后统一选择。
+
 ---
 
 # 31. 一句话记住 v2.1
