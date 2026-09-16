@@ -1494,32 +1494,37 @@ Gate A：
 
 # 30. 下一步固定要求
 
-A1R / A2R / A3.1 / A3.2 / A3.3 已完成。
+A1R / A2R / A3.1 / A3.2 / A3.3 / A3.4 已完成。
 
 当前继续 A3：
 
 - [x] A3.1 CC4 wrapper contract probe
 - [x] A3.2 no_op -> Sleep
 - [x] A3.3 Analyse / Remove / Restore deterministic shared host resolver
-- [~] A3.4 multi-tick duration / next-decision availability  <- CURRENT
-- [ ] A3.5 compromise/recovery + current incident host Host Work Fail bookkeeping
+- [x] A3.4 multi-tick duration / next-decision availability
+- [~] A3.5 compromise/recovery + current incident host work-failure bookkeeping  <- CURRENT
 - [ ] A3.6 multi-agent integration
 
-A3.4 必须用真实 CC4 probe 冻结 decision epoch：
+A3.4 已冻结 decision epoch：
 
-- Sleep duration 1；
-- Analyse duration 2；
-- Remove duration 3；
-- Restore duration 5；
-- 确认 action 开始后 controller 的 remaining_ticks 行为；
-- 确认同一 Blue agent 在动作完成前是否接受/排队新的 action；
-- 冻结 replay 中 global_tick_start/end 与 decision_dt 的定义；
-- 首选 decision-epoch replay：只在 agent 可开始新动作时产生一个 transition；
-- 若 wrapper/controller 实际行为不支持该定义，再回退 tick-level + current_action/remaining_ticks。
+- no_op / Sleep: decision_dt = 1
+- analyse / Analyse: decision_dt = 2
+- remove / Remove: decision_dt = 3
+- restore / Restore: decision_dt = 5
 
-A3.5 前不得自行假设 next-decision timing。
+formal replay 只在同一 Blue agent 可开始新动作时产生 transition；busy global ticks 只累计 interval metrics，不产生新的 policy decision。
 
-旧五动作 replay / WM / PPO 不再具有正式兼容性。
+A3.5 必须冻结：
+
+- bookkeeping 与 planner observation 严格分离；
+- 记录 incident_event_id、incident_host_id、t_compromise、t_normal；
+- attack eradication time = t_normal - t_compromise；
+- 论文中的 Host Work Fail 对应 CC4 源码中的 LWF (Local Work Fails)；
+- 只累计当前 incident host 的 GreenLocalWork failure count 与 LWF penalty；
+- ASF、RIA、其他 host 的 LWF 与 team aggregate reward 不得混入该指标；
+- official CC4 team episode return 单独保留为外部评价指标。
+
+A3.5 probe 完成前，不冻结正式 response reward implementation。
 
 ---
 
