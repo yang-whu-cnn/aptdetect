@@ -885,14 +885,15 @@ A4.3 Legacy isolation：
 A4.4 Bootstrap dynamics ensemble：
 - independent bootstrap；
 - normalization；
-- held-out multi-step validation；
-- uncertainty-error calibration。
+- probabilistic next-state prediction；
+- absolute / delta target support。
 
-A4.5 Response reward adapter / predictor：
-- objective 严格为 attack eradication + incident-host work fail；
-- validation predicted-value quality。
+A4.5 Validation + planning-value readiness：
+- A4.5a 重新采集正式 A=4 decision-epoch replay，并冻结 train / validation split；
+- A4.5b held-out one-step / H=2 / H=4 validation + uncertainty-error calibration；
+- A4.5c 验证 response reward 是否可由 predicted state/action 直接计算；若不能，则训练所有方法共享的 auxiliary response-reward predictor，并验证 predicted-value quality。
 
-A4.6 Config cleanup：
+A4.6 Config cleanup / integration review：
 - n_actions=4；
 - 删除正式 control_traffic/cost/delay 配置；
 - 新 formal comparison config。
@@ -1468,7 +1469,7 @@ Gate A：
 
 [x] A1R Four-Action Contract Revision
 [x] A2R Local-online Adapter Revision
-[~] A3  Official CybORG / CC4 Four-Action Adapter  <- REOPENED FOR A3.6 ASYNC
+[x] A3  Official CybORG / CC4 Four-Action Adapter
 [~] A4  Formal State / Replay / Bootstrap WM / Response Reward  <- CURRENT
 [ ] A5  Gate A Final Review
 
@@ -1494,7 +1495,7 @@ Gate A：
 
 # 30. 下一步固定要求
 
-A1R / A2R / A3.1 / A3.2 / A3.3 / A3.4 / A3.5 已完成；A3.6 synchronous PASS，但 async readiness 仍待补齐。
+A1R / A2R / A3.1 / A3.2 / A3.3 / A3.4 / A3.5 / A3.6 已完成。
 
 当前继续 A3：
 
@@ -1503,7 +1504,7 @@ A1R / A2R / A3.1 / A3.2 / A3.3 / A3.4 / A3.5 已完成；A3.6 synchronous PASS�
 - [x] A3.3 Analyse / Remove / Restore deterministic shared host resolver
 - [x] A3.4 multi-tick duration / next-decision availability
 - [x] A3.5 compromise/recovery + current incident host work-failure bookkeeping
-- [~] A3.6 multi-agent integration — synchronous PASS, async readiness PENDING  <- CURRENT
+- [x] A3.6 multi-agent integration — synchronous + async readiness PASS
 
 A3.4 已冻结 decision epoch：
 
@@ -1527,7 +1528,7 @@ A3.6 必须确认五个 Blue agent 在真实 wrapper 中都可共用同一 actio
 
 A3.6 async extension 正式要求：五个 agent 必须使用不同 duration 的 mixed action queues；scheduler readiness 只根据本地 executed duration 推导，controller internals 仅作 oracle；busy agent 不提交 filler action；每次 ready launch 重新解析当前 labels/mask/adapter；seed 42/43/44 × pad false/true 全覆盖。
 
-A3 同步集成已通过，但 A3.6 async multi-agent readiness 在复核中发现未实现，因此 A3 重新打开。A4.1-A4.4 已完成内容保留，不回退。
+A3.6 async extension 已通过：mixed-duration per-agent readiness 使用 scheduler-local executed duration；busy agent 省略；controller internals 仅作 oracle。A3 正式关闭。
 
 当前进入 A4：
 
@@ -1537,7 +1538,10 @@ A3 同步集成已通过，但 A3.6 async multi-agent readiness 在复核中发�
 - [x] A4.2 Decision-epoch replay schema / collector
 - [x] A4.3 Incident bookkeeping + response reward implementation
 - [x] A4.4 Bootstrap probabilistic ensemble world model
-- [ ] A4.5 WM validation / rollout / uncertainty calibration — BLOCKED until A3.6 async PASS
+- [~] A4.5 Validation + planning-value readiness  <- CURRENT
+  - [~] A4.5a formal CC4 replay collection + train/validation split
+  - [ ] A4.5b WM held-out validation / rollout / uncertainty calibration
+  - [ ] A4.5c response-reward prediction path decision / validation
 - [ ] A4.6 A4 integration review
 
 A4.1 必须基于真实 CC4 Blue observation 构造 planner-visible state / host evidence；不得读取 hidden red sessions、true compromise labels、future information 或 A3 probe-only synthetic scores。A4.1a 已确认 reset Processes 属于 baseline，不得直接当 threat evidence；正式 tracker 仅允许 post-reset Monitor / Analyse evidence 提升 host threat state。
