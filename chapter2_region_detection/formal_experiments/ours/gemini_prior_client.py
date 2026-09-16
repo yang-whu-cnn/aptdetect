@@ -165,6 +165,7 @@ class GeminiPriorLiveResult:
     prior: PriorBatch
     api_call_succeeded: bool
     key_source: str
+    network_mode: str
     model: str
     temperature: float
     prompt_sha256: str
@@ -251,6 +252,7 @@ class GeminiPriorLiveClient:
             prior=prior,
             api_call_succeeded=True,
             key_source=self.key_source,
+            network_mode=self.network_mode,
             model=self.config.api_model,
             temperature=float(self.config.temperature),
             prompt_sha256=sha256_text(prompt_material),
