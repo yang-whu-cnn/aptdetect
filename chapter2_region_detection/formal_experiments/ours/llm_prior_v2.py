@@ -221,6 +221,7 @@ def build_formal_prompt(
         },
         "constraints": [
             "Return exactly JSON with key candidates.",
+            "Return exactly 6 candidate objects before parser fallback.",
             "Each actions list must have exactly 4 entries.",
             "Use only no_op, analyse, remove, restore.",
             "prior_score must be a number in [0,1].",
