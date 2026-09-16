@@ -1537,15 +1537,15 @@ A3.6 async extension 已通过：mixed-duration per-agent readiness 使用 sched
 - [x] A4.1 Formal State contract + observable host evidence
   - [x] A4.1a raw Blue observation contract probe
   - [x] A4.1b ObservableHostEvidenceTracker + FormalStateEncoder
-  - [~] A4.1c valid-target availability correction  <- CURRENT
+  - [x] A4.1c valid-target availability correction
 - [x] A4.2 Decision-epoch replay schema / collector
 - [x] A4.3 Incident bookkeeping + response reward implementation
 - [x] A4.4 Bootstrap probabilistic ensemble world model
-- [~] A4.5 Validation + planning-value readiness  <- CURRENT
-  - [~] A4.5a formal CC4 replay collection + train/validation split — previous replay superseded by A4.1c state semantic change
+- [~] A4.5 Validation + planning-value readiness
+  - [~] A4.5a formal CC4 replay recollection + train/validation split  <- CURRENT
   - [~] A4.5b WM held-out validation / rollout / uncertainty calibration — rerun required after A4.1c replay
   - [~] A4.5c response-reward prediction path decision / validation — rerun required after A4.1c replay
-- [~] A4.6 A4 integration review  <- CURRENT
+- [ ] A4.6 A4 integration review
   - [!] A4.6a model-space requested→executed action consistency audit — FAILED; corrective state revision required
   - [ ] A4.6b formal v2.1 config freeze + legacy isolation
   - [ ] A4.6c A4 final integration review
@@ -1605,3 +1605,9 @@ A4.6 integration review 必须在进入 Step 4 前解决 model-space requested�
 A4.6a frozen audit rule（运行前冻结）：FormalState feature any_observable_target 是当前 model-space 唯一 action-availability signal。先用真实 replay 检验 canonicalize(requested,state)：no_op 始终 Sleep；targeted action 在 any_observable_target<0.5 时映射 Sleep，否则保持 requested。硬条件：train 与 validation 的 true-state requested→executed family 重建必须 100% 一致；若出现 feature=1 但真实 targeted fallback，或 feature=0 但真实 targeted non-fallback，则 27D state 不足以无泄漏重建 executed action，必须在进入 Step4 前扩展 action-availability representation，不能用近似 heuristic 掩盖。若 true-state mapping PASS，再用 selected absolute WM + reward predictor 做 H=4 requested-plan integrated rollout：每个 member 每一步根据其 predicted current state 独立 canonicalize requested action，再预测 next_state/reward。集成 Gate：H=4 final-state RMSE 仍须优于 persistence；H=4 predicted response return RMSE 仍须优于 train-derived constant baseline；aggregate value Spearman >0.3，至少 5/8 validation episodes 为正。另报告 targeted-action canonicalization match rate 作为诊断，不用 validation 结果事后改阈值。
 
 A4.6a runtime failure confirms feature 17 representation insufficiency：train/validation mapping accuracy=0.992368/0.990582；feature=1 but real fallback=69/22；feature=0 but real non-fallback=0。Current `any_observable_target` only checks non-empty observable evidence, while production resolver requires intersection with current wrapper-valid host actions. Corrective A4.1c keeps D=27 but replaces feature 17 semantics/name with `any_valid_observable_target`, computed only from planner-visible labels/mask + observable_host_scores. Exact Gate is NOT relaxed. Existing formal replay/WM/reward checkpoints are superseded for final use and must be regenerated/revalidated after A4.1c.
+
+A4.1c 已通过源码审核与 seed=1000 smoke：D 保持 27，第17维正式语义为 `any_valid_observable_target`；它只使用 current wrapper labels/mask 与 observable host scores。seed=1000 replay mapping overall/targeted accuracy 均为 1.0，feature=1 but fallback=0，feature=0 but non-fallback=0；collection trajectory statistics 与旧 seed=1000 一致。旧 formal replay 与其训练出的 WM/reward checkpoints 正式 superseded。
+
+A4.5a corrective recollection Gate：使用同一 frozen seeds train=1000..1031、validation=2000..2007、steps=100、pad_spaces=False，写入新的输出目录，禁止覆盖/混用旧 replay。完整新 replay 在任何 WM/reward training 前必须再次通过 train/validation requested→executed true-state exact mapping accuracy=1.0、feature=1 fallback=0、feature=0 nonfallback=0。若旧 replay 尚在，本轮还应核对 transition/requested/executed/fallback/incident trajectory statistics 与旧 collection 一致；feature17 state semantic 差异是预期变化。
+
+A4.5b corrective rerun 仍按原冻结 absolute-vs-delta selection rule重新选择，不预设 absolute 必然再次获选。A4.5c 只能在新的 A4.5b selected target mode 确定后 rerun；若仍选 absolute，现有 A4.5c implementation 可直接复用；若新结果选择 delta，则先把 A4.5c 的 world-model loading/validation 泛化为 selected target mode，不能强行使用旧 absolute 假设。
