@@ -15,6 +15,7 @@ from formal_experiments.evaluation.run_gate_b_b2_live_prior_smoke import (
 from formal_experiments.ours.gemini_prior_client import (
     GeminiPriorLiveClient,
     api_key_source,
+    classify_live_exception,
     gemini_network_mode,
     build_genai_http_options,
     masked_detected_proxies,
@@ -86,6 +87,24 @@ class TestGateBB2LivePrior(unittest.TestCase):
         })
         self.assertEqual(out["https"],"http://127.0.0.1:7890")
         self.assertNotIn("secret",repr(out))
+    def test_live_exception_classification_separates_quota_auth_network(self):
+        self.assertEqual(
+            classify_live_exception(RuntimeError("Error code: 429 quota exceeded too_many_requests")),
+            "quota_blocked",
+        )
+        self.assertEqual(
+            classify_live_exception(RuntimeError("401 unauthenticated API key")),
+            "auth_blocked",
+        )
+        self.assertEqual(
+            classify_live_exception(RuntimeError("SSL ConnectError via proxy")),
+            "network_blocked",
+        )
+
+    def test_masked_proxy_diagnostics_ignore_non_proxy_gemini_flags(self):
+        with patch.dict(os.environ,{"GEMINI_DISABLE_ENV_PROXY":"1"},clear=True):
+            out=masked_detected_proxies()
+        self.assertNotIn("gemini_disable_env",out)
     def test_schema_locks_exact_k_h_actions_and_score_range(self):
         schema=prior_response_schema()
         candidates=schema["properties"]["candidates"]
