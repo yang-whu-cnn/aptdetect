@@ -5,7 +5,7 @@ A4.5b 已完成并正式选择 absolute Bootstrap Probabilistic WM：one-step RM
 > 仓库：yang-whu-cnn/aptdetect  
 > 稳定备份分支：me  
 > 实验分支：ug-cem-apt  
-> 当前阶段：Gate A 已 PASS / CLOSED；当前进入 Step 4 — Vectorized Shared Rollout Evaluator  
+> 当前阶段：Gate A 与 Step 4 已 PASS / CLOSED；当前进入 Step 5 — UGCEM Planner  
 > 最后更新：2026-09-16  
 > 本文件是后续实现、审核、实验和论文撰写的唯一总路线图。若后续方案发生实质变化，必须先更新本文件，再改实现。
 
@@ -937,10 +937,10 @@ Step 2/3 不因 D8->D13 候选变化而重写，因为：
 
 # 16. Step 4 — Vectorized Shared Rollout Evaluator
 
-当前状态：**SOURCE READY / LOCAL TEST PENDING**  
+当前状态：**PASS / CLOSED**  
+本地：Step-4 13 tests OK + Gate-A integration 8 tests OK  
 记录：`docs/step4.md`  
-实现：`shared/rollout_evaluator.py`  
-测试：`tests/test_shared_rollout_evaluator.py`（13 tests）
+实现：`shared/rollout_evaluator.py`
 
 ## 目标
 
@@ -992,6 +992,9 @@ M*H
 ---
 
 # 17. Step 5 — UGCEM Planner
+
+当前状态：**DESIGN VERIFIED / IMPLEMENTATION CURRENT**  
+设计核对：任务书 + Step2/3/4 + vendored UG official source 已一致；无方案阻塞项
 
 ## 目标
 
