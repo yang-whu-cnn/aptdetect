@@ -47,6 +47,34 @@ from shared.formal_state import (
 HORIZON = 4
 TARGET_THRESHOLD = 0.5
 
+DEFAULT_TRAIN_REPLAY = (
+    "outputs/formal_replay_v2/"
+    "train.jsonl"
+)
+
+DEFAULT_VALIDATION_REPLAY = (
+    "outputs/formal_replay_v2/"
+    "validation.jsonl"
+)
+
+DEFAULT_WORLD_MODEL = (
+    "outputs/world_model_v2/"
+    "a4_5b/"
+    "world_model_absolute.pt"
+)
+
+DEFAULT_REWARD_MODEL = (
+    "outputs/world_model_v2/"
+    "a4_5c/"
+    "response_reward_predictor.pt"
+)
+
+DEFAULT_REPORT_OUT = (
+    "outputs/world_model_v2/"
+    "a4_6a/"
+    "action_consistency_report.json"
+)
+
 
 ANY_TARGET_INDEX = (
     FORMAL_STATE_FEATURE_NAMES.index(
@@ -1352,49 +1380,31 @@ def main():
     parser.add_argument(
         "--train-replay",
 
-        default=(
-            "outputs/formal_replay/"
-            "train.jsonl"
-        ),
+        default=DEFAULT_TRAIN_REPLAY,
     )
 
     parser.add_argument(
         "--validation-replay",
 
-        default=(
-            "outputs/formal_replay/"
-            "validation.jsonl"
-        ),
+        default=DEFAULT_VALIDATION_REPLAY,
     )
 
     parser.add_argument(
         "--world-model",
 
-        default=(
-            "outputs/world_model/"
-            "a4_5b/"
-            "world_model_absolute.pt"
-        ),
+        default=DEFAULT_WORLD_MODEL,
     )
 
     parser.add_argument(
         "--reward-model",
 
-        default=(
-            "outputs/world_model/"
-            "a4_5c/"
-            "response_reward_predictor.pt"
-        ),
+        default=DEFAULT_REWARD_MODEL,
     )
 
     parser.add_argument(
         "--out",
 
-        default=(
-            "outputs/world_model/"
-            "a4_6a/"
-            "action_consistency_report.json"
-        ),
+        default=DEFAULT_REPORT_OUT,
     )
 
     parser.add_argument(
