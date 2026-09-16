@@ -1,7 +1,7 @@
 # Step 4 — Vectorized Shared Rollout Evaluator
 
 日期：2026-09-16  
-状态：**SOURCE READY / LOCAL TEST PENDING**
+状态：**PASS / CLOSED**
 
 ---
 
@@ -161,14 +161,12 @@ python -m unittest tests.test_gate_a_final_integration -v
 
 ## 8. Close condition
 
-Step 4 只有在：
+本地 `.venv_cc4` 已完成：
 
-- 13 个 Step-4 tests 全部 pass/allowed skip；
-- Gate A final integration 8/8 继续 PASS；
+- `tests.test_shared_rollout_evaluator`：13 tests，最终 `OK`；
+- `tests.test_gate_a_final_integration`：8 tests，最终 `OK`。
 
-之后才能 CLOSED。
-
-Step 4 CLOSED 后才进入 Step 5 UGCEM Planner。
+因此 Step 4 正式 CLOSED，进入 Step 5 UGCEM Planner。
 
 ## 9. Current conclusion
 
@@ -180,7 +178,8 @@ Vectorized M*H path     : READY
 Duration discount       : READY
 Canonical fallback      : READY
 Unit-test source        : READY (13)
-Local test execution    : PENDING
+Local Step-4 tests      : PASS (13/13; CUDA may be allowed skip)
+Gate A integration      : PASS (8/8)
 
-FINAL STATUS: SOURCE READY / LOCAL TEST PENDING
+FINAL STATUS: PASS / CLOSED
 ```
