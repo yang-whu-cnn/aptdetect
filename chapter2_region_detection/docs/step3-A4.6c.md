@@ -1,7 +1,7 @@
 # Step A4.6c — A4 Final Integration Review
 
 日期：2026-09-16  
-状态：**SOURCE READY / LOCAL REGRESSION PENDING**
+状态：**PASS / CLOSED**
 
 ---
 
@@ -124,56 +124,58 @@ tests/test_gate_a_final_integration.py
 
 合计 targeted regression = **26 tests**。
 
-## 5. 本地关闭 Gate
+## 5. 本地 regression 结果
 
-在 `.venv_cc4`、`chapter2_region_detection` 目录：
-
-```bash
-python -m unittest \
-  tests.test_gate_a_model_space_action_consistency \
-  tests.test_gate_a_formal_comparison_config \
-  tests.test_gate_a_final_integration -v
-```
-
-预期：
+`.venv_cc4` 已执行 targeted regression：
 
 ```text
-Ran 26 tests
-OK
+tests.test_gate_a_model_space_action_consistency : 9
+tests.test_gate_a_formal_comparison_config       : 9
+tests.test_gate_a_final_integration              : 8
+TOTAL                                             : 26
+RESULT                                            : OK
 ```
 
-然后再次执行：
+随后重新执行 A4.6a numerical evaluator，结果与 shared-layer refactor 前一致：
 
-```bash
-python -m formal_experiments.evaluation.audit_model_space_action_consistency --device cpu
+```text
+train mapping accuracy: 1.0
+validation mapping accuracy: 1.0
+train feature=1 fallback: 0
+validation feature=1 fallback: 0
+train feature=0 nonfallback: 0
+validation feature=0 nonfallback: 0
+integrated H4 state RMSE: 0.2000148377762988
+persistence state RMSE: 0.21913333903939589
+integrated H4 value RMSE: 7.608134616100138
+constant value baseline RMSE: 15.522029956815578
+integrated H4 value Spearman: 0.6814048261786793
+positive episode value Spearman: 8
+targeted member-step match rate: 0.9175398633257403
+quality_gate.pass: True
 ```
 
-numerical result 必须继续满足：
+报告位置：
 
-- train/validation mapping accuracy = 1.0；
-- feature=1 fallback = 0；
-- feature=0 nonfallback = 0；
-- H4 state RMSE < persistence；
-- H4 value RMSE < constant baseline；
-- H4 value Spearman > 0.3；
-- positive episode Spearman >= 5/8；
-- `quality_gate.pass=True`。
+```text
+outputs/world_model_v2/a4_6a/action_consistency_report.json
+```
 
-因为 A4.6c 只是 shared-layer refactor，正常情况下数值应与 A4.6a v2 rerun 基本完全一致。
-
+因此 shared canonicalizer 抽取与 formal reward freeze 未改变已冻结的 A4.6a 数值行为。
 ## 6. 当前结论
 
 ```text
-Shared canonicalizer       : READY
-Formal reward freeze       : READY
-Formal v2.1 integration    : READY
-A4.6a regression source    : READY (9)
-A4.6b regression source    : READY (9)
-A4.6c integration tests    : READY (8)
-Local targeted regression  : PENDING
-Local numerical regression : PENDING
+Shared canonicalizer       : PASS
+Formal reward freeze       : PASS
+Formal v2.1 integration    : PASS
+A4.6a regression           : PASS (9/9)
+A4.6b regression           : PASS (9/9)
+A4.6c integration          : PASS (8/8)
+Local targeted regression  : PASS (26/26)
+Local numerical regression : PASS
+quality_gate.pass           : True
 
-FINAL STATUS: SOURCE READY / LOCAL REGRESSION PENDING
+FINAL STATUS: PASS / CLOSED
 ```
 
-本地 regression + numerical audit 通过后，A4.6c 才能 CLOSED；随后生成 A4 aggregate closure 文档并进入 A5 Gate A Final Review。
+A4.6c 已正式关闭。A4 aggregate closure 随后生成，并进入 A5 Gate A Final Review。
