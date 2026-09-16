@@ -5,7 +5,7 @@ A4.5b 已完成并正式选择 absolute Bootstrap Probabilistic WM：one-step RM
 > 仓库：yang-whu-cnn/aptdetect  
 > 稳定备份分支：me  
 > 实验分支：ug-cem-apt  
-> 当前阶段：Gate A4.6 integration review；A4.6a/A4.6b 已 CLOSED；当前进入 A4.6c A4 final integration review  
+> 当前阶段：Gate A4.6 integration review；A4.6a/A4.6b 已 CLOSED；A4.6c shared-layer integration source 已实现，待本地 26-test + numerical regression  
 > 最后更新：2026-09-16  
 > 本文件是后续实现、审核、实验和论文撰写的唯一总路线图。若后续方案发生实质变化，必须先更新本文件，再改实现。
 
@@ -1548,7 +1548,7 @@ A3.6 async extension 已通过：mixed-duration per-agent readiness 使用 sched
 - [~] A4.6 A4 integration review  <- CURRENT
   - [x] A4.6a model-space requested→executed action consistency audit — PASS / CLOSED
   - [x] A4.6b formal v2.1 config freeze + legacy isolation — PASS / CLOSED
-  - [~] A4.6c A4 final integration review  <- CURRENT
+  - [~] A4.6c A4 final integration review — source ready；local 26-test + numerical regression pending  <- CURRENT
 
 A4.1 必须基于真实 CC4 Blue observation 构造 planner-visible state / host evidence；不得读取 hidden red sessions、true compromise labels、future information 或 A3 probe-only synthetic scores。A4.1a 已确认 reset Processes 属于 baseline，不得直接当 threat evidence；正式 tracker 仅允许 post-reset Monitor / Analyse evidence 提升 host threat state。
 
@@ -1621,3 +1621,5 @@ A4.5c v2 rerun 已完成：one-step RMSE=2.258064 < train-mean baseline 4.854820
 A4.6a v2 runtime rerun 已通过：train/validation true-state requested→executed mapping overall/targeted accuracy 均为 1.0，feature=1 fallback=0，feature=0 nonfallback=0；integrated requested-plan H4 state RMSE=0.200015 < persistence 0.219133，value RMSE=7.608135 < constant baseline 15.522030，value Spearman=0.681405，8/8 validation episodes 为正。targeted member-step match rate=0.917540 仅为 predicted-state rollout diagnostic，不是 hard Gate。A4.6a evaluator/source 已 push；随后已修复 formal artifact binding：默认 replay/checkpoint/output 统一指向 outputs/formal_replay_v2 与 outputs/world_model_v2，并新增两项 regression tests，测试文件现共 9 个 test_*。本地 `.venv_cc4` 已完成 9/9 unit tests 与无参数 numerical rerun：所有 mapping/fallback hard Gate 保持精确通过，H4 state/value 指标逐项复现，quality_gate.pass=True，report 写入 outputs/world_model_v2/a4_6a/action_consistency_report.json。A4.6a 正式 CLOSED；详见 docs/step3-A4.6a-v2-source-audit.md。
 
 A4.6b formal v2.1 config 已冻结：新增 `configs/compare_ug_cem_formal_v2_1.yaml`，冻结 D=27、A=4、H=4、gamma_tick=0.99、M=5、hidden=128、selected target_mode=absolute、v2 replay/WM/reward artifacts 与 exact seed protocol；`compare_ug_cem_local_online.yaml` 已明确标记 LEGACY / DEVELOPMENT ONLY。`tests/test_gate_a_formal_comparison_config.py` 本地 `.venv_cc4` 9/9 tests PASS。A4.6b 正式 CLOSED；详见 `docs/step3-A4.6b.md`。
+
+A4.6c source review 已完成两项 integration cleanup：将 requested→canonical action 从 evaluation audit 层抽取到 `shared/model_space_action.py`，作为 Step 4 以后正式共享入口；同时在 formal v2.1 YAML 显式冻结 A4.3 response objective 的 `lambda_time=1.0` / `lambda_failure=1.0`。新增 `tests/test_gate_a_final_integration.py` 8 tests，并要求回归 A4.6a 9 tests + A4.6b 9 tests，共 26 targeted tests；通过后还需再次运行 A4.6a numerical evaluator，确认 shared refactor 不改变冻结数值 Gate。详见 `docs/step3-A4.6c.md`。
