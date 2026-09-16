@@ -1552,6 +1552,8 @@ A4.3 已冻结 incident/event-level response objective：每 host False->True �
 
 A4.4 正式 dynamics contract 在实现前冻结：M=5、两层 MLP hidden=128、diagonal Gaussian、每成员独立初始化与独立 bootstrap sampling、train-only state normalizer。Dynamics 学习真实 executed action，而不是 fallback 前 requested action；未完成的 terminal mid-action transition 不进入 dynamics training，因此正式 WM 保持 p(s_next | s, executed_action)，不额外把 decision_dt 作为模型输入。默认先实现 absolute next-state target，同时保留 delta target 开关，A4.5 在相同 validation episodes 上比较 H=4 rollout error 后统一选择。
 
+A4.5a 正式 replay collection contract：必须使用真实 EnterpriseGreenAgent + FiniteStateRedAgent + BlueFixedActionWrapper，不允许 probe-only fp/reliability/attack 注入；planner/collection action selection 只能使用 observable tracker state。每个 agent 使用 scheduler-local executed duration 独立异步进入 decision epoch；requested action 采用 deterministic stratified round-robin exploration，target scores 只来自 ObservableHostEvidenceTracker；hidden controller state 仅用于 IncidentResponseBookkeeper / LWF reward bookkeeping。split 按完整 episode seed 划分，严禁 random transition split。冻结 seeds：train=1000..1031（32），validation=2000..2007（8），calibration=3000..3007（8），test=4000..4019（20）；A4.5 阶段只采集 train + validation，calibration/test 保持未触碰。默认 episode steps=100（CC4 EnterpriseScenarioGenerator 官方默认）。
+
 ---
 
 # 31. 一句话记住 v2.1
