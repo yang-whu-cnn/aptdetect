@@ -1110,7 +1110,7 @@ G_i - beta * omega_i / (k+1)
 
 Gate B 在正式 PPO 重训前执行。
 
-当前状态：**B1–B3 PASS / CLOSED；B2-live SOURCE READY / 10-test + real API smoke pending；B4/B5 PENDING**  
+当前状态：**B1–B3 PASS / CLOSED；B2-live NETWORK FIX READY / 13-test + real API smoke pending；B4/B5 PENDING**  
 记录：`docs/gate-b-B1-B3.md`  
 正式新模块：`formal_experiments/ours/llm_prior_v2.py` + `posterior_features.py`
 
@@ -1677,3 +1677,5 @@ Step 7 最终 closure：Step7 dedicated 22/22 tests PASS，Step2–7 combined 10
 Gate B B1–B3 source 已完成：旧 `src/llm_prior.py / ppo_posterior.py / plan_eval.py / env_region.py` 明确 legacy-only，不进行补丁式复用。B1 新增 executable equivalence test，证明冻结 bookkeeper 的逐 tick active penalty 对闭合事件精确等于 `T_erad=t_normal-t_compromise`。B2 正式 prior 继承原论文 K=6、H=4、Gemini-3.1、temperature=0.2，并适配 A=4；当前 API model ID 记录为 `gemini-3.1-pro-preview`。strict JSON parser、highest-score duplicate handling、state-independent deterministic neutral fallback 均已冻结。B3 posterior candidate input 仅含 state27 + plan one-hot16 + prior1 + value1 + uncertainty1=46D；value=member-return mean，uncertainty=member-return population std，沿用 A4.5c 已验证 machinery。新增 15 tests；本地通过前不进入 B4 PPO。
 
 Gate B B1–B3 local closure：15/15 tests PASS，正式 CLOSED。按 staged integration 新增 B2-live 子 Gate：使用官方 `google-genai` Interactions API，通过 `genai.Client()` 仅从 `GOOGLE_API_KEY/GEMINI_API_KEY` 环境变量认证，代码不接受或保存 key value。请求使用 `gemini-3.1-pro-preview`、temperature=0.2、`store=false`、JSON Schema exact K=6/H=4/A=4 structured output，再进入 frozen semantic parser。新增 live smoke runner 与 10 个 mock tests；真实调用默认使用 Step6 state-only artifact 的 blue_agent_0/seed3000 planner-visible D27 state。10 tests + real API smoke PASS 前不进入 B4 PPO。
+
+B2-live first real call failed before Gemini response in `httpcore._sync.http_proxy -> start_tls` with `SSL: UNEXPECTED_EOF_WHILE_READING`, indicating proxy/TLS transport failure rather than prior/parser/model logic. Added Gemini-specific network controls: default SDK environment proxy; `GEMINI_DISABLE_ENV_PROXY=1` for `trust_env=False` direct mode; or `GEMINI_PROXY_URL` for explicit Gemini-only proxy with `trust_env=False`. Added redacted proxy diagnostics (no userinfo/credentials) and `network_mode` report field. B2-live tests increased from 10 to 13; real API smoke still pending.
