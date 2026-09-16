@@ -14,6 +14,8 @@ from formal_experiments.evaluation.calibrate_ug_normalizer import (
 from formal_experiments.ours.gemini_prior_client import (
     GeminiPriorLiveClient,
     api_key_source,
+    gemini_network_mode,
+    masked_detected_proxies,
 )
 from formal_experiments.ours.llm_prior_v2 import (
     FORMAL_ACTION_NAMES,
@@ -77,6 +79,7 @@ def build_report(result, *, agent_name: str, episode_seed: int) -> dict:
         "status": "PASS" if passed else "FAIL",
         "api_call_succeeded": bool(result.api_call_succeeded),
         "key_source": str(result.key_source),
+        "network_mode": str(result.network_mode),
         "api_key_value_recorded": False,
         "model": str(result.model),
         "temperature": float(result.temperature),
@@ -125,7 +128,19 @@ def main() -> None:
     )
 
     client = GeminiPriorLiveClient(require_env_key=True)
-    result = client.generate(state, agent_name=str(args.agent))
+    try:
+        result = client.generate(state, agent_name=str(args.agent))
+    except Exception as exc:
+        mode = gemini_network_mode()
+        proxies = masked_detected_proxies()
+        raise RuntimeError(
+            "B2-live Gemini request failed before a valid response. "
+            f"network_mode={mode}; detected_proxies={proxies}. "
+            "If this is an SSL/proxy error, either set "
+            "GEMINI_DISABLE_ENV_PROXY=1 for direct access, or set a valid "
+            "GEMINI_PROXY_URL for a Gemini-only proxy. "
+            "Do not put proxy credentials or API keys in source."
+        ) from exc
     report = build_report(
         result,
         agent_name=str(args.agent),
@@ -141,6 +156,7 @@ def main() -> None:
     print("[GATE B B2-LIVE SUMMARY]")
     print("api_call_succeeded:", report["api_call_succeeded"])
     print("key_source:", report["key_source"])
+    print("network_mode:", report["network_mode"])
     print("model:", report["model"])
     print("temperature:", report["temperature"])
     print("plans_shape:", [FORMAL_K_CANDIDATES, FORMAL_HORIZON])
