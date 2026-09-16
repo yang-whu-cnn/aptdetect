@@ -1532,13 +1532,15 @@ A3 已全部完成并通过。
 - [x] A4.1 Formal State contract + observable host evidence
   - [x] A4.1a raw Blue observation contract probe
   - [x] A4.1b ObservableHostEvidenceTracker + FormalStateEncoder
-- [~] A4.2 Decision-epoch replay schema / collector  <- CURRENT
-- [ ] A4.3 Incident bookkeeping + response reward implementation
+- [x] A4.2 Decision-epoch replay schema / collector
+- [~] A4.3 Incident bookkeeping + response reward implementation  <- CURRENT
 - [ ] A4.4 Bootstrap probabilistic ensemble world model
 - [ ] A4.5 WM validation / rollout / uncertainty calibration
 - [ ] A4.6 A4 integration review
 
 A4.1 必须基于真实 CC4 Blue observation 构造 planner-visible state / host evidence；不得读取 hidden red sessions、true compromise labels、future information 或 A3 probe-only synthetic scores。A4.1a 已确认 reset Processes 属于 baseline，不得直接当 threat evidence；正式 tracker 仅允许 post-reset Monitor / Analyse evidence 提升 host threat state。
+
+A4.2 已冻结 decision-epoch replay：每个 agent 独立异步维护 open decision；requested / executed action 同时记录；fallback 使用 executed duration；terminal mid-action 保存 actual dt。incident event / host identity 与并发 incident 规则延迟至 A4.3 与 response reward 一起冻结。
 
 ---
 
