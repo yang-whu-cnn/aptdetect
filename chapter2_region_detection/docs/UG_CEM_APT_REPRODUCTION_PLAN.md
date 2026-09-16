@@ -1543,8 +1543,8 @@ A3.6 async extension 已通过：mixed-duration per-agent readiness 使用 sched
 - [x] A4.4 Bootstrap probabilistic ensemble world model
 - [~] A4.5 Validation + planning-value readiness
   - [x] A4.5a formal CC4 replay recollection + train/validation split
-  - [~] A4.5b WM held-out validation / rollout / uncertainty calibration  <- CURRENT
-  - [~] A4.5c response-reward prediction path decision / validation — rerun required after A4.1c replay
+  - [x] A4.5b WM held-out validation / rollout / uncertainty calibration
+  - [~] A4.5c response-reward prediction path decision / validation  <- CURRENT
 - [ ] A4.6 A4 integration review
   - [!] A4.6a model-space requested→executed action consistency audit — FAILED; corrective state revision required
   - [ ] A4.6b formal v2.1 config freeze + legacy isolation
@@ -1613,3 +1613,5 @@ A4.5a corrective recollection Gate：使用同一 frozen seeds train=1000..1031�
 A4.5b corrective rerun 仍按原冻结 absolute-vs-delta selection rule重新选择，不预设 absolute 必然再次获选。A4.5c 只能在新的 A4.5b selected target mode 确定后 rerun；若仍选 absolute，现有 A4.5c implementation 可直接复用；若新结果选择 delta，则先把 A4.5c 的 world-model loading/validation 泛化为 selected target mode，不能强行使用旧 absolute 假设。
 
 A4.5a v2 recollection 已完成：train/validation transition counts、requested/executed action counts、fallback/valid-target rates、incident-host counts 与旧正式 collection 完全一致；full exact mapping train/validation overall+targeted accuracy 均为 1.0，feature=1 fallback=0，feature=0 nonfallback=0。Old-vs-v2 integrity audit 进一步确认除 feature17 外其余 26 维 state/next_state 与全部 non-state replay fields 完全相同；train state17/next17 分别变化 103/109 条，validation 分别变化 30/30 条。A4.5a v2 PASS。
+
+A4.5b v2 rerun 已完成：absolute one-step RMSE=0.132232 < persistence 0.180830；absolute H4 RMSE=0.191052 < persistence 0.219133；H4 epistemic-error Spearman=0.687621，8/8 validation episodes 为正。delta H4 RMSE=0.192143，relative improvement=-0.005709，且仅 2/8 episode wins，因此按原冻结 selection rule 继续选择 absolute。Selected absolute quality Gate 全部 PASS。MAE 并未全面优于 persistence，但 MAE 不是冻结 Gate，故不事后调参。A4.5b v2 PASS。
