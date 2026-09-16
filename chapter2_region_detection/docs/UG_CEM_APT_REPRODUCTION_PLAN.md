@@ -1468,7 +1468,7 @@ Gate A：
 
 [x] A1R Four-Action Contract Revision
 [x] A2R Local-online Adapter Revision
-[x] A3  Official CybORG / CC4 Four-Action Adapter
+[~] A3  Official CybORG / CC4 Four-Action Adapter  <- REOPENED FOR A3.6 ASYNC
 [~] A4  Formal State / Replay / Bootstrap WM / Response Reward  <- CURRENT
 [ ] A5  Gate A Final Review
 
@@ -1503,7 +1503,7 @@ A1R / A2R / A3.1 / A3.2 / A3.3 / A3.4 / A3.5 / A3.6 已完成。
 - [x] A3.3 Analyse / Remove / Restore deterministic shared host resolver
 - [x] A3.4 multi-tick duration / next-decision availability
 - [x] A3.5 compromise/recovery + current incident host work-failure bookkeeping
-- [x] A3.6 multi-agent integration
+- [~] A3.6 multi-agent integration — synchronous PASS, async readiness PENDING  <- CURRENT
 
 A3.4 已冻结 decision epoch：
 
@@ -1525,7 +1525,9 @@ A3.5 已冻结 bookkeeping：
 
 A3.6 必须确认五个 Blue agent 在真实 wrapper 中都可共用同一 action adapter / resolver，覆盖不同 action-space size、不同 host 数量与 blue_agent_4 多子网场景。
 
-A3 已全部完成并通过。
+A3.6 async extension 正式要求：五个 agent 必须使用不同 duration 的 mixed action queues；scheduler readiness 只根据本地 executed duration 推导，controller internals 仅作 oracle；busy agent 不提交 filler action；每次 ready launch 重新解析当前 labels/mask/adapter；seed 42/43/44 × pad false/true 全覆盖。
+
+A3 同步集成已通过，但 A3.6 async multi-agent readiness 在复核中发现未实现，因此 A3 重新打开。A4.1-A4.4 已完成内容保留，不回退。
 
 当前进入 A4：
 
@@ -1534,8 +1536,8 @@ A3 已全部完成并通过。
   - [x] A4.1b ObservableHostEvidenceTracker + FormalStateEncoder
 - [x] A4.2 Decision-epoch replay schema / collector
 - [x] A4.3 Incident bookkeeping + response reward implementation
-- [~] A4.4 Bootstrap probabilistic ensemble world model  <- CURRENT
-- [ ] A4.5 WM validation / rollout / uncertainty calibration
+- [x] A4.4 Bootstrap probabilistic ensemble world model
+- [ ] A4.5 WM validation / rollout / uncertainty calibration — BLOCKED until A3.6 async PASS
 - [ ] A4.6 A4 integration review
 
 A4.1 必须基于真实 CC4 Blue observation 构造 planner-visible state / host evidence；不得读取 hidden red sessions、true compromise labels、future information 或 A3 probe-only synthetic scores。A4.1a 已确认 reset Processes 属于 baseline，不得直接当 threat evidence；正式 tracker 仅允许 post-reset Monitor / Analyse evidence 提升 host threat state。
