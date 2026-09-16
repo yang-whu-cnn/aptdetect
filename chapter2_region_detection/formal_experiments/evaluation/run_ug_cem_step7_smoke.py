@@ -219,29 +219,42 @@ def _validate_episode_step_accounting(
     controller_tick_start: int,
     controller_tick_end: int,
     environment_steps_executed: int,
-    requested_steps: int,
+    scenario_steps: int,
     all_agents_done: bool,
 ) -> None:
-    """
-    Validate real CC4 step count independently of controller tick labels.
+    """Validate native CC4 episode-length semantics.
 
-    CC4 may expose reset controller.step_count=-1, so a 50-step episode
-    legitimately ends at controller tick 49. The hard contract is:
-      - exactly requested_steps calls to env.step();
-      - controller tick advances exactly once per env.step();
-      - all Blue agents terminate/truncate cleanly.
+    In CC4 EnterpriseScenarioGenerator:
+
+        done <=> controller.step_count >= (scenario_steps - 1)
+
+    and SimulationController reset starts step_count at 0. Therefore
+    scenario_steps=50 represents controller ticks 0..49 and normally
+    requires 49 post-reset env.step() calls.
     """
-    requested_steps = int(requested_steps)
+    scenario_steps = int(scenario_steps)
     environment_steps_executed = int(environment_steps_executed)
     controller_tick_start = int(controller_tick_start)
     controller_tick_end = int(controller_tick_end)
 
-    if requested_steps <= 0:
-        raise ValueError("requested_steps must be > 0")
-    if environment_steps_executed != requested_steps:
+    if scenario_steps <= 1:
+        raise ValueError("scenario_steps must be > 1")
+
+    expected_terminal_tick = scenario_steps - 1
+    expected_env_steps = expected_terminal_tick - controller_tick_start
+
+    if controller_tick_end != expected_terminal_tick:
         raise RuntimeError(
-            "official smoke environment-step count mismatch: "
-            f"executed={environment_steps_executed}, requested={requested_steps}"
+            "official smoke terminal controller tick mismatch: "
+            f"end={controller_tick_end}, expected={expected_terminal_tick}, "
+            f"scenario_steps={scenario_steps}"
+        )
+
+    if environment_steps_executed != expected_env_steps:
+        raise RuntimeError(
+            "official smoke post-reset env.step count mismatch: "
+            f"executed={environment_steps_executed}, expected={expected_env_steps}, "
+            f"controller_start={controller_tick_start}, scenario_steps={scenario_steps}"
         )
 
     controller_delta = controller_tick_end - controller_tick_start
@@ -254,10 +267,9 @@ def _validate_episode_step_accounting(
 
     if not bool(all_agents_done):
         raise RuntimeError(
-            "official smoke reached requested step budget without all agents "
+            "official smoke reached native CC4 terminal tick without all agents "
             "terminated/truncated"
         )
-
 
 def run_official_cc4_episode(
     *,
@@ -409,7 +421,7 @@ def run_official_cc4_episode(
         controller_tick_start=controller_tick_start,
         controller_tick_end=controller_tick_end,
         environment_steps_executed=environment_steps_executed,
-        requested_steps=int(steps),
+        scenario_steps=int(steps),
         all_agents_done=(len(done_agents) == len(BLUE_AGENTS)),
     )
     if total_decisions <= 0:
@@ -436,7 +448,9 @@ def run_official_cc4_episode(
 
     return {
         "seed": int(seed),
-        "ticks": int(environment_steps_executed),
+        "scenario_steps": int(steps),
+        "scenario_ticks": int(steps),
+        "post_reset_env_steps": int(environment_steps_executed),
         "environment_steps_executed": int(environment_steps_executed),
         "controller_tick_start": int(controller_tick_start),
         "controller_tick_end": int(controller_tick_end),
@@ -542,7 +556,8 @@ def main() -> None:
     print("local_short_calls:", local_short["total_planner_calls"])
     print("local_long_calls:", local_long["total_planner_calls"])
     print("official_seeds:", list(OFFICIAL_TRAIN_SEEDS))
-    print("official_ticks:", [item["ticks"] for item in official])
+    print("official_scenario_ticks:", [item["scenario_ticks"] for item in official])
+    print("official_post_reset_env_steps:", [item["post_reset_env_steps"] for item in official])
     print("official_decisions:", [item["total_decisions"] for item in official])
     print("pass:", True)
     print("[OK] report:", out)
