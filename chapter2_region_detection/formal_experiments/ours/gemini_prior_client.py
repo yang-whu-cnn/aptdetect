@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import hashlib
 import os
 from typing import Mapping
+from urllib.parse import urlsplit
 
 import numpy as np
 
@@ -37,6 +38,84 @@ def require_api_key_env(env: Mapping[str, str] | None = None) -> str:
         )
     return source
 
+
+def _truthy_env(value: str | None) -> bool:
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def gemini_network_mode(env: Mapping[str, str] | None = None) -> str:
+    values = os.environ if env is None else env
+    proxy = str(values.get("GEMINI_PROXY_URL", "")).strip()
+    disable = _truthy_env(values.get("GEMINI_DISABLE_ENV_PROXY"))
+    if proxy and disable:
+        raise ValueError(
+            "GEMINI_PROXY_URL and GEMINI_DISABLE_ENV_PROXY are mutually exclusive"
+        )
+    if proxy:
+        return "explicit_proxy"
+    if disable:
+        return "direct_no_env_proxy"
+    return "sdk_environment_proxy"
+
+
+def _validated_proxy_url(value: str) -> str:
+    proxy = str(value).strip()
+    parsed = urlsplit(proxy)
+    if parsed.scheme not in {"http", "https", "socks5", "socks5h"}:
+        raise ValueError("GEMINI_PROXY_URL must use http/https/socks5/socks5h")
+    if not parsed.hostname or parsed.port is None:
+        raise ValueError("GEMINI_PROXY_URL must include host and port")
+    return proxy
+
+
+def build_genai_http_options(env: Mapping[str, str] | None = None):
+    """Build google-genai HttpOptions without exposing proxy credentials."""
+    values = os.environ if env is None else env
+    mode = gemini_network_mode(values)
+    if mode == "sdk_environment_proxy":
+        return None
+
+    try:
+        from google.genai import types
+    except Exception as exc:
+        raise RuntimeError(
+            "google-genai is required to configure Gemini network options"
+        ) from exc
+
+    if mode == "direct_no_env_proxy":
+        return types.HttpOptions(client_args={"trust_env": False})
+
+    proxy = _validated_proxy_url(values["GEMINI_PROXY_URL"])
+    return types.HttpOptions(
+        client_args={
+            "proxy": proxy,
+            "trust_env": False,
+        }
+    )
+
+
+def masked_detected_proxies(env: Mapping[str, str] | None = None) -> dict[str, str]:
+    """Return proxy endpoints with userinfo removed for diagnostics only."""
+    import urllib.request
+
+    # urllib.request.getproxies() reflects the same family of OS/env proxy
+    # discovery used by the SDK/httpx environment path.
+    detected = urllib.request.getproxies() if env is None else {
+        key[:-6].lower(): value
+        for key, value in env.items()
+        if key.lower() in {"http_proxy", "https_proxy", "all_proxy"}
+        and str(value).strip()
+    }
+    out: dict[str, str] = {}
+    for name, raw in detected.items():
+        try:
+            parsed = urlsplit(str(raw))
+            host = parsed.hostname or "?"
+            port = f":{parsed.port}" if parsed.port is not None else ""
+            out[str(name)] = f"{parsed.scheme or '?'}://{host}{port}"
+        except Exception:
+            out[str(name)] = "<configured>"
+    return out
 
 def prior_response_schema() -> dict:
     return {
@@ -110,6 +189,7 @@ class GeminiPriorLiveClient:
         require_env_key: bool = True,
     ):
         self.config = config if config is not None else FormalLLMPriorConfig()
+        self.network_mode = gemini_network_mode()
         self.key_source = (
             require_api_key_env()
             if require_env_key
@@ -124,7 +204,8 @@ class GeminiPriorLiveClient:
                     "google-genai is required for B2-live. Install with: "
                     "python -m pip install -U google-genai"
                 ) from exc
-            client = genai.Client()
+            http_options = build_genai_http_options()
+            client = genai.Client(http_options=http_options) if http_options is not None else genai.Client()
 
         if not hasattr(client, "interactions") or not hasattr(client.interactions, "create"):
             raise TypeError("Gemini client must expose interactions.create")
