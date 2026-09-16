@@ -106,6 +106,9 @@ class UGCEMPlanner:
         self._validate_components()
         self.device = torch.device(self.cem_optimizer.device)
         self._warm_start_probs: torch.Tensor | None = None
+        self._update_uncertainty_stats = bool(
+            self.config.update_uncertainty_stats
+        )
 
     def _validate_components(self) -> None:
         cem_cfg = self.cem_optimizer.cfg
@@ -138,6 +141,20 @@ class UGCEMPlanner:
 
         if not (cem_device == rollout_device == uncertainty_device):
             raise ValueError("CEM, rollout evaluator, and uncertainty must share device")
+
+    @property
+    def update_uncertainty_stats(self) -> bool:
+        return bool(self._update_uncertainty_stats)
+
+    def set_uncertainty_update_mode(self, enabled: bool) -> None:
+        """
+        Runtime control used by Step 6 warm-up/freeze policy.
+
+        This does not change beta, CEM, model, or reward semantics.
+        """
+        if not isinstance(enabled, bool):
+            raise TypeError("enabled must be bool")
+        self._update_uncertainty_stats = enabled
 
     @property
     def warm_start_probs(self) -> torch.Tensor | None:
@@ -203,7 +220,7 @@ class UGCEMPlanner:
 
             uncertainty = self.uncertainty.compute(
                 rollout.next_states,
-                update_stats=self.config.update_uncertainty_stats,
+                update_stats=self._update_uncertainty_stats,
             )
 
             population = int(plans.shape[0])
