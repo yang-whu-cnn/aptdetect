@@ -1494,36 +1494,30 @@ Gate A：
 
 # 30. 下一步固定要求
 
-A1R / A2R / A3.1 已完成。
+A1R / A2R / A3.1 / A3.2 / A3.3 已完成。
 
 当前继续 A3：
 
 - [x] A3.1 CC4 wrapper contract probe
-- [~] A3.2 no_op -> Sleep
-- [~] A3.3 Analyse / Remove / Restore deterministic shared host resolver
-- [ ] A3.4 multi-tick duration / next-decision availability
+- [x] A3.2 no_op -> Sleep
+- [x] A3.3 Analyse / Remove / Restore deterministic shared host resolver
+- [~] A3.4 multi-tick duration / next-decision availability  <- CURRENT
 - [ ] A3.5 compromise/recovery + current incident host Host Work Fail bookkeeping
 - [ ] A3.6 multi-agent integration
 
-A3.2 / A3.3 冻结约束：
+A3.4 必须用真实 CC4 probe 冻结 decision epoch：
 
-- 不写死 raw action index；
-- 先按 action_mask=True 过滤；
-- 再按 Sleep / Analyse / Remove / Restore family 解析；
-- host resolver 只能使用当前可观察信息；
-- deterministic tie-break；
-- 没有合法 target 时 fallback 到有效 Sleep；
-- 记录 requested / executed / target / fallback reason；
-- Ours / UG-CEM / CEM 共用同一个 resolver。
+- Sleep duration 1；
+- Analyse duration 2；
+- Remove duration 3；
+- Restore duration 5；
+- 确认 action 开始后 controller 的 remaining_ticks 行为；
+- 确认同一 Blue agent 在动作完成前是否接受/排队新的 action；
+- 冻结 replay 中 global_tick_start/end 与 decision_dt 的定义；
+- 首选 decision-epoch replay：只在 agent 可开始新动作时产生一个 transition；
+- 若 wrapper/controller 实际行为不支持该定义，再回退 tick-level + current_action/remaining_ticks。
 
-A3.1 真实 probe 已确认：
-
-- blue_agent_0..3 在 pad=False 时为 Discrete(82)；
-- blue_agent_4 为 Discrete(242)；
-- pad=True 时统一到 Discrete(242)；
-- invalid host slots 的底层动作实际为 Sleep；
-- 不同 seed 的有效 host 数会变化；
-- 因此正式 adapter 禁止固定 raw index。
+A3.5 前不得自行假设 next-decision timing。
 
 旧五动作 replay / WM / PPO 不再具有正式兼容性。
 
