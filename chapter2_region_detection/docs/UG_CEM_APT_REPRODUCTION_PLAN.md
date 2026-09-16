@@ -1494,7 +1494,7 @@ Gate A：
 
 # 30. 下一步固定要求
 
-A1R / A2R / A3.1 / A3.2 / A3.3 / A3.4 / A3.5 / A3.6 已完成。
+A1R / A2R / A3.1 / A3.2 / A3.3 / A3.4 / A3.5 已完成；A3.6 synchronous PASS，但 async readiness 仍待补齐。
 
 当前继续 A3：
 
