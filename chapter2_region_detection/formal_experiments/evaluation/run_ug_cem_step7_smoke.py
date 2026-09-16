@@ -214,6 +214,51 @@ def _assert_resolution_contract(*, state, action_id: int, resolution) -> None:
             raise RuntimeError("fallback must execute Sleep")
 
 
+def _validate_episode_step_accounting(
+    *,
+    controller_tick_start: int,
+    controller_tick_end: int,
+    environment_steps_executed: int,
+    requested_steps: int,
+    all_agents_done: bool,
+) -> None:
+    """
+    Validate real CC4 step count independently of controller tick labels.
+
+    CC4 may expose reset controller.step_count=-1, so a 50-step episode
+    legitimately ends at controller tick 49. The hard contract is:
+      - exactly requested_steps calls to env.step();
+      - controller tick advances exactly once per env.step();
+      - all Blue agents terminate/truncate cleanly.
+    """
+    requested_steps = int(requested_steps)
+    environment_steps_executed = int(environment_steps_executed)
+    controller_tick_start = int(controller_tick_start)
+    controller_tick_end = int(controller_tick_end)
+
+    if requested_steps <= 0:
+        raise ValueError("requested_steps must be > 0")
+    if environment_steps_executed != requested_steps:
+        raise RuntimeError(
+            "official smoke environment-step count mismatch: "
+            f"executed={environment_steps_executed}, requested={requested_steps}"
+        )
+
+    controller_delta = controller_tick_end - controller_tick_start
+    if controller_delta != environment_steps_executed:
+        raise RuntimeError(
+            "controller tick delta disagrees with env.step count: "
+            f"start={controller_tick_start}, end={controller_tick_end}, "
+            f"delta={controller_delta}, env_steps={environment_steps_executed}"
+        )
+
+    if not bool(all_agents_done):
+        raise RuntimeError(
+            "official smoke reached requested step budget without all agents "
+            "terminated/truncated"
+        )
+
+
 def run_official_cc4_episode(
     *,
     seed: int,
@@ -226,6 +271,8 @@ def run_official_cc4_episode(
         pad_spaces=False,
     )
     controller = env.env.environment_controller
+    controller_tick_start = int(controller.step_count)
+    environment_steps_executed = 0
     adapter = CybORGActionAdapter()
     encoder = FormalStateEncoder()
 
@@ -318,6 +365,7 @@ def run_official_cc4_episode(
             uncertainties.append(float(result.uncertainty))
 
         observations, rewards, terminated, truncated, _info = env.step(actions=joint_actions)
+        environment_steps_executed += 1
         tick_end = int(controller.step_count)
         if tick_end != tick_start + 1:
             raise RuntimeError("official smoke must advance exactly one global tick")
@@ -355,10 +403,15 @@ def run_official_cc4_episode(
             if done:
                 done_agents.add(agent)
 
-    ticks = int(controller.step_count)
+    controller_tick_end = int(controller.step_count)
     total_decisions = int(sum(per_agent_decisions.values()))
-    if ticks != int(steps):
-        raise RuntimeError(f"official smoke ended at tick {ticks}, expected {steps}")
+    _validate_episode_step_accounting(
+        controller_tick_start=controller_tick_start,
+        controller_tick_end=controller_tick_end,
+        environment_steps_executed=environment_steps_executed,
+        requested_steps=int(steps),
+        all_agents_done=(len(done_agents) == len(BLUE_AGENTS)),
+    )
     if total_decisions <= 0:
         raise RuntimeError("official smoke produced zero decisions")
     missing_agents = [agent for agent in BLUE_AGENTS if per_agent_decisions.get(agent, 0) <= 0]
@@ -383,7 +436,11 @@ def run_official_cc4_episode(
 
     return {
         "seed": int(seed),
-        "ticks": ticks,
+        "ticks": int(environment_steps_executed),
+        "environment_steps_executed": int(environment_steps_executed),
+        "controller_tick_start": int(controller_tick_start),
+        "controller_tick_end": int(controller_tick_end),
+        "all_agents_done": bool(len(done_agents) == len(BLUE_AGENTS)),
         "total_decisions": total_decisions,
         "per_agent_decisions": {agent: int(per_agent_decisions.get(agent, 0)) for agent in BLUE_AGENTS},
         "requested_action_counts": {str(i): int(requested_counts.get(i, 0)) for i in range(4)},
