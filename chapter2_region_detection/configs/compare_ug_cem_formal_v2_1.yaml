@@ -79,6 +79,13 @@ world_model:
   deterministic_mean_rollout: true
   aleatoric_resampling: false
 
+response_objective:
+  lambda_time: 1.0
+  lambda_failure: 1.0
+  attack_eradication_time: true
+  incident_host_lwf_only: true
+  official_team_reward_separate: true
+
 response_reward_predictor:
   input_state_dim: 27
   action_dim: 4
