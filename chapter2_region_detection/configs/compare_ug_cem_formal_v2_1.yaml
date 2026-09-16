@@ -50,6 +50,7 @@ action_space:
       duration_ticks: 5
   fallback_on_no_valid_observable_target: Sleep
   record_requested_and_executed: true
+  model_space_canonicalizer: shared.model_space_action.canonicalize_requested_action
 
 planning_contract:
   horizon: 4
@@ -118,6 +119,7 @@ fairness:
 
 gate_a:
   a4_6a_closed: true
+  a4_6b_closed: true
   selected_world_model_target_mode: absolute
   formal_state_dim: 27
   formal_n_actions: 4
