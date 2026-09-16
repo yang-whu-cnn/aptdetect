@@ -4,15 +4,18 @@ import numpy as np
 import torch
 
 from formal_experiments.evaluation.audit_model_space_action_consistency import (
-    ANY_TARGET_INDEX,
     DEFAULT_REPORT_OUT,
     DEFAULT_REWARD_MODEL,
     DEFAULT_TRAIN_REPLAY,
     DEFAULT_VALIDATION_REPLAY,
     DEFAULT_WORLD_MODEL,
+    quality_gate,
+)
+
+from shared.model_space_action import (
+    ANY_TARGET_INDEX,
     canonicalize_requested_action,
     canonicalize_requested_tensor,
-    quality_gate,
 )
 
 from shared.formal_state import (
