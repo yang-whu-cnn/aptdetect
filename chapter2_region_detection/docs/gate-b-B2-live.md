@@ -1,7 +1,7 @@
 # Gate B — B2-live Gemini Prior Smoke
 
 日期：2026-09-16  
-状态：**SOURCE READY / LOCAL 10-TEST + LIVE API SMOKE PENDING**
+状态：**NETWORK FIX READY / LOCAL 13-TEST + LIVE API SMOKE PENDING**
 
 ---
 
@@ -153,7 +153,7 @@ outputs/lwm_rl_v2/gate_b/b2_live_prior_report.json
 tests/test_gate_b_b2_live_prior.py
 ```
 
-共 10 tests：
+原始 10 tests + 3 network tests，共 13 tests：
 
 1. key env precedence / missing guard；
 2. structured-output exact K/H/action/score schema；
@@ -185,7 +185,7 @@ python -m unittest tests.test_gate_b_b2_live_prior -v
 目标：
 
 ```text
-Ran 10 tests
+Ran 13 tests
 OK
 ```
 
@@ -212,7 +212,7 @@ pass: True
 
 B2-live 只有在：
 
-- 10/10 mock tests PASS；
+- 13/13 mock tests PASS；
 - real Gemini API call PASS；
 - report 不含 key/raw prompt/raw response；
 
@@ -228,8 +228,63 @@ Gemini live client    : READY
 Structured output     : READY
 Key hygiene           : READY
 Stateless store=false : READY
-Mock tests            : READY (10)
+Mock tests            : READY (13)
 Live API execution    : PENDING
 
 FINAL STATUS: SOURCE READY / LIVE SMOKE PENDING
 ```
+
+
+## 12. First live failure — proxy/TLS preflight
+
+首次真实调用在 Gemini 响应前失败：
+
+```text
+httpcore._sync.http_proxy
+-> start_tls
+-> SSL: UNEXPECTED_EOF_WHILE_READING
+-> google.genai ... APIConnectionError
+```
+
+该堆栈说明请求已经进入 HTTP proxy transport，失败发生在 TLS CONNECT/handshake 阶段；因此不能归因于 B2 parser、K/H/A contract、模型输出质量或 PPO。
+
+Google GenAI SDK 默认 httpx client 使用环境代理发现。为使实验网络条件可审计，新增仅通过环境变量控制的 Gemini-specific network modes：
+
+```text
+default:
+  sdk_environment_proxy
+
+GEMINI_DISABLE_ENV_PROXY=1:
+  direct_no_env_proxy
+
+GEMINI_PROXY_URL=<proxy-url>:
+  explicit_proxy
+```
+
+`GEMINI_PROXY_URL` 与 `GEMINI_DISABLE_ENV_PROXY` 互斥。
+
+explicit/direct 模式均向 `google.genai.types.HttpOptions(client_args=...)` 传递 `trust_env=False`，从而避免 Windows/Git Bash 的隐式代理污染；explicit 模式再单独传 `proxy=`。
+
+新增 `masked_detected_proxies()` 仅显示：
+
+```text
+scheme://hostname:port
+```
+
+会删除 user/password，不记录 proxy credential。
+
+runner 网络异常现在会给出：
+
+- `network_mode`；
+- redacted detected proxy endpoints；
+- direct / explicit proxy 修复提示。
+
+report 成功后额外记录 `network_mode`，仍不记录 proxy URL 或 credentials。
+
+新增 3 tests：
+
+11. network mode default/direct/explicit + mutual exclusion；
+12. HttpOptions direct/explicit proxy contract；
+13. proxy diagnostic userinfo redaction。
+
+因此 B2-live 当前共 13 tests。首次 SSL failure 作为网络 preflight 历史保留；13 tests + real API PASS 前 Gate 仍保持 OPEN。
