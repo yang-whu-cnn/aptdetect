@@ -57,7 +57,8 @@ def evidence_from_rollout(rollout_result) -> CandidateEvidence:
         raise ValueError("rollout evidence must be finite")
 
     member_mean = member_returns.mean(dim=1)
-    torch.testing.assert_close(expected, member_mean, rtol=1e-4, atol=1e-5)
+    if not torch.allclose(expected, member_mean, rtol=1e-4, atol=1e-5):
+        raise ValueError("expected_return must equal member-return mean")
 
     uncertainty = member_returns.std(dim=1, unbiased=False)
     if not torch.isfinite(uncertainty).all():
