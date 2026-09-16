@@ -1042,7 +1042,7 @@ G_i - beta * omega_i / (k+1)
 
 # 18. Step 6 — Uncertainty Normalizer Warm-up
 
-当前状态：**6A/6B SOURCE READY — local 23-test + combined 78-test rerun pending；real calibration pending**  
+当前状态：**6A PASS / 6B REAL CALIBRATION PENDING**  
 记录：`docs/step6.md`  
 新增 formal state-only calibration collector + per-agent calibration runner；正式主 run 使用 calibration seeds 3000..3007、100 calls/agent、online EMA
 
@@ -1655,3 +1655,5 @@ Step 5 source 已实现并完成静态设计审核：`UGCEMPlanner` 组合 Categ
 Step 5 local closure：`tests.test_ug_cem_planner` 14/14 PASS，Step 2–5 combined 55/55 PASS，Step 5 正式 CLOSED。Step 6 initial source tests 14/14 与 Step 2–6 combined 69/69 已 PASS。进入 6b 前 source audit 发现 freeze sensitivity 初版只改 dataclass config，而 planner runtime 读取独立 update switch；已改为 `set_uncertainty_update_mode()` 并强化 test，使 freeze 后再次 plan 必须保持 normalizer tensors 不变。该修复需本地 rerun 后再锁定 6a，然后执行 calibration seeds 3000..3007 的真实 per-agent 100-call calibration。
 
 Step 6b formal calibration pipeline 已实现：`collect_ug_calibration_states.py` 只从 calibration seeds 3000..3007 采集并落盘 planner-visible state/provenance，不保存 incident/reward/hidden/future 字段；`calibrate_ug_normalizer.py` 加载 v2 absolute WM + shared reward predictor，为 blue_agent_0..4 分别建立独立 UG normalizer，并从 8 seeds deterministic round-robin 选 100 states/agent。主版本输出 `outputs/ug_cem_v2/step6/ug_normalizers_online.pt` 与 JSON report，warm-up 后继续 online EMA。新增 9 个 6b guards；Step 6 专用 tests=23，Step2–6 combined=78。由于 runtime-freeze fix 与 6b code 都在上一轮 14/69 PASS 后新增，需本地 23/78 rerun 后再执行真实 calibration。
+
+Step 6a 最终 closure：runtime-freeze fix 后重新执行 Step 6 dedicated 23 tests 与 Step 2–6 combined 78 tests，结果均 `OK`；combined 仅 `test_cuda_device` 因本机无 CUDA 按预设规则 skip。6a 正式 PASS。当前只剩 6b real calibration：先运行 calibration state-only collector（seeds 3000..3007），再运行 per-agent 100-call UG normalizer calibration；结果必须 5 agents ×100 calls、all calibration seeds covered、finite=True、all_warm_starts_disabled=True、online_updates_after_warmup=True、pass=True 后才能关闭 Step 6。
