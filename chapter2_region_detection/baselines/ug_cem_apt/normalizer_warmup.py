@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from math import isfinite
+from numbers import Integral
 from typing import Iterable, Tuple
 
 import numpy as np
@@ -12,6 +12,8 @@ from shared.formal_state import FORMAL_STATE_DIM
 
 
 ALLOWED_WARMUP_SPLITS = frozenset({"train", "calibration"})
+TRAIN_SEEDS = frozenset(range(1000, 1032))
+CALIBRATION_SEEDS = frozenset(range(3000, 3008))
 
 
 @dataclass(frozen=True)
@@ -39,20 +41,27 @@ class WarmupState:
         if not np.isfinite(state).all():
             raise ValueError("warm-up state must be finite")
 
-        if isinstance(self.episode_seed, bool):
+        if (
+            isinstance(self.episode_seed, bool)
+            or not isinstance(self.episode_seed, Integral)
+        ):
             raise ValueError("episode_seed must be integer")
-        try:
-            int(self.episode_seed)
-        except (TypeError, ValueError) as exc:
-            raise ValueError("episode_seed must be integer") from exc
 
-        if not str(self.agent_name).strip():
+        episode_seed = int(self.episode_seed)
+        expected_seeds = TRAIN_SEEDS if split == "train" else CALIBRATION_SEEDS
+        if episode_seed not in expected_seeds:
+            raise ValueError(
+                f"episode_seed={episode_seed} is not valid for split={split!r}"
+            )
+
+        agent_name = str(self.agent_name).strip()
+        if not agent_name:
             raise ValueError("agent_name must not be empty")
 
         object.__setattr__(self, "state", state.copy())
         object.__setattr__(self, "split", split)
-        object.__setattr__(self, "episode_seed", int(self.episode_seed))
-        object.__setattr__(self, "agent_name", str(self.agent_name))
+        object.__setattr__(self, "episode_seed", episode_seed)
+        object.__setattr__(self, "agent_name", agent_name)
 
 
 @dataclass(frozen=True)
@@ -86,7 +95,7 @@ class UGNormalizerWarmupReport:
     train_calls: int
     calibration_calls: int
     unique_episode_seeds: Tuple[int, ...]
-    agent_names: Tuple[str, ...]
+    agent_name: str
     all_warm_starts_disabled: bool
     finite: bool
     freeze_after_warmup: bool
@@ -99,8 +108,9 @@ class UGNormalizerWarmup:
     Calibrate one planner's UG uncertainty running statistics.
 
     Contract:
-      - input provenance may only be train/calibration;
+      - input provenance may only be the frozen train/calibration seeds;
       - default warm-up length is 100 planner calls;
+      - one runner is bound to exactly one agent/planner normalizer;
       - every call starts without MPC previous solution;
       - only planner-visible 27D states are consumed;
       - the planner's existing UGUncertainty object is updated in place;
@@ -108,9 +118,6 @@ class UGNormalizerWarmup:
       - source-faithful main mode continues online EMA after warm-up;
       - freeze_after_warmup=True is a sensitivity mode that disables
         subsequent online EMA updates without deleting calibrated stats.
-
-    Instantiate one runner per agent/planner normalizer. Statistics are never
-    shared implicitly across planner objects.
     """
 
     def __init__(
@@ -166,6 +173,17 @@ class UGNormalizerWarmup:
 
         selected = records[: self.config.planner_calls]
 
+        for item in selected:
+            if not isinstance(item, WarmupState):
+                raise TypeError("states must contain WarmupState items")
+
+        agent_names = {item.agent_name for item in selected}
+        if len(agent_names) != 1:
+            raise ValueError(
+                "one warm-up runner must contain states from exactly one agent"
+            )
+        agent_name = next(iter(agent_names))
+
         # Warm-up itself must update EMA irrespective of the post-warm-up
         # sensitivity setting. Preserve beta; change only update policy.
         self.planner.config = replace(
@@ -176,13 +194,9 @@ class UGNormalizerWarmup:
         train_calls = 0
         calibration_calls = 0
         seeds = set()
-        agents = set()
         all_no_warm_start = True
 
         for item in selected:
-            if not isinstance(item, WarmupState):
-                raise TypeError("states must contain WarmupState items")
-
             # Required by taskbook: warm-up does not use previous_solution.
             self.planner.reset_episode()
             result = self.planner.plan(item.state)
@@ -199,7 +213,6 @@ class UGNormalizerWarmup:
                 raise RuntimeError("forbidden warm-up split")
 
             seeds.add(int(item.episode_seed))
-            agents.add(str(item.agent_name))
 
         snapshot = self._snapshot(self.planner)
 
@@ -230,7 +243,7 @@ class UGNormalizerWarmup:
             train_calls=train_calls,
             calibration_calls=calibration_calls,
             unique_episode_seeds=tuple(sorted(seeds)),
-            agent_names=tuple(sorted(agents)),
+            agent_name=agent_name,
             all_warm_starts_disabled=all_no_warm_start,
             finite=bool(finite),
             freeze_after_warmup=bool(self.config.freeze_after_warmup),
