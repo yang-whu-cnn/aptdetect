@@ -1494,7 +1494,7 @@ Gate A：
 
 # 30. 下一步固定要求
 
-A1R / A2R / A3.1 / A3.2 / A3.3 / A3.4 已完成。
+A1R / A2R / A3.1 / A3.2 / A3.3 / A3.4 / A3.5 已完成。
 
 当前继续 A3：
 
@@ -1502,8 +1502,8 @@ A1R / A2R / A3.1 / A3.2 / A3.3 / A3.4 已完成。
 - [x] A3.2 no_op -> Sleep
 - [x] A3.3 Analyse / Remove / Restore deterministic shared host resolver
 - [x] A3.4 multi-tick duration / next-decision availability
-- [~] A3.5 compromise/recovery + current incident host work-failure bookkeeping  <- CURRENT
-- [ ] A3.6 multi-agent integration
+- [x] A3.5 compromise/recovery + current incident host work-failure bookkeeping
+- [~] A3.6 multi-agent integration  <- CURRENT
 
 A3.4 已冻结 decision epoch：
 
@@ -1512,19 +1512,20 @@ A3.4 已冻结 decision epoch：
 - remove / Remove: decision_dt = 3
 - restore / Restore: decision_dt = 5
 
-formal replay 只在同一 Blue agent 可开始新动作时产生 transition；busy global ticks 只累计 interval metrics，不产生新的 policy decision。
+A3.5 已冻结 bookkeeping：
 
-A3.5 必须冻结：
-
-- bookkeeping 与 planner observation 严格分离；
-- 记录 incident_event_id、incident_host_id、t_compromise、t_normal；
+- hidden red-presence truth 仅用于 reward / evaluation bookkeeping；
+- t_compromise = 当前 incident host 首次 False -> True 的 global tick；
+- t_normal = 当前 incident host 首次 True -> False 的 global tick；
 - attack eradication time = t_normal - t_compromise；
-- 论文中的 Host Work Fail 对应 CC4 源码中的 LWF (Local Work Fails)；
-- 只累计当前 incident host 的 GreenLocalWork failure count 与 LWF penalty；
-- ASF、RIA、其他 host 的 LWF 与 team aggregate reward 不得混入该指标；
-- official CC4 team episode return 单独保留为外部评价指标。
+- 论文 Host Work Fail 对应 CC4 LWF (Local Work Fails)；
+- 只累计当前 incident host 的 GreenLocalWork failure；
+- 其他 host LWF、ASF、RIA、aggregate team reward 不计入 incident-specific Host Work Fail；
+- official CC4 team return 单独作为外部评价指标。
 
-A3.5 probe 完成前，不冻结正式 response reward implementation。
+A3.6 必须确认五个 Blue agent 在真实 wrapper 中都可共用同一 action adapter / resolver，覆盖不同 action-space size、不同 host 数量与 blue_agent_4 多子网场景。
+
+A3.6 完成后进入 A4。
 
 ---
 
