@@ -937,6 +937,11 @@ Step 2/3 不因 D8->D13 候选变化而重写，因为：
 
 # 16. Step 4 — Vectorized Shared Rollout Evaluator
 
+当前状态：**SOURCE READY / LOCAL TEST PENDING**  
+记录：`docs/step4.md`  
+实现：`shared/rollout_evaluator.py`  
+测试：`tests/test_shared_rollout_evaluator.py`（13 tests）
+
 ## 目标
 
 给一批 plans[N,H] 和当前 state[D]，生成：
@@ -1632,3 +1637,5 @@ A4.6c source review 已完成两项 integration cleanup：将 requested→canoni
 A4.6c local closure 已完成：A4.6a/A4.6b/A4.6c targeted regression 共 26/26 tests PASS，shared canonicalizer refactor 后 A4.6a numerical audit 精确复现，quality_gate.pass=True。`docs/step3-A4.md` 已生成 aggregate closure，A4 正式 PASS / CLOSED。当前进入 A5 Gate A Final Review；仓库现有 15 个 `test_gate_a_*.py` 共 191 tests，A5 只要求全量回归，不引入新算法逻辑。详见 `docs/step3-A5.md`。
 
 A5 Final Review 已完成：`.venv_cc4` 本地 `python -m unittest discover -s tests -p "test_gate_a_*.py" -v` 共 191/191 tests PASS，unittest 最终结果 `OK`。结合 A4.6a numerical `quality_gate.pass=True`，Gate A 正式 CLOSED。自此 A=4、D=27、target resolver、decision-epoch duration、response objective、selected absolute WM、shared reward predictor、v2 artifact binding 与 formal seed protocol 全部冻结；除非显式重新打开 Gate A，不得在 Step 4/5 中修改。当前进入 Step 4 Vectorized Shared Rollout Evaluator。
+
+Step 4 source 已实现：新增 `shared/rollout_evaluator.py`，输入 state[D] + plans[N,H]，输出 `next_states[H,N,M,D]`、`member_returns[N,M]`、`expected_return[N]`；使用 fixed-member deterministic mean rollout、shared canonical action、shared reward predictor 与 duration-aware tick discount。计算按 H×M 循环、N-batch vectorization，实现 world-model/reward forward call count M*H 而非 N*M*H。新增 `tests/test_shared_rollout_evaluator.py` 共 13 tests。当前待 `.venv_cc4` 本地测试；通过前不进入 Step 5。
