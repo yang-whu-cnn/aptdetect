@@ -15,6 +15,9 @@ from formal_experiments.evaluation.run_gate_b_b2_live_prior_smoke import (
 from formal_experiments.ours.gemini_prior_client import (
     GeminiPriorLiveClient,
     api_key_source,
+    gemini_network_mode,
+    build_genai_http_options,
+    masked_detected_proxies,
     prior_response_schema,
     require_api_key_env,
 )
@@ -60,6 +63,29 @@ class TestGateBB2LivePrior(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             require_api_key_env({})
 
+    def test_network_mode_defaults_and_mutual_exclusion(self):
+        self.assertEqual(gemini_network_mode({}),"sdk_environment_proxy")
+        self.assertEqual(gemini_network_mode({"GEMINI_DISABLE_ENV_PROXY":"1"}),"direct_no_env_proxy")
+        self.assertEqual(gemini_network_mode({"GEMINI_PROXY_URL":"http://127.0.0.1:7890"}),"explicit_proxy")
+        with self.assertRaises(ValueError):
+            gemini_network_mode({
+                "GEMINI_PROXY_URL":"http://127.0.0.1:7890",
+                "GEMINI_DISABLE_ENV_PROXY":"1",
+            })
+
+    def test_http_options_support_direct_and_explicit_proxy_modes(self):
+        direct=build_genai_http_options({"GEMINI_DISABLE_ENV_PROXY":"1"})
+        self.assertFalse(direct.client_args["trust_env"])
+        explicit=build_genai_http_options({"GEMINI_PROXY_URL":"http://127.0.0.1:7890"})
+        self.assertEqual(explicit.client_args["proxy"],"http://127.0.0.1:7890")
+        self.assertFalse(explicit.client_args["trust_env"])
+
+    def test_masked_proxy_diagnostics_remove_userinfo(self):
+        out=masked_detected_proxies({
+            "HTTPS_PROXY":"http://user:secret@127.0.0.1:7890",
+        })
+        self.assertEqual(out["https"],"http://127.0.0.1:7890")
+        self.assertNotIn("secret",repr(out))
     def test_schema_locks_exact_k_h_actions_and_score_range(self):
         schema=prior_response_schema()
         candidates=schema["properties"]["candidates"]
@@ -81,6 +107,7 @@ class TestGateBB2LivePrior(unittest.TestCase):
             result=client.generate(np.zeros(FORMAL_STATE_DIM,dtype=np.float32),agent_name="blue_agent_0")
         self.assertTrue(result.api_call_succeeded)
         self.assertEqual(result.key_source,"GEMINI_API_KEY")
+        self.assertEqual(result.network_mode,"sdk_environment_proxy")
         self.assertEqual(result.prior.plans.shape,(6,4))
         self.assertEqual(len(fake.interactions.calls),1)
         call=fake.interactions.calls[0]
@@ -119,6 +146,7 @@ class TestGateBB2LivePrior(unittest.TestCase):
         self.assertFalse(report["api_key_value_recorded"])
         self.assertFalse(report["raw_prompt_recorded"])
         self.assertFalse(report["raw_response_recorded"])
+        self.assertIn(report["network_mode"],{"sdk_environment_proxy","direct_no_env_proxy","explicit_proxy"})
         dumped=json.dumps(report)
         self.assertNotIn("secret-test-key",dumped)
         self.assertNotIn(result.raw_response_text,dumped)
