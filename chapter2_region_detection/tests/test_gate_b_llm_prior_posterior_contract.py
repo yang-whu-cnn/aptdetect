@@ -18,6 +18,7 @@ from formal_experiments.ours.llm_prior_v2 import (
     deterministic_fallback_plans,
     parse_prior_response,
 )
+from formal_experiments.data_collection.incident_response import IncidentResponseBookkeeper
 from formal_experiments.ours.posterior_features import (
     PLAN_ONE_HOT_DIM,
     POSTERIOR_CANDIDATE_DIM,
@@ -153,8 +154,55 @@ class TestGateBLLMPriorPosteriorContract(unittest.TestCase):
         with self.assertRaises(ValueError):
             build_posterior_candidate_features(state,plans,np.ones(6,dtype=np.float32),rollout)
         bad=SimpleNamespace(expected_return=torch.zeros(6),member_returns=members)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             evidence_from_rollout(bad)
+
+    def test_b1_active_tick_penalty_equals_closed_event_eradication_duration(self):
+        bookkeeper=IncidentResponseBookkeeper(
+            episode_seed=1000,
+            agent_name="blue_agent_0",
+        )
+        bookkeeper.reset(
+            initial_red_presence_by_host={"host_a":False},
+            global_tick=0,
+        )
+
+        # False -> True at tick 1: interval [0,1] is not active.
+        first=bookkeeper.record_tick(
+            global_tick_end=1,
+            red_presence_after={"host_a":True},
+        )
+        self.assertEqual(first.incident_active_ticks,0)
+
+        # Active intervals: [1,2], [2,3], [3,4].
+        second=bookkeeper.record_tick(
+            global_tick_end=2,
+            red_presence_after={"host_a":True},
+        )
+        third=bookkeeper.record_tick(
+            global_tick_end=3,
+            red_presence_after={"host_a":True},
+        )
+        fourth=bookkeeper.record_tick(
+            global_tick_end=4,
+            red_presence_after={"host_a":False},
+        )
+        self.assertEqual(
+            second.incident_active_ticks
+            + third.incident_active_ticks
+            + fourth.incident_active_ticks,
+            3,
+        )
+
+        completed=bookkeeper.completed_events
+        self.assertEqual(len(completed),1)
+        self.assertEqual(completed[0].t_compromise,1)
+        self.assertEqual(completed[0].t_normal,4)
+        self.assertEqual(completed[0].attack_eradication_time,3)
+        self.assertEqual(
+            bookkeeper.total_incident_active_ticks,
+            completed[0].attack_eradication_time,
+        )
 
     def test_config_has_no_old_cost_delay_or_extra_evidence(self):
         posterior=self.cfg["posterior_observation"]
