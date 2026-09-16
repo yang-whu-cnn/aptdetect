@@ -1,7 +1,7 @@
 # Step 3-A3.6 — CC4 Multi-Agent Integration 审核记录
 
 日期：2026-09-16  
-状态：REOPENED
+状态：PASS
 
 ## Git 范围
 
@@ -90,8 +90,8 @@ A3.4 已冻结的正式要求还包括异步 multi-agent readiness：不同 agen
 
 同步 multi-agent integration：PASS。
 
-异步 multi-agent readiness：PENDING。
+异步 multi-agent readiness：PASS。
 
-FINAL STATUS: REOPENED
+FINAL STATUS: PASS
 
-A3.6 async extension 通过前，不正式关闭 A3；已完成的 A4.1-A4.4 实现保留，不需要回退。
+A3.6 async extension 已通过；A3 正式关闭。详细 async 审核见 docs/step3-A3.6-async.md。
