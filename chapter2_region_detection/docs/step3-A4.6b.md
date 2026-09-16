@@ -1,7 +1,7 @@
 # Step A4.6b — Formal v2.1 Config Freeze + Legacy Isolation
 
 日期：2026-09-16  
-状态：**SOURCE READY / LOCAL TEST PENDING**
+状态：**PASS / CLOSED**
 
 ---
 
@@ -117,17 +117,17 @@ Ran 9 tests
 OK
 ```
 
-在本地 test PASS 前，本步骤不标记 CLOSED。
+本地 `.venv_cc4` 已执行该测试文件，9/9 tests 全部通过。
 
 ## 6. 当前结论
 
 ```text
-Formal v2.1 config source : READY
-Legacy config isolation   : READY
-Regression test source    : READY (9 tests)
-Local test execution      : PENDING
+Formal v2.1 config source : PASS
+Legacy config isolation   : PASS
+Regression test source    : PASS (9 tests)
+Local test execution      : PASS (9/9)
 
-FINAL STATUS: SOURCE READY / LOCAL TEST PENDING
+FINAL STATUS: PASS / CLOSED
 ```
 
-通过本地 Gate 后，A4.6b 才可 CLOSED，然后进入 A4.6c A4 final integration review。
+A4.6b 已正式关闭。下一步进入 A4.6c A4 final integration review。
