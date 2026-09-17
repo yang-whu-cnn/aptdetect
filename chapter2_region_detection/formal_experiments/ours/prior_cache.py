@@ -19,10 +19,13 @@ from formal_experiments.ours.llm_prior_v2 import (
     PriorBatch,
 )
 from shared.action_contract import N_ACTIONS
-from shared.formal_state import FORMAL_STATE_DIM
+from shared.formal_state import BLUE_AGENTS, FORMAL_STATE_DIM
 
 
-CACHE_FORMAT_VERSION = 1
+# v2 adds planner-visible public agent identity to the cache key because the
+# formal prompt contains agent_name. v1 entries remain on disk but can never be
+# silently reused by v2 identities.
+CACHE_FORMAT_VERSION = 2
 STATE_DTYPE = "float32_le"
 STATE_SHAPE = (FORMAL_STATE_DIM,)
 ALLOWED_SPLITS = {"train", "validation", "test"}
@@ -109,6 +112,7 @@ class PriorCacheIdentity:
     registry_version: int
     registry_sha256: str
     prompt_version: str
+    agent_name: str
     n_actions: int
     k_candidates: int
     horizon: int
@@ -122,6 +126,8 @@ class PriorCacheIdentity:
             raise ValueError(f"cache split must be one of {sorted(ALLOWED_SPLITS)}")
         _safe_component(self.model_alias, "model_alias")
         _safe_component(self.prompt_version, "prompt_version")
+        if self.agent_name not in BLUE_AGENTS:
+            raise ValueError(f"cache agent_name must be one of {BLUE_AGENTS}; got {self.agent_name!r}")
         if not str(self.provider).strip() or not str(self.exact_model_id).strip():
             raise ValueError("provider/model ID must be nonempty")
         if int(self.registry_version) <= 0:
@@ -154,6 +160,7 @@ class PriorCacheIdentity:
             "registry_version": int(self.registry_version),
             "registry_sha256": self.registry_sha256,
             "prompt_version": self.prompt_version,
+            "agent_name": self.agent_name,
             "n_actions": int(self.n_actions),
             "k_candidates": int(self.k_candidates),
             "horizon": int(self.horizon),
@@ -194,6 +201,7 @@ def make_identity(
     registry_version: int,
     registry_sha256: str,
     prompt_version: str,
+    agent_name: str,
     generation_config: Mapping[str, object],
     state,
     n_actions: int = N_ACTIONS,
@@ -208,6 +216,7 @@ def make_identity(
         registry_version=int(registry_version),
         registry_sha256=str(registry_sha256),
         prompt_version=str(prompt_version),
+        agent_name=str(agent_name),
         n_actions=int(n_actions),
         k_candidates=int(k_candidates),
         horizon=int(horizon),
@@ -310,12 +319,14 @@ class PriorCache:
     def path_for(self, identity: PriorCacheIdentity) -> Path:
         alias = _safe_component(identity.model_alias, "model_alias")
         prompt = _safe_component(identity.prompt_version, "prompt_version")
+        agent = _safe_component(identity.agent_name, "agent_name")
         return (
             self.root
             / identity.split
             / alias
             / f"registry_v{identity.registry_version}"
             / prompt
+            / agent
             / f"{identity.cache_key}.json"
         )
 
