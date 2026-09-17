@@ -119,7 +119,7 @@ class TestGateB3PosteriorRegression(unittest.TestCase):
 
         state = np.zeros(27, dtype=np.float32)
         baseline = build_posterior_candidate_features(state, plans6(), priors6(), rollout())
-        for spec in self.registry.models:
+        for spec in self.registry.models.values():
             self.assertTrue(spec.exact_model_id)
             actual = build_posterior_candidate_features(state, plans6(), priors6(), rollout())
             torch.testing.assert_close(actual, baseline)
