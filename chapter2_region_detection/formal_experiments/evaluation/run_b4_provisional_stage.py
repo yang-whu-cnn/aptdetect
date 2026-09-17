@@ -58,6 +58,15 @@ def _manifest_path(*, out_root: str | Path, model_alias: str) -> Path:
     return resolve_project_path(out_root) / str(model_alias) / "protocol_manifest.json"
 
 
+def _validate_manifest_payload(*, path: Path, expected: dict, expected_sha: str) -> dict:
+    actual = json.loads(path.read_text(encoding="utf-8"))
+    if actual != expected:
+        raise RuntimeError("provisional protocol manifest mismatch")
+    if _stable_sha256(actual) != expected_sha:
+        raise RuntimeError("provisional protocol manifest hash mismatch")
+    return actual
+
+
 def write_or_validate_manifest(
     *,
     out_root: str | Path,
@@ -71,15 +80,22 @@ def write_or_validate_manifest(
     if resume:
         if not path.exists():
             raise FileNotFoundError(f"resume requested but protocol manifest missing: {path}")
-        actual = json.loads(path.read_text(encoding="utf-8"))
-        if actual != expected:
-            raise RuntimeError("provisional protocol manifest mismatch; resume is not allowed")
-        if _stable_sha256(actual) != expected_sha:
-            raise RuntimeError("provisional protocol manifest hash mismatch")
+        actual = _validate_manifest_payload(path=path, expected=expected, expected_sha=expected_sha)
         return path, actual, expected_sha
 
     if path.exists():
-        raise RuntimeError("provisional protocol manifest already exists; use --resume")
+        # A crash can occur after the strict entrypoint writes its immutable manifest
+        # but before the collector reaches the first completed episode/checkpoint.
+        # Such a pre-checkpoint aborted attempt is safe to restart fresh: the policy
+        # state has never been persisted and any already-generated priors live only in
+        # the exact train cache, so they may be reused without another API charge.
+        checkpoint_path = path.parent / "resume.pt"
+        probe_path = path.parent / "probe_transitions.jsonl"
+        if checkpoint_path.exists() or probe_path.exists():
+            raise RuntimeError("provisional artifacts already exist; use --resume")
+        actual = _validate_manifest_payload(path=path, expected=expected, expected_sha=expected_sha)
+        return path, actual, expected_sha
+
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(expected, ensure_ascii=False, indent=2), encoding="utf-8")
     return path, expected, expected_sha
