@@ -1,7 +1,7 @@
 # Gate B4 — Multi-LLM Provisional PPO / B0.2 Probe Collection
 
 日期：2026-09-17  
-状态：**SOURCE DESIGN FROZEN / IMPLEMENTATION IN PROGRESS**
+状态：**SOURCE READY / STRICT WRAPPER LOCAL TEST PENDING**
 
 ## 1. 目的
 
@@ -58,7 +58,29 @@ max 20,000 real decision transitions / model variant
 - default scenario length `100` ticks；
 - final episode 可缩短，保证 cumulative completed transitions 不超过当前 stage target；
 - 每个 episode 的实际 seed / ticks / transitions 必须记录；
-- 同 variant resume 时必须验证 registry/model/WM/reward/config hashes 一致。
+- 同 variant resume 时必须验证 frozen protocol manifest 完全一致。
+
+正式执行入口：
+
+```text
+formal_experiments/evaluation/run_b4_provisional_stage.py
+```
+
+低层 collector：
+
+```text
+formal_experiments/evaluation/run_b4_provisional_ppo.py
+```
+
+只作为内部实现，不作为正式手工执行入口。
+
+Strict wrapper 不暴露 `--steps` / `--ppo-seed` / PPO 超参覆盖；首次运行写：
+
+```text
+outputs/lwm_rl_v2/b4/provisional/<model_alias>/protocol_manifest.json
+```
+
+manifest 冻结：scenario steps、PPO seed、stage targets、rollout target、PPO core config、PPO training config、train-seed schedule。resume 时逐字段完全匹配，否则 hard fail。
 
 ## 5. Async rollout update barrier
 
@@ -112,6 +134,8 @@ cache_key/cache_hit
 
 这份 artifact 是 B0.2 的唯一 policy-induced probe 输入；不得保存 hidden Red truth。
 
+Strict wrapper 在 stage 结束后重新读取完整 probe JSONL，重算 cumulative requested/canonical action counts、fallback、agent/seed counts、response reward、official reward 与 plan[0] match。不得用“当前进程 this-run counter”代替 cumulative audit summary。
+
 ## 7. Training diagnostics
 
 每个 PPO update 记录：
@@ -146,6 +170,8 @@ formal_result_eligible=false
 
 Checkpoint 只为中断恢复和 B0.2 probe continuation；B0.2 结束后不得复制为 formal PPO 初始化。
 
+任何 stage > 2,000 必须通过 strict wrapper 的 `--resume` 从前一 cumulative checkpoint 继续；不得 fresh-start 到 5k/10k/20k。
+
 ## 9. Stage PASS（collection gate）
 
 一个 provisional collection stage 的工程 PASS 只表示数据可用于 B0.2，不表示 WM/B0.2 PASS。必须满足：
@@ -159,7 +185,9 @@ Checkpoint 只为中断恢复和 B0.2 probe continuation；B0.2 结束后不得�
 7. optimizer 前后 API counter 不变；
 8. probe JSONL count == completed PPO transitions；
 9. current stage budget 未超过；
-10. primary model remains unselected。
+10. primary model remains unselected；
+11. strict protocol manifest exact match；
+12. cumulative probe summary count == stage transition count。
 
 ## 10. 下一步
 
