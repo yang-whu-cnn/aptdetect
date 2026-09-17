@@ -442,6 +442,7 @@ def run_provisional_stage(
                 initial_red_presence_by_host=red_presence_for_hosts(controller, tracker.inventory),
                 global_tick=int(controller.step_count),
             )
+            bookkeepers[agent] = bookkeeper
 
         while len(done_agents) < len(BLUE_AGENTS):
             tick_start = int(controller.step_count)
