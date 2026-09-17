@@ -14,7 +14,11 @@ from formal_experiments.evaluation.build_llm_validation_state_bank import (
     DEFAULT_SUMMARY as DEFAULT_STATE_BANK_SUMMARY,
     state_sha256,
 )
-from formal_experiments.ours.llm_prior_v2 import build_formal_prompt, parse_prior_response
+from formal_experiments.ours.llm_prior_v2 import (
+    FORMAL_ACTION_NAMES,
+    build_formal_prompt,
+    parse_prior_response,
+)
 from formal_experiments.ours.model_registry import DEFAULT_REGISTRY, LLMModelSpec, load_model_registry
 from formal_experiments.ours.ofox_prior_client import (
     OFOX_API_KEY_ENV,
@@ -49,7 +53,11 @@ def load_frozen_probe_state(
     if int(summary.get("unique_exact_state_count", -1)) != 240:
         raise RuntimeError("validation state bank must contain 240 unique exact states")
 
-    rows = [json.loads(line) for line in bank_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    rows = [
+        json.loads(line)
+        for line in bank_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
     if len(rows) != 240:
         raise RuntimeError("state-bank file count does not match frozen summary")
     rows.sort(
@@ -86,13 +94,77 @@ def classify_preflight_exception(exc: Exception) -> str:
     return "api_error"
 
 
+def validate_raw_prior_contract(text: str, *, k: int, h: int) -> dict:
+    try:
+        obj = json.loads(str(text).strip())
+    except Exception:
+        return {
+            "json_valid": False,
+            "schema_valid": False,
+            "semantic_valid_candidate_count": 0,
+            "duplicate_candidate_count": 0,
+        }
+    if not isinstance(obj, dict):
+        return {
+            "json_valid": True,
+            "schema_valid": False,
+            "semantic_valid_candidate_count": 0,
+            "duplicate_candidate_count": 0,
+        }
+    candidates = obj.get("candidates")
+    if not isinstance(candidates, list) or len(candidates) != int(k):
+        return {
+            "json_valid": True,
+            "schema_valid": False,
+            "semantic_valid_candidate_count": 0,
+            "duplicate_candidate_count": 0,
+        }
+
+    valid_plans: list[tuple[str, ...]] = []
+    schema_valid = True
+    for item in candidates:
+        if not isinstance(item, dict):
+            schema_valid = False
+            continue
+        actions = item.get("actions")
+        score = item.get("prior_score")
+        reason = item.get("reason")
+        if (
+            not isinstance(actions, list)
+            or len(actions) != int(h)
+            or any(str(action) not in FORMAL_ACTION_NAMES for action in actions)
+            or not isinstance(reason, str)
+        ):
+            schema_valid = False
+            continue
+        try:
+            score_value = float(score)
+        except Exception:
+            schema_valid = False
+            continue
+        if not np.isfinite(score_value) or not (0.0 <= score_value <= 1.0):
+            schema_valid = False
+            continue
+        valid_plans.append(tuple(str(action) for action in actions))
+
+    duplicate_count = len(valid_plans) - len(set(valid_plans))
+    return {
+        "json_valid": True,
+        "schema_valid": bool(schema_valid and len(valid_plans) == int(k)),
+        "semantic_valid_candidate_count": int(len(valid_plans)),
+        "duplicate_candidate_count": int(duplicate_count),
+    }
+
+
 def _usage_dict(response) -> dict:
     usage = getattr(response, "usage", None)
     if usage is None:
         return {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None}
+
     def read(name: str):
         value = getattr(usage, name, None)
         return None if value is None else int(value)
+
     return {
         "prompt_tokens": read("prompt_tokens"),
         "completion_tokens": read("completion_tokens"),
@@ -163,8 +235,11 @@ def run_model_preflight(
             "api_success": False,
             "failure_class": last_error_class or "api_error",
             "error": last_error,
+            "json_valid": False,
             "structured_output_verified": False,
-            "temperature_verified": False,
+            "temperature_parameter_accepted": False,
+            "semantic_valid_candidate_count": 0,
+            "duplicate_candidate_count": 0,
             "final_prior_valid": False,
             "fallback_count": None,
             "usage": {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None},
@@ -175,6 +250,11 @@ def run_model_preflight(
         text = str(response.choices[0].message.content or "").strip()
         if not text:
             raise RuntimeError("empty response content")
+        raw = validate_raw_prior_contract(
+            text,
+            k=registry.k_candidates,
+            h=registry.horizon,
+        )
         prior = parse_prior_response(text, config=cfg)
         fallback_count = sum(source != "llm" for source in prior.sources)
         final_valid = bool(
@@ -183,19 +263,22 @@ def run_model_preflight(
             and np.isfinite(prior.prior_preferences).all()
             and abs(float(prior.prior_preferences.sum()) - 1.0) <= 1e-5
         )
-        usage = _usage_dict(response)
+        passed = bool(raw["schema_valid"] and final_valid)
         return {
             **base,
             "api_success": True,
-            "failure_class": None,
-            "error": None,
+            "failure_class": None if passed else "raw_contract_failure",
+            "error": None if passed else "raw response did not satisfy frozen JSON/semantic contract",
             "response_model": str(getattr(response, "model", "") or ""),
-            "structured_output_verified": True,
-            "temperature_verified": True,
+            "json_valid": bool(raw["json_valid"]),
+            "structured_output_verified": bool(raw["schema_valid"]),
+            "temperature_parameter_accepted": True,
+            "semantic_valid_candidate_count": int(raw["semantic_valid_candidate_count"]),
+            "duplicate_candidate_count": int(raw["duplicate_candidate_count"]),
             "final_prior_valid": final_valid,
             "fallback_count": int(fallback_count),
-            "usage": usage,
-            "pass": bool(final_valid),
+            "usage": _usage_dict(response),
+            "pass": passed,
         }
     except Exception as exc:
         return {
@@ -203,8 +286,11 @@ def run_model_preflight(
             "api_success": True,
             "failure_class": "semantic_or_parse_failure",
             "error": str(exc),
-            "structured_output_verified": True,
-            "temperature_verified": True,
+            "json_valid": False,
+            "structured_output_verified": False,
+            "temperature_parameter_accepted": True,
+            "semantic_valid_candidate_count": 0,
+            "duplicate_candidate_count": 0,
             "final_prior_valid": False,
             "fallback_count": None,
             "usage": _usage_dict(response),
@@ -227,12 +313,23 @@ def make_live_client():
     return OpenAI(**kwargs)
 
 
-def run_preflight(*, registry_path=DEFAULT_REGISTRY, bank_path=DEFAULT_STATE_BANK, summary_path=DEFAULT_STATE_BANK_SUMMARY, client=None) -> dict:
+def run_preflight(
+    *,
+    registry_path=DEFAULT_REGISTRY,
+    bank_path=DEFAULT_STATE_BANK,
+    summary_path=DEFAULT_STATE_BANK_SUMMARY,
+    client=None,
+) -> dict:
     registry = load_model_registry(registry_path)
     probe = load_frozen_probe_state(bank_path, summary_path)
     live_client = make_live_client() if client is None else client
     results = [
-        run_model_preflight(spec=registry.get(tier), registry=registry, probe=probe, client=live_client)
+        run_model_preflight(
+            spec=registry.get(tier),
+            registry=registry,
+            probe=probe,
+            client=live_client,
+        )
         for tier in ("tier_h", "tier_m", "tier_l")
     ]
     passed = all(item["pass"] for item in results)
@@ -272,9 +369,11 @@ def main() -> None:
         print(
             f"{item['tier']} {item['exact_model_id']}: "
             f"api={item['api_success']} structured={item['structured_output_verified']} "
-            f"temp={item['temperature_verified']} final={item['final_prior_valid']} "
-            f"fallback={item['fallback_count']} attempts={item['attempts']} "
-            f"usage={item['usage']} pass={item['pass']}"
+            f"temp_accepted={item['temperature_parameter_accepted']} "
+            f"raw_valid={item['semantic_valid_candidate_count']}/6 "
+            f"duplicates={item['duplicate_candidate_count']} "
+            f"final={item['final_prior_valid']} fallback={item['fallback_count']} "
+            f"attempts={item['attempts']} usage={item['usage']} pass={item['pass']}"
         )
         if item["error"]:
             print("  error:", item["error"])
