@@ -1,39 +1,36 @@
 # Gate B2 — Multi-LLM Prior Study
 
 日期：2026-09-17  
-状态：**B2.2 REGISTRY PASS / CLOSED；B2.3 STATE BANK PASS / CLOSED；B2.5 CACHE PASS / CLOSED；CURRENT = THREE-MODEL LIVE PREFLIGHT**
+状态：**PASS / CLOSED**
 
 ---
 
 ## 1. Purpose
 
-B2 不预先指定唯一主 LLM。正式 prior study 先冻结：
+B2 isolates LLM prior behavior before PPO training. It does not select the final primary LLM. The final model choice must wait for end-to-end validation with independently trained PPO policies.
 
-1. 三档 candidate model registry；
-2. 完全相同的 validation state bank；
-3. 完全相同的 A4/K6/H4/prompt/parser；
-4. 后续完全相同的 frozen WM/reward evaluator。
+Frozen structural contract：
 
-Primary LLM 只能在 prior-quality 与 end-to-end validation 完成后确定。
+```text
+planner-visible D27 only
+A=4
+K=6
+H=4
+same prompt version
+same parser/fallback
+same frozen WM/reward evaluator
+primary_model_selected = false
+```
 
 ## 2. Candidate registry — PASS / CLOSED
 
-Canonical file：
+Canonical registry：
 
 ```text
 configs/llm_model_registry_v1.yaml
 ```
 
-统一 gateway/protocol：
-
-```text
-OFOX
-https://api.ofox.ai/v1
-OpenAI-compatible Chat Completions
-OFOX_API_KEY
-```
-
-冻结 candidate：
+Candidates：
 
 ```text
 Tier-H  llm_h_gpt56_sol
@@ -46,215 +43,176 @@ Tier-L  llm_l_gemini35_flash_lite
         google/gemini-3.5-flash-lite
 ```
 
-三者当前都只是 candidate：
-
-```text
-primary_model_selected = false
-```
-
-共同 generation contract：
-
-```text
-A=4
-K=6
-H=4
-temperature requested=0.2
-prompt=lwm_rl_gate_b_v2_1
-structured output requested=json_schema
-```
-
-Live preflight 前：
-
-```text
-structured_output_verified=false
-actual_temperature=null
-```
-
-不能把 requested capability 写成 verified capability。
-
-Registry implementation：
-
-```text
-formal_experiments/ours/model_registry.py
-```
+All three use the same OFOX OpenAI-compatible gateway and the same formal prompt/A/K/H/parser contract.
 
 ## 3. Validation state bank — PASS / CLOSED
 
-Source：
-
-```text
-outputs/formal_replay_v2/validation.jsonl
-seeds=2000..2007 only
-agents=blue_agent_0..4
-```
-
-Builder：
-
-```text
-formal_experiments/evaluation/build_llm_validation_state_bank.py
-```
-
-Canonical outputs：
+Frozen outputs：
 
 ```text
 outputs/lwm_rl_v2/b2/state_bank.jsonl
 outputs/lwm_rl_v2/b2/state_bank_summary.json
 ```
 
-Frozen selection：
+Real result：
 
 ```text
-8 seeds × 5 agents × 6 states/cell = 240 states
-completed decision transitions only
-exact D27 float32 SHA256 global dedupe
-seed/agent deterministic order
-feature17=0/1 both covered when both exist in source cell
-even deterministic sampling inside available strata
+record_count = 240
+unique_exact_state_count = 240
+8/8 validation seeds covered
+5/5 agents covered
+6 states per seed×agent cell
+feature17: 0=118, 1=122
+selection_config_sha256 = 00698b76e1adeeec9bba9eb3148bea1319052584a47ae8e4771792d6f10f4117
+bank_sha256 = b42472e9a20f66b56164d846e8bd41caa2cae54f0e9a6558d7ebebff2c771e17
+hidden/reward/future fields = false
 ```
 
-State bank 只保存 planner-visible D27 + provenance，不保存 hidden Red truth、incident labels、reward、next/future state、calibration/test data。
+## 4. Persistent cache — PASS / CLOSED
 
-### Real result
+Formal cache key isolates：
 
 ```text
-record_count: 240
-unique_exact_state_count: 240
-source_seeds: [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007]
-agents: [blue_agent_0, blue_agent_1, blue_agent_2, blue_agent_3, blue_agent_4]
-feature17_counts: {'0': 118, '1': 122}
-selection_config_sha256: 00698b76e1adeeec9bba9eb3148bea1319052584a47ae8e4771792d6f10f4117
-bank_sha256: b42472e9a20f66b56164d846e8bd41caa2cae54f0e9a6558d7ebebff2c771e17
-pass: True
+split
+provider/model alias/exact ID
+registry hash
+prompt version
+A/K/H
+generation config
+exact D27 float32 SHA256
 ```
 
-## 4. Offline foundation tests — PASS
+Cache hit causes zero provider calls. Failed provider transactions are never cached as successful priors. Corrupt entries are quarantined rather than silently reused.
 
-用户本地执行：
+## 5. Three-model live capability — PASS / CLOSED
+
+On one identical frozen bank state, all three exact models passed in one attempt：
 
 ```text
-tests.test_gate_b2_registry_state_bank
-tests.test_prior_cache
+api_success = true
+json_schema verified = true
+temperature=0.2 accepted = true
+raw semantic valid = 6/6
+duplicates = 0
+fallback = 0
+final K6/H4 valid = true
 ```
 
-合计：
+Therefore no per-model request special case was introduced.
+
+## 6. Formal 240-state prior quality — PASS / CLOSED
+
+User local regression before run：
 
 ```text
-15/15 PASS
+19/19 tests PASS
 ```
 
-因此：
+Formal results：
 
 ```text
-B2.2 candidate registry : PASS / CLOSED
-B2.3 validation bank    : PASS / CLOSED
-B2.5 prior cache        : PASS / CLOSED
+GPT-5.6 Sol:
+  completed=240/240
+  schema=1.0
+  fallback=0
+  best_of_6_value=-8.511746
+  top_prior_value=-9.100476
+  prior/value Spearman=0.064325
+  cost≈USD 4.19560
+
+GPT-5.4 Mini:
+  completed=240/240
+  schema=1.0
+  fallback=0
+  best_of_6_value=-8.793619
+  top_prior_value=-9.974312
+  prior/value Spearman=-0.050331
+  cost≈USD 0.43378
+
+Gemini 3.5 Flash Lite:
+  completed=240/240
+  schema=1.0
+  fallback=0
+  best_of_6_value=-8.685761
+  top_prior_value=-11.154970
+  prior/value Spearman=-0.192815
+  cost≈USD 0.28615
+
+Uniform non-LLM:
+  completed=240/240
+  best_of_6_value=-8.222777
 ```
 
-## 5. Current Gate — three-model live capability preflight
+Interpretation：prior scores are not reliable substitutes for WM foresight. Uniform best-of-6 superiority in frozen-WM diagnostics does not establish real-environment superiority.
 
-下一步不是 PPO，也不是直接跑 240×3 API calls。
+## 7. Repeatability — PASS / CLOSED
 
-对三个 exact model 在**同一个 frozen bank state** 上各做 tiny live request：
+User local unit acceptance：
 
 ```text
-same D27 state
-same prompt
-same A4/K6/H4
-same requested temperature=0.2
-same json_schema request
+tests.test_gate_b2_repeatability
+10/10 PASS
 ```
 
-验证：
-
-- exact model ID 可调用；
-- temperature parameter 被 endpoint 接受；
-- JSON-Schema request 被 endpoint 接受；
-- raw response 本身是合法 JSON/schema，不允许 parser fallback 掩盖 provider incompatibility；
-- raw semantic-valid candidate count=6；
-- local parser final PriorBatch valid；
-- usage token metadata 尽可能读取；
-- bounded retry 只用于 registry 声明的 rate-limit/network/5xx；
-- auth/model-not-found/invalid-request 不 retry；
-- primary model 仍保持未选择。
-
-### Source
+Frozen repeatability subset：
 
 ```text
-formal_experiments/evaluation/run_b2_multi_model_preflight.py
+state_count = 30
+replicates_per_state = 3
+source_bank_sha256 = b42472e9a20f66b56164d846e8bd41caa2cae54f0e9a6558d7ebebff2c771e17
+subset_sha256 = be063e3de7b19eee6da7728ce3b2365b10d73806112128d9be048014ad58ae49
+5 agents × 6 states
+feature17 = 15/15
+8 validation seeds covered
 ```
 
-### Unit tests
+Each model executed 90/90 independent generation transactions with zero failures, schema-valid rate 1.0, semantic-valid rate 1.0, duplicate rate 0 and fallback rate 0.
+
+Observed stability：
 
 ```text
-tests/test_gate_b2_multi_model_preflight.py
+Variant                    set Jaccard   top pair agree   all-3 agree   best-of-K value variance
+------------------------------------------------------------------------------------------------
+GPT-5.6 Sol                  0.434055        0.733333        0.633333           0.134165
+GPT-5.4 Mini                 0.293252        0.500000        0.400000           0.918567
+Gemini 3.5 Flash Lite       0.411077        0.677778        0.533333           1.402401
 ```
 
-8 tests 锁定：
-
-1. exact six-candidate raw contract PASS；
-2. malformed JSON raw contract FAIL；
-3. wrong K / invalid action raw contract FAIL；
-4. retry/error-class classification；
-5. registry model/temp/json_schema/usage request contract；
-6. retryable 5xx bounded retry；
-7. invalid-request no retry；
-8. parser fallback cannot mask raw contract failure。
-
-### Real preflight PASS
-
-三个模型都必须：
+Repeatability costs for the fresh 90-call runs：
 
 ```text
-api_success = True
-structured_output_verified = True
-temperature_parameter_accepted = True
-semantic_valid_candidate_count = 6
-final_prior_valid = True
-pass = True
+GPT-5.6 Sol            USD 1.133325
+GPT-5.4 Mini           USD 0.162754
+Gemini Flash Lite      USD 0.109167
 ```
 
-`fallback_count` 可作为诊断，但 raw schema/semantic contract 不得依赖 fallback 才成立。
+These stability values are experimental outcomes. They are not post-hoc thresholds and do not authorize prompt/temperature tuning.
 
-若任一模型对 `json_schema` 或 temperature 明确返回 unsupported/invalid request：
+## 8. Scientific interpretation
+
+The combined B2 results support three claims to test later rather than assume now：
+
+1. stronger raw LLM prior alignment is not guaranteed;
+2. candidate diversity and repeated-generation stability differ materially by model;
+3. WM foresight + PPO posterior correction is necessary to determine whether weaker/noisier priors can still produce competitive end-to-end policies.
+
+No primary model is selected at B2.
+
+## 9. Formal completion checklist
 
 ```text
-STOP
--> 记录真实 capability
--> 修订 registry / protocol
--> 三模型共同公平规则重新冻结
+registry frozen                          PASS
+240-state validation bank                PASS
+persistent cache                         PASS
+3-model live capability                  PASS
+3 LLM × 240 prior-quality reports        PASS
+Uniform × 240 baseline                   PASS
+30 states × 3 repeats × 3 LLM           PASS
+provider failure hidden as fallback      NO
+hidden/calibration/test leakage           NO
+primary_model_selected                    FALSE
 ```
 
-不得只给单个模型 silent special-case。
+**FINAL STATUS: GATE B2 PASS / CLOSED**
 
-## 6. Public capability re-check (2026-09-17)
-
-在进入 live preflight 前再次核对 OFOX 当前公开目录/文档：三个 exact IDs 仍存在；OpenAI-compatible Chat Completions 文档仍公开 `temperature` 与 `response_format`；Structured Output 文档仍描述 `json_schema`。
-
-该公开信息只证明 gateway/documentation 层 capability，不能替代 exact-model live preflight。
-
-## 7. After preflight
-
-只有三模型 real preflight PASS 后才进入：
-
-```text
-freeze verified capability fields
--> 240-state × 3 LLM prior generation
--> same frozen WM/reward prior-quality evaluation
--> uniform baseline
--> 30-state × 3 independent repeatability
-```
-
-仍然不在 prior-quality 阶段选择最终论文 winner；primary LLM 必须等待 end-to-end validation。
-
-## 8. Current conclusion
-
-```text
-B0.1 frozen WM audit      PASS / CLOSED
-B2.2 registry             PASS / CLOSED
-B2.3 validation state bank PASS / CLOSED
-B2.5 cache                PASS / CLOSED
-B2 live model preflight   SOURCE READY / 8 UNIT TESTS + REAL PENDING
-Primary LLM selected      NO
-PPO started               NO
-Test seeds touched        NO
-```
+Next：Gate B3 provider-neutral posterior representation regression, then Gate B4 PPO network/unit implementation.
