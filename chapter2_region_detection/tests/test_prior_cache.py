@@ -143,6 +143,16 @@ class TestPriorCache(unittest.TestCase):
             with self.assertRaises(ValueError):
                 cache.store(identity, sample_prior(), metadata=metadata)
 
+    def test_cache_rejects_failed_provider_transaction(self):
+        identity = identity_for(np.zeros(FORMAL_STATE_DIM, dtype=np.float32))
+        metadata = sample_metadata()
+        metadata["api_success"] = False
+        with tempfile.TemporaryDirectory() as temp:
+            cache = PriorCache(temp)
+            with self.assertRaises(ValueError):
+                cache.store(identity, sample_prior(), metadata=metadata)
+            self.assertFalse(cache.path_for(identity).exists())
+
     def test_corrupt_cache_is_quarantined_and_miss_recovers_once(self):
         identity = identity_for(
             np.zeros(FORMAL_STATE_DIM, dtype=np.float32),
