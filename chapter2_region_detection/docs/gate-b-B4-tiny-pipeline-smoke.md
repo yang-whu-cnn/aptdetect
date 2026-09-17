@@ -1,7 +1,7 @@
 # Gate B4 — One-Model Tiny CC4 Pipeline Smoke
 
 日期：2026-09-17  
-状态：**SOURCE READY / LOCAL OFFLINE TEST + LIVE SMOKE PENDING**
+状态：**PASS / CLOSED**
 
 ---
 
@@ -16,7 +16,7 @@ B4 rollout/trainer integration     PASS / CLOSED (12/12 local tests)
 Design/paper alignment audit       PASS
 ```
 
-本阶段仍不是 provisional/formal PPO experiment。
+本阶段不是 provisional/formal PPO experiment，不产生论文性能结果。
 
 ---
 
@@ -45,22 +45,20 @@ planner-visible D27
 
 ## 3. Frozen smoke configuration
 
-默认：
-
 ```text
 model_alias = llm_l_gemini35_flash_lite
+exact_model = google/gemini-3.5-flash-lite
 train_seed = 1000
 scenario_steps = 20
 ppo_seed = 20260917
 device = cpu
 pad_spaces = false
+cache_format = 2 / agent-aware
 ```
 
 使用 Tier-L 的唯一原因是 B2 已验证其接口且成本/延迟最低，适合作为工程 smoke。
 
-**这不是模型选择。** `primary_model_selected` 必须仍为 false。
-
-允许通过 CLI 改用 registry 中另一个已验证 model alias 做工程复测，但不能据此改变正式 multi-LLM protocol。
+**这不是模型选择。** `primary_model_selected=false`。
 
 ---
 
@@ -69,7 +67,7 @@ pad_spaces = false
 每个 ready decision state 只构造一次 candidate context：
 
 ```text
-state
+state + public agent id
 -> train cache lookup
 -> miss: bounded live provider transaction
 -> PriorBatch K6/H4
@@ -79,13 +77,7 @@ state
 
 当动作完成且 episode 未结束时，在真实 `next_state` 上预构造下一 candidate context，并用其 critic value 作为 `V(next)`。
 
-下一 decision epoch 必须复用这份 context；通过 exact float32 D27 SHA256 验证 next state 完全一致。
-
-目的：
-
-- critic bootstrap 与真正下一策略输入一致；
-- 不因 `V(next)` 额外重复调用 LLM；
-- 不因下一 decision 再次重复 WM rollout。
+下一 decision epoch 复用该 context，并通过 exact float32 D27 SHA256 验证 next state 完全一致。
 
 ---
 
@@ -98,9 +90,7 @@ candidate_index i
 -> requested_action_id = plans[i][0]
 ```
 
-只有 `plan[0]` 进入真实 CC4。
-
-随后统一走：
+只有 `plan[0]` 进入真实 CC4。随后统一走：
 
 ```text
 requested A4
@@ -109,15 +99,13 @@ requested A4
 -> actual executed action
 ```
 
-Target 不由 LLM/PPO直接选择。
-
-无合法 observable target 时 targeted request 可以 fallback 到 Sleep；requested action 保留用于 audit。
+Target 不由 LLM/PPO 直接选择。无合法 observable target 时 targeted request fallback 到 Sleep；requested action 保留用于审计。
 
 ---
 
 ## 6. Reward / trajectory alignment
 
-每个完成 transition 必须同时进入：
+每个完成 transition 同时进入：
 
 1. formal `DecisionEpochReplayCollector`；
 2. `AsyncPPORolloutBuffer`。
@@ -135,111 +123,142 @@ real decision_dt
 done
 ```
 
-PPO reward 必须直接取 `DecisionEpochTransition.response_reward`。
+PPO reward 直接取 `DecisionEpochTransition.response_reward`。Terminal `critic_next_value=0`；非 terminal critic bootstrap 来自真实 next-state posterior context。
 
-Terminal：
-
-```text
-critic_next_value = 0
-```
-
-非 terminal：critic next value 来自预构造的真实 next-state posterior context。
-
-Hidden Red truth 只允许进入既有 incident-response reward bookkeeping，不得进入 state/prompt/posterior/policy。
+Hidden Red truth 只允许进入既有 incident-response reward bookkeeping，不进入 state/prompt/posterior/policy。
 
 ---
 
 ## 7. PPO update
 
-Episode 完成后：
+Smoke episode 完成后：
 
 ```text
 formal replay transition count == PPO rollout step count
--> build per-agent duration-aware GAE
+-> per-agent duration-aware GAE
 -> merge batch
--> one PPOTrainer.update()
+-> PPOTrainer.update()
 ```
 
-Smoke 使用现有 formal optimizer defaults；其权重不保存为正式 checkpoint。
-
-记录 optimizer 前后的 cache-miss / live-transaction counter；必须完全不变，证明 5 个 update epochs 不触发 API。
+Optimizer 前后的 cache-miss / live-transaction counter 必须完全不变，证明 repeated gradient epochs 不触发 API。
 
 ---
 
-## 8. Artifacts
+## 8. Real local acceptance result
 
-Production runner：
-
-```text
-formal_experiments/evaluation/run_b4_tiny_pipeline_smoke.py
-```
-
-Offline protocol tests：
+用户本地真实运行：
 
 ```text
-tests/test_gate_b4_tiny_pipeline_smoke.py
-```
+transition_count = 92
+ppo_step_count = 92
+per_agent = [19,19,19,19,16]
+all_agents_done = true
 
-Live report：
+requested actions:
+  no_op   28
+  analyse 48
+  remove  10
+  restore  6
 
-```text
-outputs/lwm_rl_v2/b4/tiny_pipeline_smoke.json
-```
+executed families:
+  Sleep   89
+  Analyse 3
+fallback_count = 61
 
-不保存 formal PPO checkpoint。
+plan0_match = 92/92
+PPO-replay alignment = 92/92
 
----
+response_reward_total = -10.0
+official_reward_total = -30.0
 
-## 9. PASS conditions
+cache_hits = 0
+cache_misses_before_update = 92
+cache_misses_after_update  = 92
+live_transactions_before_update = 92
+live_transactions_after_update  = 92
+estimated_cost_usd = 0.112192
 
-全部满足：
-
-```text
-all offline protocol tests PASS
-train seed only
-all 5 Blue agents have >=1 completed transition
-formal replay count == PPO step count >0
-100% requested action == selected plan[0]
-100% reward/dt/done PPO-replay alignment
-cache split = train and model alias exact
-next-context exact-state reuse guard never fails
+training_batch_size = 92
+optimizer_steps = 10
+policy_loss_mean = 0.0022907955
+value_loss_mean = 2.2935701
+entropy_mean = 1.7917554
+approx_kl_mean = 7.195e-06
+clip_fraction_mean = 0.0
+grad_norm_mean = 5.74391
+grad_norm_max = 10.58417
+policy_parameters_changed = true
 primary_model_selected = false
-all agents reach episode terminal
-PPO update metrics finite
-policy parameters change after update
-cache misses unchanged during PPO optimizer epochs
-live transactions unchanged during PPO optimizer epochs
-no validation/calibration/test
-no formal checkpoint retained
+pass = true
 ```
 
-API/cache hits may make live API calls zero on rerun; this is allowed. First fresh run normally generates train-cache misses.
+完整 JSON 进一步审计：
+
+```text
+decision_dt:
+  1 -> 89 transitions
+  2 -> 3 transitions
+```
+
+三条 `dt=2` 正好对应真正执行的 3 次 Analyse；其余 targeted requests 在无合法 observable target 时按 shared resolver 正确 fallback 到 Sleep。
+
+```text
+response reward distribution:
+  0  -> 85
+ -1  -> 4
+ -2  -> 3
+sum = -10
+```
+
+5 个 Blue agent 各有一个 terminal transition。
+
+初始 policy entropy 约等于 `ln(6)`，与 fresh near-uniform candidate policy 一致；该 smoke 不用于评估策略性能。`clip_grad_norm_` 报告的是 clipping 前 norm，因此 `grad_norm > 0.5` 不代表 max-grad-norm contract 失效。
 
 ---
 
-## 10. Failure branch
+## 9. PASS conditions result
 
-- schema/provider/cache failure → fix provider/cache integration; do not weaken parser;
-- plan[0]/resolver mismatch → fix runtime integration; do not add method-specific resolver；
-- replay/PPO reward or dt mismatch → stop; B4 cannot proceed；
-- next-context SHA mismatch → fix scheduler/prefetch semantics；
-- NaN/Inf optimizer → reopen B4 PPO integration；
-- CC4 terminal/accounting mismatch → compare against frozen Step 7 semantics before changing environment rules。
+```text
+[x] offline protocol tests PASS
+[x] train seed only
+[x] all 5 Blue agents >=1 completed transition
+[x] replay count == PPO count >0
+[x] requested action == selected plan[0] 100%
+[x] reward/dt/done PPO-replay alignment 100%
+[x] cache split=train, exact model namespace, agent-aware v2
+[x] next-context exact-state guard PASS
+[x] primary_model_selected=false
+[x] all agents terminal
+[x] PPO update finite
+[x] policy parameters changed
+[x] cache misses unchanged during optimizer
+[x] live transactions unchanged during optimizer
+[x] no validation/calibration/test
+[x] no formal checkpoint retained
+```
 
-不得用 validation/test 来 debug smoke。
+结论：**PASS / CLOSED**。
 
 ---
 
-## 11. After PASS
+## 10. After PASS
 
 进入 amended provisional stage：
 
 ```text
 3 formal LLM variants
-x one identical PPO development seed each
+x fresh provisional PPO per variant
 x train environment only
-x <=20k decision transitions / variant
--> B0.2 per-model + union OOD/model-exploitation audit
+x staged <=20k decision transitions / variant
+-> B0.2 per-model OOD/model-exploitation audit
 ```
 
-任何 provisional PPO weight 都不得进入正式论文结果；B0.2 之后 formal PPO 必须重新初始化。
+Frozen cumulative provisional stages：
+
+```text
+2k -> 5k -> 10k -> 20k
+```
+
+每个 stage 后先做 B0.2。若 PASS 则停止该 variant 的 provisional collection；若仅 action coverage incomplete 才进入下一 stage；真实 model-shift FAIL 直接停止并 reopen shared WM path。
+
+任何 provisional PPO weight 都不得进入正式论文结果；B0.2 完成后 formal PPO 必须重新初始化。
