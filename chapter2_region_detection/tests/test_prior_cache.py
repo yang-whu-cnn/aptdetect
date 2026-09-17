@@ -66,6 +66,7 @@ def identity_for(
     prompt="p1",
     temperature=0.2,
     registry_sha=REGISTRY_SHA256,
+    agent_name="blue_agent_0",
 ):
     return make_identity(
         split=split,
@@ -75,6 +76,7 @@ def identity_for(
         registry_version=1,
         registry_sha256=registry_sha,
         prompt_version=prompt,
+        agent_name=agent_name,
         generation_config={"temperature": temperature, "structured_output": "json_schema"},
         state=state,
     )
@@ -87,7 +89,7 @@ class TestPriorCache(unittest.TestCase):
         right[0] = np.nextafter(np.float32(0.0), np.float32(1.0))
         self.assertNotEqual(exact_state_sha256(left), exact_state_sha256(right))
 
-    def test_cache_key_isolated_by_split_model_prompt_config_and_registry(self):
+    def test_cache_key_isolated_by_split_model_prompt_config_registry_and_agent(self):
         state = np.zeros(FORMAL_STATE_DIM, dtype=np.float32)
         train = identity_for(state)
         validation = identity_for(state, split="validation")
@@ -95,6 +97,7 @@ class TestPriorCache(unittest.TestCase):
         other_prompt = identity_for(state, prompt="p2")
         other_config = identity_for(state, temperature=0.3)
         other_registry = identity_for(state, registry_sha="a" * 64)
+        other_agent = identity_for(state, agent_name="blue_agent_1")
         keys = {
             train.cache_key,
             validation.cache_key,
@@ -102,14 +105,21 @@ class TestPriorCache(unittest.TestCase):
             other_prompt.cache_key,
             other_config.cache_key,
             other_registry.cache_key,
+            other_agent.cache_key,
         }
-        self.assertEqual(len(keys), 6)
+        self.assertEqual(len(keys), 7)
         payload = train.canonical_payload()
         self.assertEqual(payload["cache_format_version"], CACHE_FORMAT_VERSION)
+        self.assertEqual(CACHE_FORMAT_VERSION, 2)
+        self.assertEqual(payload["agent_name"], "blue_agent_0")
         self.assertEqual(payload["n_actions"], 4)
         self.assertEqual(payload["state_shape"], [27])
         self.assertEqual(payload["state_dtype"], "float32_le")
         self.assertEqual(payload["registry_sha256"], REGISTRY_SHA256)
+
+    def test_invalid_agent_identity_is_rejected(self):
+        with self.assertRaises(ValueError):
+            identity_for(np.zeros(FORMAL_STATE_DIM, dtype=np.float32), agent_name="unknown_agent")
 
     def test_cache_miss_calls_generator_once_and_hit_calls_zero_times(self):
         identity = identity_for(np.zeros(FORMAL_STATE_DIM, dtype=np.float32))
@@ -189,6 +199,7 @@ class TestPriorCache(unittest.TestCase):
             self.assertFalse(cache.lock_path_for(identity).exists())
             payload = json.loads(cached.path.read_text(encoding="utf-8"))
             self.assertEqual(payload["identity"]["split"], "train")
+            self.assertEqual(payload["identity"]["agent_name"], "blue_agent_0")
             self.assertEqual(len(payload["entry_sha256"]), 64)
             self.assertNotIn("api_key", json.dumps(payload).lower())
             np.testing.assert_array_equal(cached.prior.plans, sample_prior().plans)
