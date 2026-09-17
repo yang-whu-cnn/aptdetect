@@ -36,6 +36,7 @@ DEFAULT_OUT = "outputs/world_model_v2/b0_1/per_action_audit.json"
 MIN_VALIDATION_COUNT_PER_ACTION = 150
 MAX_ACTION_RMSE_PERSISTENCE_RATIO = 1.25
 MIN_ACTIONS_BEATING_PERSISTENCE = 3
+MAX_H4_FIRST_ACTION_RATIO_BEFORE_REVIEW = 2.0
 FROZEN_METRIC_ABS_TOLERANCE = 5e-4
 
 FROZEN_REFERENCE = {
@@ -251,9 +252,38 @@ def completed_action_counts(
     return {name: int(counts.get(family, 0)) for family, name in FAMILY_TO_NAME.items()}
 
 
+def h4_catastrophic_review(
+    first_action_h4: dict[str, dict[str, object]],
+    *,
+    max_ratio: float = MAX_H4_FIRST_ACTION_RATIO_BEFORE_REVIEW,
+) -> dict[str, object]:
+    actions: dict[str, dict[str, object]] = {}
+    review_required = False
+    for name in ACTION_NAMES:
+        metrics = first_action_h4.get(name, {})
+        count = int(metrics.get("count", 0))
+        ratio = metrics.get("rmse_over_persistence")
+        missing = count <= 0 or bool(metrics.get("missing", False))
+        finite = bool(ratio is not None and np.isfinite(float(ratio)))
+        catastrophic = bool(missing or not finite or float(ratio) > float(max_ratio))
+        review_required = review_required or catastrophic
+        actions[name] = {
+            "count": count,
+            "rmse_over_persistence": None if ratio is None else float(ratio),
+            "missing": missing,
+            "catastrophic": catastrophic,
+        }
+    return {
+        "max_h4_first_action_ratio_before_review": float(max_ratio),
+        "actions": actions,
+        "manual_review_required": bool(review_required),
+    }
+
+
 def b0_1_gate(
     *,
     validation_per_action: dict[str, dict[str, object]],
+    first_action_h4: dict[str, dict[str, object]],
     aggregate: dict[str, float],
     min_validation_count: int = MIN_VALIDATION_COUNT_PER_ACTION,
     max_ratio: float = MAX_ACTION_RMSE_PERSISTENCE_RATIO,
@@ -295,11 +325,15 @@ def b0_1_gate(
         }
 
     reproduction_ok = all(item["within_tolerance"] for item in reproduction.values())
+    h4_review = h4_catastrophic_review(first_action_h4)
     result = {
         "thresholds": {
             "min_validation_count_per_action": int(min_validation_count),
             "max_action_rmse_persistence_ratio": float(max_ratio),
             "min_actions_beating_persistence": int(min_beating),
+            "max_h4_first_action_ratio_before_review": float(
+                MAX_H4_FIRST_ACTION_RATIO_BEFORE_REVIEW
+            ),
             "frozen_metric_abs_tolerance": float(frozen_tolerance),
         },
         "actions": action_checks,
@@ -307,6 +341,7 @@ def b0_1_gate(
         "all_actions_ratio_within_limit": bool(all_ratio),
         "actions_beating_persistence": int(beating),
         "enough_actions_beat_persistence": bool(beating >= int(min_beating)),
+        "h4_catastrophic_review": h4_review,
         "frozen_aggregate_reproduction": reproduction,
         "frozen_aggregate_reproduction_ok": bool(reproduction_ok),
     }
@@ -315,6 +350,7 @@ def b0_1_gate(
         and all_ratio
         and beating >= int(min_beating)
         and reproduction_ok
+        and not h4_review["manual_review_required"]
     )
     return result
 
@@ -338,13 +374,19 @@ def run_audit(
         raise RuntimeError("B0.1 requires the frozen absolute WM checkpoint")
     if model.config.state_dim != 27 or model.config.n_actions != 4:
         raise RuntimeError("B0.1 checkpoint violates D27/A4 contract")
+    if model.config.ensemble_size != 5 or len(model.models) != 5:
+        raise RuntimeError("B0.1 checkpoint violates frozen M=5 ensemble contract")
 
     train_counts = completed_action_counts(train)
     validation_counts = completed_action_counts(validation)
     per_action = action_one_step_audit(model, validation)
     h4_first_action = first_action_h4_audit(model, validation)
     aggregate = aggregate_reproduction(model, validation)
-    gate = b0_1_gate(validation_per_action=per_action, aggregate=aggregate)
+    gate = b0_1_gate(
+        validation_per_action=per_action,
+        first_action_h4=h4_first_action,
+        aggregate=aggregate,
+    )
 
     return {
         "contract": {
@@ -404,15 +446,21 @@ def main() -> None:
     print("validation_counts:", report["validation_completed_action_counts"])
     for name in ACTION_NAMES:
         metrics = report["validation_per_action_one_step"][name]
+        h4 = report["validation_first_action_h4"][name]
         print(
             f"{name}: n={metrics['count']} "
             f"rmse={metrics.get('rmse')} "
             f"persistence={metrics.get('persistence_rmse')} "
             f"ratio={metrics.get('rmse_over_persistence')} "
-            f"spearman={metrics.get('uncertainty_error_spearman')}"
+            f"spearman={metrics.get('uncertainty_error_spearman')} "
+            f"h4_n={h4.get('count')} h4_ratio={h4.get('rmse_over_persistence')}"
         )
     print("aggregate_reproduction:", report["aggregate_reproduction"])
     print("actions_beating_persistence:", report["quality_gate"]["actions_beating_persistence"])
+    print(
+        "h4_manual_review_required:",
+        report["quality_gate"]["h4_catastrophic_review"]["manual_review_required"],
+    )
     print("pass:", report["pass"])
     print("[OK] report:", out)
 
