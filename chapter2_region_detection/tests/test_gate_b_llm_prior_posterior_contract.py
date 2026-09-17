@@ -12,6 +12,8 @@ from formal_experiments.ours.llm_prior_v2 import (
     FORMAL_HORIZON,
     FORMAL_K_CANDIDATES,
     FORMAL_LLM_API_MODEL,
+    FORMAL_LLM_MODEL_LABEL,
+    FORMAL_LLM_PROVIDER,
     FORMAL_LLM_TEMPERATURE,
     FormalLLMPriorConfig,
     build_formal_prompt,
@@ -48,9 +50,15 @@ class TestGateBLLMPriorPosteriorContract(unittest.TestCase):
         self.assertEqual(FORMAL_ACTION_NAMES, ("no_op","analyse","remove","restore"))
         self.assertEqual(FORMAL_K_CANDIDATES, 6)
         self.assertEqual(FORMAL_HORIZON, 4)
-        self.assertEqual(FORMAL_LLM_API_MODEL, "gemini-3.1-pro-preview")
+        self.assertEqual(FORMAL_LLM_PROVIDER, "ofox_openai_compatible")
+        self.assertEqual(FORMAL_LLM_MODEL_LABEL, "GPT-5.6 Sol")
+        self.assertEqual(FORMAL_LLM_API_MODEL, "openai/gpt-5.6-sol")
         self.assertEqual(FORMAL_LLM_TEMPERATURE, 0.2)
         llm=self.cfg["llm_prior"]
+        self.assertEqual(llm["provider"],"ofox_openai_compatible")
+        self.assertEqual(llm["gateway_base_url"],"https://api.ofox.ai/v1")
+        self.assertEqual(llm["api_model"],"openai/gpt-5.6-sol")
+        self.assertEqual(llm["api_key_env"],"OFOX_API_KEY")
         self.assertEqual(llm["k_candidates"],6)
         self.assertEqual(llm["plan_horizon"],4)
         self.assertEqual(llm["generation_temperature"],0.2)
@@ -167,15 +175,11 @@ class TestGateBLLMPriorPosteriorContract(unittest.TestCase):
             initial_red_presence_by_host={"host_a":False},
             global_tick=0,
         )
-
-        # False -> True at tick 1: interval [0,1] is not active.
         first=bookkeeper.record_tick(
             global_tick_end=1,
             red_presence_after={"host_a":True},
         )
         self.assertEqual(first.incident_active_ticks,0)
-
-        # Active intervals: [1,2], [2,3], [3,4].
         second=bookkeeper.record_tick(
             global_tick_end=2,
             red_presence_after={"host_a":True},
@@ -194,7 +198,6 @@ class TestGateBLLMPriorPosteriorContract(unittest.TestCase):
             + fourth.incident_active_ticks,
             3,
         )
-
         completed=bookkeeper.completed_events
         self.assertEqual(len(completed),1)
         self.assertEqual(completed[0].t_compromise,1)
