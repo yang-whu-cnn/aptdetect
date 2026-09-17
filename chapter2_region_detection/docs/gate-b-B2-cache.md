@@ -1,7 +1,7 @@
 # Gate B2.5 — Persistent Prior Cache
 
 日期：2026-09-17  
-状态：**SOURCE READY / LOCAL TEST PENDING**
+状态：**PASS / CLOSED (UNIT/PROTOCOL GATE)**
 
 ---
 
@@ -15,7 +15,7 @@ LLM prior cache 是 formal PPO 的必要实验基础设施，不是可选性能�
 same formal state/model/prompt/config
 -> same cache key
 -> hit reuses frozen PriorBatch
--> no API call during PPO gradient epochs
+-> no repeated API call during PPO optimizer epochs
 ```
 
 不同 split/model/prompt/config/registry/state 必须隔离。
@@ -26,7 +26,7 @@ same formal state/model/prompt/config
 formal_experiments/ours/prior_cache.py
 ```
 
-Canonical runtime root：
+Canonical root：
 
 ```text
 outputs/lwm_rl_v2/prior_cache/
@@ -34,7 +34,7 @@ outputs/lwm_rl_v2/prior_cache/
 
 ## 3. Canonical key
 
-No state quantization.
+Main experiment 禁止 state quantization。
 
 Key material：
 
@@ -63,32 +63,34 @@ Final key：
 SHA256(canonical JSON key material)
 ```
 
-Namespace path：
+Namespace：
 
 ```text
 <root>/<split>/<model_alias>/registry_v<version>/<prompt_version>/<cache_key>.json
 ```
 
-## 4. Value schema
+## 4. Value / safety contract
 
-Each formal LLM cache entry stores：
+每个 formal live cache entry 保存：
 
-- format version / cache key / identity；
-- PriorBatch plans/raw scores/normalized preferences/sources；
+- identity / cache key / format；
+- PriorBatch plans / raw scores / normalized preferences / sources；
 - `api_success`；
 - `fallback_count`；
 - prompt/response SHA256；
 - latency；
 - retry count；
-- optional usage/token/cost metadata；
+- optional token/cost metadata；
 - UTC creation time；
-- entry SHA256 checksum。
+- entry checksum。
 
-Required metadata is validated before write.
+硬规则：
 
-`fallback_count` must exactly match non-LLM sources in PriorBatch.
+```text
+api_success must be True
+```
 
-Formal cache **硬性要求 `api_success=True`**。`api_success=False` 的 provider transaction 会被拒绝，且不会写入 cache；provider failure 不能通过 fallback 被伪装成可复用的 live success。
+Provider failure 不能通过 fallback 被缓存为“成功 live prior”。
 
 Forbidden serialization：
 
@@ -96,78 +98,76 @@ Forbidden serialization：
 - authorization headers；
 - secrets；
 - hidden CC4 truth；
-- future reward/test labels。
-
-Raw provider response is not stored by this cache module.
+- future reward/test labels；
+- raw provider response。
 
 ## 5. Runtime semantics
 
 ```text
 lookup
-  valid hit -> return PriorBatch, zero provider calls
-  miss      -> acquire same-key lock
+  valid hit -> return PriorBatch; provider calls unchanged
+  miss      -> same-key lock
              -> re-check
-             -> exactly one logical generator transaction
+             -> one logical provider transaction
              -> validate
              -> atomic temp write + fsync + replace
              -> reload/validate
 ```
 
-This means PPO optimizer epochs only read the cache; they do not repeatedly call the LLM API for an already-seen key.
-
-## 6. Corruption / version / concurrency
-
-### Corrupt JSON or checksum/schema mismatch
+Corrupt JSON/checksum/schema entry：
 
 ```text
-rename to *.corrupt.<time_ns>
-raise PriorCacheCorruptError
+quarantine to *.corrupt.<time_ns>
+no silent reuse
 ```
 
-`get_or_generate()` treats the quarantined corrupt entry as a hard miss and regenerates once under lock.
+Incompatible format version：hard fail；no silent migration。
 
-### Incompatible cache format version
-
-Hard fail with `PriorCacheFormatError`; no silent migration.
-
-### Concurrent same-key writes
-
-Same-key lock file serializes provider generation/write. After lock acquisition the cache is rechecked, so a second process does not intentionally repeat a logical generation after a first valid write has appeared.
-
-## 7. Acceptance
-
-Must pass：
-
-- exact float32 state hash, no quantization；
-- split/model/prompt/generation-config/registry change => different key；
-- hit => generator call count unchanged；
-- miss => one generator call；
-- `api_success=false` => reject and no cache entry；
-- corrupt entry quarantined and not reused；
-- sensitive metadata rejected；
-- atomic write leaves no temp/lock file；
-- entry checksum roundtrip；
-- PriorBatch roundtrip exact；
-- A4/K6/H4/D27/registry provenance in identity。
-
-## 8. Tests
+## 6. Acceptance tests
 
 ```text
 tests/test_prior_cache.py
 ```
 
-7 tests cover：
+7 tests：
 
-1. exact state hashing；
-2. namespace/key isolation including registry/config；
-3. miss-once / hit-zero-call semantics；
+1. exact float32 state hashing/no quantization；
+2. split/model/prompt/config/registry key isolation；
+3. miss once / hit zero-provider-call semantics；
 4. sensitive metadata rejection；
-5. failed provider transaction rejection；
+5. `api_success=false` rejection/no entry；
 6. corrupt quarantine + regeneration；
-7. atomic/checksum/roundtrip/no temp-lock leftovers。
+7. atomic/checksum/PriorBatch roundtrip/no temp-lock leftovers。
 
-## 9. Current close condition
+用户本地与 B2 registry/state-bank tests 联合执行：
 
-B2.5 remains OPEN until local tests pass. No live API calls are required for this cache unit gate.
+```text
+15/15 PASS
+```
 
-After B2.2/B2.3/B2.5 local PASS, next step is provider/model live preflight on a tiny validation subset, then formal prior-quality generation on the frozen 240-state bank.
+其中 cache unit gate 7 tests 全部包含在这次通过结果中。
+
+## 7. Close decision
+
+因此：
+
+```text
+B2.5 cache implementation : PASS
+Key isolation              : PASS
+Failed-provider rejection  : PASS
+Corruption handling        : PASS
+Atomic write               : PASS
+Sensitive serialization    : PASS
+
+FINAL STATUS: PASS / CLOSED
+```
+
+这里的 CLOSED 只表示 cache unit/protocol 本身通过。真正的 provider transaction metadata 会在下一步三模型 live preflight 和 240-state prior generation 中继续集成验证。
+
+Next：
+
+```text
+three-model live capability preflight
+-> verified capability freeze
+-> 240-state multi-LLM prior-quality
+```
