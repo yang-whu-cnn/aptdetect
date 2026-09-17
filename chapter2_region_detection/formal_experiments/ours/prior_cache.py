@@ -22,13 +22,14 @@ from shared.action_contract import N_ACTIONS
 from shared.formal_state import BLUE_AGENTS, FORMAL_STATE_DIM
 
 
-# v2 adds planner-visible public agent identity to the cache key because the
-# formal prompt contains agent_name. v1 entries remain on disk but can never be
-# silently reused by v2 identities.
+# v2 adds public Blue-agent identity to the cache key because the formal prompt
+# contains agent_name. Historical v1 files remain as immutable artifacts and are
+# never silently reused by v2 identities.
 CACHE_FORMAT_VERSION = 2
 STATE_DTYPE = "float32_le"
 STATE_SHAPE = (FORMAL_STATE_DIM,)
 ALLOWED_SPLITS = {"train", "validation", "test"}
+LEGACY_VALIDATION_AGENT_SENTINEL = "legacy_validation_unique_bank"
 SENSITIVE_KEY_FRAGMENTS = ("api_key", "apikey", "authorization", "secret")
 REQUIRED_METADATA_KEYS = {
     "api_success",
@@ -103,6 +104,26 @@ def _finite_nonnegative(value, name: str) -> float:
     return number
 
 
+def _normalize_agent_name(split: str, agent_name: str | None) -> str:
+    split = str(split)
+    if agent_name is None:
+        # Compatibility is intentionally limited to the already-frozen B2
+        # validation state bank. That bank has 240/240 globally unique exact D27
+        # states, so the historical runner cannot collide across agents even
+        # though it did not include agent_name in its v1 identity.
+        if split != "validation":
+            raise ValueError(
+                "agent_name is required for train/test cache identities; "
+                "online PPO must be agent-aware"
+            )
+        return LEGACY_VALIDATION_AGENT_SENTINEL
+
+    value = str(agent_name).strip()
+    if value not in BLUE_AGENTS:
+        raise ValueError(f"cache agent_name must be one of {BLUE_AGENTS}; got {value!r}")
+    return value
+
+
 @dataclass(frozen=True)
 class PriorCacheIdentity:
     split: str
@@ -126,8 +147,12 @@ class PriorCacheIdentity:
             raise ValueError(f"cache split must be one of {sorted(ALLOWED_SPLITS)}")
         _safe_component(self.model_alias, "model_alias")
         _safe_component(self.prompt_version, "prompt_version")
-        if self.agent_name not in BLUE_AGENTS:
-            raise ValueError(f"cache agent_name must be one of {BLUE_AGENTS}; got {self.agent_name!r}")
+        _safe_component(self.agent_name, "agent_name")
+        if self.agent_name == LEGACY_VALIDATION_AGENT_SENTINEL:
+            if self.split != "validation":
+                raise ValueError("legacy unspecified-agent identity is validation-only")
+        elif self.agent_name not in BLUE_AGENTS:
+            raise ValueError(f"cache agent_name must be one of {BLUE_AGENTS}")
         if not str(self.provider).strip() or not str(self.exact_model_id).strip():
             raise ValueError("provider/model ID must be nonempty")
         if int(self.registry_version) <= 0:
@@ -201,22 +226,23 @@ def make_identity(
     registry_version: int,
     registry_sha256: str,
     prompt_version: str,
-    agent_name: str,
     generation_config: Mapping[str, object],
     state,
+    agent_name: str | None = None,
     n_actions: int = N_ACTIONS,
     k_candidates: int = FORMAL_K_CANDIDATES,
     horizon: int = FORMAL_HORIZON,
 ) -> PriorCacheIdentity:
+    split_text = str(split)
     return PriorCacheIdentity(
-        split=str(split),
+        split=split_text,
         model_alias=str(model_alias),
         provider=str(provider),
         exact_model_id=str(exact_model_id),
         registry_version=int(registry_version),
         registry_sha256=str(registry_sha256),
         prompt_version=str(prompt_version),
-        agent_name=str(agent_name),
+        agent_name=_normalize_agent_name(split_text, agent_name),
         n_actions=int(n_actions),
         k_candidates=int(k_candidates),
         horizon=int(horizon),
