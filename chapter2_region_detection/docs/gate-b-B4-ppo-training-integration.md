@@ -1,7 +1,7 @@
 # Gate B4 — PPO Rollout / Trainer Integration
 
 日期：2026-09-17  
-状态：**SOURCE READY / LOCAL TEST PENDING**
+状态：**PASS / CLOSED**
 
 ---
 
@@ -124,6 +124,17 @@ tests/test_gate_b4_ppo_training.py
 11. optimizer has no provider/environment dependency；
 12. explicit real-response-reward field / no predicted-reward field。
 
+### Local acceptance record
+
+用户于 2026-09-17 在 `.venv_cc4` 本地环境执行正式测试并报告：
+
+```text
+Ran 12 tests
+OK
+```
+
+因此本 Gate 的 local-test 条件已满足。
+
 ## 8. PASS
 
 ```text
@@ -136,9 +147,11 @@ finite optimizer update PASS
 no provider/API dependency in optimizer PASS
 ```
 
+结论：**PASS / CLOSED**。
+
 ## 9. After PASS
 
-才实现下一层：
+下一层：
 
 ```text
 one-model tiny CC4 pipeline smoke
@@ -169,4 +182,4 @@ D27 state
 - no test/calibration；
 - finite update。
 
-通过后才允许 provisional PPO <=20k transitions。
+通过 tiny smoke 后才允许进入 provisional PPO；根据 2026-09-17 的设计一致性审计，后续 B0.2 将对三个正式 LLM variant 分别做 train-only provisional probe，而不是用单一模型代表全部三种 policy-induced state distribution。
