@@ -1,21 +1,38 @@
 # Gate B — B1–B3 Formal Prior / Posterior Contract
 
-日期：2026-09-16  
-状态：**PASS / CLOSED**
+日期：2026-09-17  
+状态：**B1/B3 CLOSED；B2 PROVIDER/MODEL AMENDED TO OFOX GPT-5.6 SOL / REGRESSION PENDING**
 
 ---
 
 ## 1. Scope
 
-本子阶段只冻结 Gate B 的 B1–B3：
+本子阶段冻结：
 
 - B1 response reward contract re-audit；
 - B2 four-action LLM prior v2.1；
 - B3 PPO posterior candidate observation。
 
-B4 PPO network / training / checkpoint selection 尚未开始；B5 stability 也尚未开始。
+B4 PPO network/training/checkpoint selection 尚未开始；B5 stability 尚未开始。
 
 legacy `src/llm_prior.py / src/ppo_posterior.py / src/plan_eval.py / src/env_region.py` 不修改、不复用为正式实现。
+
+2026-09-17 对 B2 做窄范围 provider/model amendment：
+
+```text
+Gemini-3.1 direct Google API
+    -> superseded
+OFOX OpenAI-compatible API
++ openai/gpt-5.6-sol
+```
+
+正式修订记录：
+
+```text
+docs/gate-b-B2-ofox-amendment.md
+```
+
+B1/B3 与 B2 的 K/H/A/parser/fallback/posterior contracts 均保持不变。
 
 ## 2. B1 response reward contract
 
@@ -48,31 +65,39 @@ sum(active tick penalties)
 = attack eradication duration
 ```
 
-Gate-B test 使用：
+可执行 test 使用：
 
 ```text
 False->True @1
 True->False @4
 ```
 
-实证：累计 active ticks=3，event `T_erad=4-1=3`。
+累计 active ticks=3，event `T_erad=4-1=3`。
 
 ## 3. B2 LLM prior v2.1
 
-新增：
+正式模块：
 
 ```text
 formal_experiments/ours/llm_prior_v2.py
 configs/lwm_rl_gate_b_v2_1.yaml
 ```
 
-正式继承原论文参数、按当前小论文四动作域适配：
+当前正式 provider/model：
+
+```text
+provider protocol = OFOX OpenAI-compatible
+base_url          = https://api.ofox.ai/v1
+model             = openai/gpt-5.6-sol
+paper model label = GPT-5.6 Sol via OFOX gateway
+API key env       = OFOX_API_KEY
+```
+
+冻结参数保持：
 
 ```text
 K = 6 candidates
 H = 4 high-level decisions
-thesis model label = Gemini-3.1
-current API model ID = gemini-3.1-pro-preview
 generation temperature = 0.2
 ```
 
@@ -139,11 +164,11 @@ hidden-truth-dependent = false
 fallback raw prior score = 0
 ```
 
-它不是 risk heuristic，不读取状态，不偏向某个响应动作；只用于 API/parse 不完整时补齐 K。
+它不是 risk heuristic，不读取状态，不偏向某个响应动作；只用于 API 成功后 semantic parse 不完整时补齐 K。
 
 ## 5. B3 posterior observation
 
-新增：
+正式模块：
 
 ```text
 formal_experiments/ours/posterior_features.py
@@ -155,7 +180,7 @@ PPO action 不是高层 response action，而是：
 candidate plan index ∈ {0,...,5}
 ```
 
-每个 candidate 的正式 posterior feature：
+每个 candidate 正式 feature：
 
 ```text
 current state             27
@@ -176,28 +201,25 @@ candidate feature dim      46
 
 ## 6. Value / uncertainty definitions
 
-直接复用 A4.5c 已验证的 H=4 member-return machinery：
+直接复用 A4.5c 已验证 H=4 member-return machinery：
 
 ```text
-value_i
-= mean_m member_return[i,m]
-
-uncertainty_i
-= population_std_m member_return[i,m]
+value_i = mean_m member_return[i,m]
+uncertainty_i = population_std_m member_return[i,m]
 ```
 
-其中 member return 来自：
+member return 来自：
 
 - exact same v2 absolute WM；
 - exact same shared response reward predictor；
 - fixed-member H=4 mean rollout；
 - duration-aware `gamma_tick=0.99`。
 
-posterior feature builder 强制检查 `expected_return == member_return mean`，防止后续 evaluator 接错。
+posterior builder 强制 `expected_return == member_return mean`。
 
 ## 7. B4 pretrain boundary already recorded
 
-Gate-B config 只提前锁定原论文明确给出的 PPO 参数：
+Gate-B config 只提前锁定：
 
 ```text
 learning_rate = 0.0003
@@ -208,7 +230,7 @@ GAE lambda = 0.95
 entropy coefficient = 0.01
 ```
 
-discount 不沿用旧论文前瞻 `gamma=0.9`；当前正式系统继续使用 Gate A 已冻结的：
+正式系统继续使用：
 
 ```text
 gamma_tick = 0.99
@@ -217,11 +239,11 @@ duration-aware discount = true
 
 train seeds=1000..1031；validation=2000..2007；calibration/test forbidden。
 
-尚未由论文明确给出的 PPO hidden/minibatch/value coefficient/network structure 不在 B1–B3 偷偷冻结，留到 B4 正式实现时单独记录。
+PPO hidden/minibatch/value coefficient/network structure 留到 B4 单独冻结。
 
 ## 8. Legacy audit
 
-legacy formal-use flags 全部 false：
+formal-use flags：
 
 ```text
 src_llm_prior_allowed: false
@@ -229,9 +251,10 @@ src_ppo_posterior_allowed: false
 src_plan_eval_allowed: false
 src_env_region_allowed: false
 old_a5_checkpoint_allowed: false
+gemini_prior_client_formal_allowed: false
 ```
 
-静态 source audit 确认新的 formal prior / posterior source 中没有：
+新的 formal prior/posterior 不得出现：
 
 - control_traffic；
 - monitor/light_evidence/heavy_evidence；
@@ -242,72 +265,47 @@ old_a5_checkpoint_allowed: false
 
 ## 9. Tests
 
-新增：
+`tests/test_gate_b_llm_prior_posterior_contract.py` 仍为 15 tests。
 
-```text
-tests/test_gate_b_llm_prior_posterior_contract.py
-```
+provider/model amendment 后必须重新执行，因为第 1 项 model/provider/config contract 已变化；其余 B1/B3/parser/posterior tests 应保持原语义不变。
 
-共 15 tests：
-
-1. A=4/K=6/H=4/model/temp contract；
-2. prompt four-action + D27 contract；
-3. valid 6-candidate parse / preference normalization；
-4. duplicate highest-score retention；
-5. invalid JSON neutral deterministic fallback；
-6. unknown action / wrong H / bad score rejection；
-7. fallback unique 4^4 formal plan-space sample；
-8. plan categorical one-hot 16D；
-9. value mean + return-std uncertainty；
-10. final candidate feature dim=46；
-11. prior / rollout evidence guard；
-12. B1 active-tick == T_erad executable proof；
-13. no old cost/delay/extra evidence；
-14. legacy module exclusion；
-15. PPO pretrain seed/gamma/thesis-parameter boundary。
-
-## 10. Local Gate
-
-在 `.venv_cc4`、`chapter2_region_detection`：
-
-```bash
-python -m unittest tests.test_gate_b_llm_prior_posterior_contract -v
-```
-
-预期：
+目标：
 
 ```text
 Ran 15 tests
 OK
 ```
 
-通过后 B1–B3 CLOSED，再进入 B4 PPO network / training pipeline。
+## 10. Historical closure and amendment semantics
+
+2026-09-16 原 Gemini 版本曾 15/15 PASS，证明当时的 B1/B3/parser/posterior contract 正确。
+
+2026-09-17 provider/model 改为 OFOX GPT-5.6 Sol 后：
+
+```text
+B1 reward contract           : remains CLOSED
+B3 posterior contract        : remains CLOSED
+B2 A/K/H/parser/fallback     : remains FROZEN
+B2 provider/model            : REOPENED NARROWLY and AMENDED
+B2 amended regression        : PENDING
+B2 live OFOX smoke           : PENDING
+```
+
+因此不能引用旧 Gemini 15/15 作为当前 OFOX model-contract 的最终 closure；必须重跑 amended regression。
 
 ## 11. Current conclusion
 
 ```text
-B1 reward re-audit          : READY
-B1 T_erad equivalence test  : READY
-B2 four-action prior        : READY
-B2 strict parser            : READY
-B2 duplicate/fallback       : READY
-B3 posterior feature        : READY
-B3 value/uncertainty        : READY
+B1 reward re-audit          : PASS / CLOSED
+B2 four-action prior logic  : FROZEN
+B2 provider/model           : OFOX GPT-5.6 Sol AMENDED
+B2 strict parser            : FROZEN
+B2 duplicate/fallback       : FROZEN
+B3 posterior feature        : PASS / CLOSED
+B3 value/uncertainty        : PASS / CLOSED
 Legacy isolation            : READY
-Local execution             : PASS (15/15)
+Amended B1-B3 regression    : PENDING (15)
+B2 OFOX live smoke          : PENDING
 
-FINAL STATUS: PASS / CLOSED
+FINAL STATUS: PROVIDER AMENDMENT APPLIED / REGRESSION + LIVE SMOKE PENDING
 ```
-
-
-## 12. Local closure result
-
-`.venv_cc4` 已执行：
-
-```text
-tests.test_gate_b_llm_prior_posterior_contract
-Ran 15 tests
-OK
-```
-
-因此 B1–B3 正式 CLOSED。下一小 Gate 为 B2-live：只验证真实 Gemini authentication / request / structured output / parser 链路；B4 PPO 尚未开始。
