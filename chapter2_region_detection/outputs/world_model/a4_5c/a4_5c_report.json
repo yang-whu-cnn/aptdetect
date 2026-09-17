@@ -1,0 +1,120 @@
+{
+  "contract": {
+    "state_dim": 27,
+    "n_actions": 4,
+    "reward_model_input": "state + executed/canonical action + next_state",
+    "hidden_reward_inputs": false,
+    "gamma_tick": 0.99,
+    "horizon": 4,
+    "world_model_target_mode": "absolute",
+    "calibration_test_seeds_used": false
+  },
+  "training": {
+    "n_samples": 8952,
+    "final_loss": 0.19815077824251992,
+    "reward_mean": -2.5261394101876675,
+    "reward_std": 4.8944840853098315
+  },
+  "one_step": {
+    "count": 2315,
+    "rmse": 2.249156214352279,
+    "mae": 1.097608404592098,
+    "pearson": 0.886239779718871,
+    "spearman": 0.6965506436918348,
+    "train_mean_baseline_rmse": 4.854819998806681,
+    "train_mean_baseline_mae": 3.2245053998852393,
+    "action_mean_baseline_rmse": 3.7091645916866964,
+    "action_mean_baseline_mae": 1.9670034048495488,
+    "per_action": {
+      "0": {
+        "count": 1641,
+        "rmse": 0.7075192157504133,
+        "mae": 0.42484413989065334
+      },
+      "1": {
+        "count": 212,
+        "rmse": 2.3323803525836215,
+        "mae": 1.7136435570581905
+      },
+      "2": {
+        "count": 230,
+        "rmse": 3.5352070584449944,
+        "mae": 2.5105362524156987
+      },
+      "3": {
+        "count": 232,
+        "rmse": 5.438406495340878,
+        "mae": 3.8925795298198174
+      }
+    }
+  },
+  "oracle_state_h4": {
+    "window_count": 2195,
+    "rmse": 6.911375118767962,
+    "mae": 3.8474151239411114,
+    "pearson": 0.894128968078587,
+    "spearman": 0.7297597318620653,
+    "constant_baseline_rmse": 15.522029956815578
+  },
+  "wm_h4": {
+    "window_count": 2195,
+    "rmse": 7.614861463687745,
+    "mae": 4.599223547211643,
+    "pearson": 0.8711332248421007,
+    "spearman": 0.6752803997187883,
+    "constant_baseline_rmse": 15.522029956815578,
+    "return_uncertainty_true_error_spearman": 0.6087894528092448,
+    "positive_episode_spearman_count": 8,
+    "per_episode": {
+      "2000": {
+        "count": 327,
+        "rmse": 6.653579078094022,
+        "spearman": 0.5696746271911849
+      },
+      "2001": {
+        "count": 289,
+        "rmse": 6.894089095073417,
+        "spearman": 0.4407536536903422
+      },
+      "2002": {
+        "count": 269,
+        "rmse": 6.397694403732051,
+        "spearman": 0.7489498798730668
+      },
+      "2003": {
+        "count": 213,
+        "rmse": 9.964795913101801,
+        "spearman": 0.8596583939999379
+      },
+      "2004": {
+        "count": 315,
+        "rmse": 5.32157769858314,
+        "spearman": 0.32112948649740497
+      },
+      "2005": {
+        "count": 241,
+        "rmse": 8.432949934946258,
+        "spearman": 0.8417353157584042
+      },
+      "2006": {
+        "count": 284,
+        "rmse": 5.192575901443175,
+        "spearman": 0.8558434553922915
+      },
+      "2007": {
+        "count": 257,
+        "rmse": 11.364195571466514,
+        "spearman": 0.5065902955516524
+      }
+    }
+  },
+  "quality_gate": {
+    "one_step_beats_train_mean": true,
+    "wm_h4_beats_constant_return": true,
+    "wm_h4_spearman_gt_0_3": true,
+    "wm_h4_positive_episode_spearman_count": 8,
+    "wm_h4_stable_episode_relation": true,
+    "pass": true
+  },
+  "checkpoint": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\world_model\\a4_5c\\response_reward_predictor.pt"
+}

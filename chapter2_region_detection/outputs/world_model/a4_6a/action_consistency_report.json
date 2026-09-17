@@ -1,0 +1,152 @@
+{
+  "contract": {
+    "state_dim": 27,
+    "n_actions": 4,
+    "any_observable_target_index": 17,
+    "target_threshold": 0.5,
+    "horizon": 4,
+    "gamma_tick": 0.99,
+    "canonical_rule": "no_op->Sleep; targeted + no observable target -> Sleep; otherwise keep requested",
+    "hidden_inputs": false,
+    "calibration_test_seeds_used": false
+  },
+  "train_true_state_mapping": {
+    "count": 9041,
+    "accuracy": 0.9923681008737971,
+    "targeted_count": 6804,
+    "targeted_accuracy": 0.9898589065255732,
+    "feature_one_but_fallback": 69,
+    "feature_zero_but_nonfallback": 0,
+    "nonbinary_feature_count": 0,
+    "per_requested_action": {
+      "0": {
+        "count": 2237,
+        "correct": 2237,
+        "fallback": 0
+      },
+      "1": {
+        "count": 2260,
+        "correct": 2233,
+        "fallback": 1335
+      },
+      "2": {
+        "count": 2276,
+        "correct": 2253,
+        "fallback": 1292
+      },
+      "3": {
+        "count": 2268,
+        "correct": 2249,
+        "fallback": 1250
+      }
+    }
+  },
+  "validation_true_state_mapping": {
+    "count": 2336,
+    "accuracy": 0.990582191780822,
+    "targeted_count": 1759,
+    "targeted_accuracy": 0.9874928936895964,
+    "feature_one_but_fallback": 22,
+    "feature_zero_but_nonfallback": 0,
+    "nonbinary_feature_count": 0,
+    "per_requested_action": {
+      "0": {
+        "count": 577,
+        "correct": 577,
+        "fallback": 0
+      },
+      "1": {
+        "count": 584,
+        "correct": 576,
+        "fallback": 370
+      },
+      "2": {
+        "count": 588,
+        "correct": 581,
+        "fallback": 355
+      },
+      "3": {
+        "count": 587,
+        "correct": 580,
+        "fallback": 339
+      }
+    }
+  },
+  "integrated_requested_plan_h4": {
+    "window_count": 2195,
+    "h4_state_rmse": 0.19956905015580392,
+    "persistence_state_rmse": 0.21874799798998742,
+    "h4_value_rmse": 7.613871373635611,
+    "constant_value_baseline_rmse": 15.522029956815578,
+    "h4_value_pearson": 0.8713245408858132,
+    "h4_value_spearman": 0.6861279515638824,
+    "positive_episode_value_spearman_count": 8,
+    "targeted_member_step_count": 32925,
+    "targeted_member_step_match_rate": 0.9143507972665148,
+    "return_uncertainty_true_error_spearman": 0.6087033389450984,
+    "per_episode": {
+      "2000": {
+        "count": 327,
+        "state_rmse": 0.18165482803892907,
+        "value_rmse": 6.641155772582582,
+        "value_spearman": 0.5679215072968419
+      },
+      "2001": {
+        "count": 289,
+        "state_rmse": 0.18122949189328655,
+        "value_rmse": 6.8882052055324134,
+        "value_spearman": 0.44428634501529163
+      },
+      "2002": {
+        "count": 269,
+        "state_rmse": 0.18227832442888045,
+        "value_rmse": 6.428221562710956,
+        "value_spearman": 0.8074110392879004
+      },
+      "2003": {
+        "count": 213,
+        "state_rmse": 0.20703239917347888,
+        "value_rmse": 9.972518502300384,
+        "value_spearman": 0.8628478979992207
+      },
+      "2004": {
+        "count": 315,
+        "state_rmse": 0.20874720262950525,
+        "value_rmse": 5.3309452087477185,
+        "value_spearman": 0.3236603009293374
+      },
+      "2005": {
+        "count": 241,
+        "state_rmse": 0.2270587684759434,
+        "value_rmse": 8.429137332427757,
+        "value_spearman": 0.8606574748589105
+      },
+      "2006": {
+        "count": 284,
+        "state_rmse": 0.1714219084066371,
+        "value_rmse": 5.181926256610359,
+        "value_spearman": 0.8690274721942292
+      },
+      "2007": {
+        "count": 257,
+        "state_rmse": 0.2381479467816214,
+        "value_rmse": 11.350777393836625,
+        "value_spearman": 0.5248750722660884
+      }
+    }
+  },
+  "quality_gate": {
+    "train_true_state_mapping_exact": false,
+    "validation_true_state_mapping_exact": false,
+    "no_train_feature_one_fallback": false,
+    "no_validation_feature_one_fallback": false,
+    "no_train_feature_zero_nonfallback": true,
+    "no_validation_feature_zero_nonfallback": true,
+    "h4_state_beats_persistence": true,
+    "h4_value_beats_constant": true,
+    "h4_value_spearman_gt_0_3": true,
+    "positive_episode_value_spearman_count": 8,
+    "stable_episode_value_relation": true,
+    "pass": false
+  }
+}

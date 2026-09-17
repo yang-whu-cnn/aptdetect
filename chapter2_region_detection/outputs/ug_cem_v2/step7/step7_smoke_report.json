@@ -1,0 +1,232 @@
+{
+  "status": "PASS",
+  "development_only_local_smoke": {
+    "short": {
+      "profile": "1_episode_x_20_decisions",
+      "development_only": true,
+      "closed_loop_cc4": false,
+      "seeds": [
+        3000
+      ],
+      "episodes": 1,
+      "decisions_per_episode": 20,
+      "total_planner_calls": 20,
+      "action_counts": {
+        "0": 11,
+        "1": 5,
+        "2": 2,
+        "3": 2
+      },
+      "mean_planning_latency_sec": 0.05111913500295486,
+      "max_planning_latency_sec": 0.05474799999501556,
+      "mean_expected_return": -1.3634015023708344,
+      "mean_uncertainty": 0.9733034372329712,
+      "episode_summaries": [
+        {
+          "seed": 3000,
+          "planner_calls": 20,
+          "action_counts": {
+            "0": 11,
+            "1": 5,
+            "2": 2,
+            "3": 2
+          }
+        }
+      ],
+      "pass": true
+    },
+    "long": {
+      "profile": "5_episodes_x_100_decisions",
+      "development_only": true,
+      "closed_loop_cc4": false,
+      "seeds": [
+        3000,
+        3001,
+        3002,
+        3003,
+        3004
+      ],
+      "episodes": 5,
+      "decisions_per_episode": 100,
+      "total_planner_calls": 500,
+      "action_counts": {
+        "0": 125,
+        "1": 133,
+        "2": 105,
+        "3": 137
+      },
+      "mean_planning_latency_sec": 0.04803435899910983,
+      "max_planning_latency_sec": 0.06519110000226647,
+      "mean_expected_return": -2.624802818547934,
+      "mean_uncertainty": 1.0905386304855347,
+      "episode_summaries": [
+        {
+          "seed": 3000,
+          "planner_calls": 100,
+          "action_counts": {
+            "0": 26,
+            "1": 31,
+            "2": 21,
+            "3": 22
+          }
+        },
+        {
+          "seed": 3001,
+          "planner_calls": 100,
+          "action_counts": {
+            "0": 21,
+            "1": 25,
+            "2": 22,
+            "3": 32
+          }
+        },
+        {
+          "seed": 3002,
+          "planner_calls": 100,
+          "action_counts": {
+            "0": 19,
+            "1": 24,
+            "2": 26,
+            "3": 31
+          }
+        },
+        {
+          "seed": 3003,
+          "planner_calls": 100,
+          "action_counts": {
+            "0": 29,
+            "1": 23,
+            "2": 21,
+            "3": 27
+          }
+        },
+        {
+          "seed": 3004,
+          "planner_calls": 100,
+          "action_counts": {
+            "0": 30,
+            "1": 30,
+            "2": 15,
+            "3": 25
+          }
+        }
+      ],
+      "pass": true
+    },
+    "eligible_for_paper_table": false
+  },
+  "official_train_seed_smoke": {
+    "seeds": [
+      1000,
+      1001
+    ],
+    "ticks_per_episode": 50,
+    "episodes": [
+      {
+        "seed": 1000,
+        "scenario_steps": 50,
+        "scenario_ticks": 50,
+        "post_reset_env_steps": 49,
+        "environment_steps_executed": 49,
+        "controller_tick_start": 0,
+        "controller_tick_end": 49,
+        "all_agents_done": true,
+        "total_decisions": 205,
+        "per_agent_decisions": {
+          "blue_agent_0": 33,
+          "blue_agent_1": 37,
+          "blue_agent_2": 49,
+          "blue_agent_3": 49,
+          "blue_agent_4": 37
+        },
+        "requested_action_counts": {
+          "0": 50,
+          "1": 55,
+          "2": 47,
+          "3": 53
+        },
+        "executed_family_counts": {
+          "Sleep": 186,
+          "Analyse": 12,
+          "Remove": 0,
+          "Restore": 7
+        },
+        "fallback_count": 136,
+        "fallback_rate": 0.6634146341463415,
+        "official_reward_by_agent": {
+          "blue_agent_0": -28.0,
+          "blue_agent_1": -28.0,
+          "blue_agent_2": -28.0,
+          "blue_agent_3": -28.0,
+          "blue_agent_4": -28.0
+        },
+        "mean_planning_latency_sec": 0.04491020390201678,
+        "max_planning_latency_sec": 0.05232029996113852,
+        "mean_predicted_return": -5.467808589848077,
+        "mean_uncertainty": 1.145292080320963,
+        "normalizer_finite": {
+          "blue_agent_0": true,
+          "blue_agent_1": true,
+          "blue_agent_2": true,
+          "blue_agent_3": true,
+          "blue_agent_4": true
+        },
+        "pass": true
+      },
+      {
+        "seed": 1001,
+        "scenario_steps": 50,
+        "scenario_ticks": 50,
+        "post_reset_env_steps": 49,
+        "environment_steps_executed": 49,
+        "controller_tick_start": 0,
+        "controller_tick_end": 49,
+        "all_agents_done": true,
+        "total_decisions": 182,
+        "per_agent_decisions": {
+          "blue_agent_0": 41,
+          "blue_agent_1": 31,
+          "blue_agent_2": 41,
+          "blue_agent_3": 41,
+          "blue_agent_4": 28
+        },
+        "requested_action_counts": {
+          "0": 51,
+          "1": 56,
+          "2": 35,
+          "3": 40
+        },
+        "executed_family_counts": {
+          "Sleep": 149,
+          "Analyse": 22,
+          "Remove": 1,
+          "Restore": 10
+        },
+        "fallback_count": 98,
+        "fallback_rate": 0.5384615384615384,
+        "official_reward_by_agent": {
+          "blue_agent_0": -41.0,
+          "blue_agent_1": -41.0,
+          "blue_agent_2": -41.0,
+          "blue_agent_3": -41.0,
+          "blue_agent_4": -41.0
+        },
+        "mean_planning_latency_sec": 0.044744897252562775,
+        "max_planning_latency_sec": 0.04966289998264983,
+        "mean_predicted_return": -7.3599111998151825,
+        "mean_uncertainty": 1.126772070651526,
+        "normalizer_finite": {
+          "blue_agent_0": true,
+          "blue_agent_1": true,
+          "blue_agent_2": true,
+          "blue_agent_3": true,
+          "blue_agent_4": true
+        },
+        "pass": true
+      }
+    ],
+    "eligible_for_paper_table": false,
+    "gate_b_ppo_result": false
+  },
+  "pass": true
+}

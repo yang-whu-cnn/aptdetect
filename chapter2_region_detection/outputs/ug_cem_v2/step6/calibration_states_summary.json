@@ -1,0 +1,44 @@
+{
+  "split": "calibration",
+  "seeds": [
+    3000,
+    3001,
+    3002,
+    3003,
+    3004,
+    3005,
+    3006,
+    3007
+  ],
+  "episode_steps": 100,
+  "pad_spaces": false,
+  "state_dim": 27,
+  "record_fields": [
+    "split",
+    "episode_seed",
+    "agent_name",
+    "decision_index",
+    "global_tick_start",
+    "state"
+  ],
+  "contains_hidden_truth": false,
+  "contains_reward_labels": false,
+  "record_count": 2301,
+  "per_agent_counts": {
+    "blue_agent_0": 436,
+    "blue_agent_1": 484,
+    "blue_agent_2": 507,
+    "blue_agent_3": 554,
+    "blue_agent_4": 320
+  },
+  "per_seed_counts": {
+    "3000": 325,
+    "3001": 261,
+    "3002": 284,
+    "3003": 275,
+    "3004": 293,
+    "3005": 268,
+    "3006": 326,
+    "3007": 269
+  }
+}

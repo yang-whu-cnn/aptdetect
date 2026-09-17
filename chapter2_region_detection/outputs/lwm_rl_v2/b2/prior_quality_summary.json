@@ -1,0 +1,364 @@
+{
+  "phase": "gate_b2_prior_quality",
+  "registry_sha256": "002a73ec959270cd656a9a4eac66cddf5b257c401a8f2855d2e5bce9ed3f256b",
+  "bank_sha256": "b42472e9a20f66b56164d846e8bd41caa2cae54f0e9a6558d7ebebff2c771e17",
+  "state_count": 240,
+  "primary_model_selected": false,
+  "models": [
+    {
+      "tier": "tier_h",
+      "experiment_alias": "llm_h_gpt56_sol",
+      "exact_model_id": "openai/gpt-5.6-sol",
+      "summary": {
+        "expected_states": 240,
+        "completed_states": 240,
+        "failure_count": 0,
+        "api_success_rate": 1.0,
+        "schema_valid_response_rate": 1.0,
+        "semantic_valid_candidate_rate": 1.0,
+        "fallback_candidate_rate": 0.0,
+        "duplicate_candidate_rate": 0.0,
+        "retry_state_rate": 0.0,
+        "cache_hits_this_run": 0,
+        "cache_misses_this_run": 240,
+        "live_api_calls_this_run": 240,
+        "unique_plan_ratio_mean": 1.0,
+        "per_position_action_entropy": [
+          {
+            "position": 0,
+            "counts": [
+              505,
+              761,
+              164,
+              10
+            ],
+            "entropy_nats": 0.986452602840943,
+            "entropy_normalized": 0.7115751390953193
+          },
+          {
+            "position": 1,
+            "counts": [
+              579,
+              552,
+              231,
+              78
+            ],
+            "entropy_nats": 1.1853883677977939,
+            "entropy_normalized": 0.8550769598746699
+          },
+          {
+            "position": 2,
+            "counts": [
+              646,
+              519,
+              203,
+              72
+            ],
+            "entropy_nats": 1.1533877195691464,
+            "entropy_normalized": 0.831993371622319
+          },
+          {
+            "position": 3,
+            "counts": [
+              890,
+              444,
+              99,
+              7
+            ],
+            "entropy_nats": 0.8701265566305153,
+            "entropy_normalized": 0.6276636340983172
+          }
+        ],
+        "global_action_coverage": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "all_no_op_plan_rate": 0.08680555555555555,
+        "all_restore_plan_rate": 0.0,
+        "top_prior_value_mean": -9.100476402354737,
+        "best_of_k_value_mean": -8.511746298211316,
+        "mean_candidate_value_mean": -9.430516078261038,
+        "candidate_value_spread_mean": 2.3615631736194094,
+        "mean_uncertainty_mean": 1.249363096280001,
+        "max_uncertainty_mean": 1.5105199851608018,
+        "prior_value_spearman_mean_finite": 0.06432458798193073,
+        "prior_value_spearman_defined_states": 240,
+        "top_prior_rank_mean": 2.95,
+        "latency_ms_p50": 5107.18634998193,
+        "latency_ms_p95": 42546.0809599724,
+        "prompt_tokens_total": 403274,
+        "completion_tokens_total": 72641,
+        "estimated_cost_usd_total": 4.195599999999999,
+        "pass": true
+      },
+      "pass": true
+    },
+    {
+      "tier": "tier_m",
+      "experiment_alias": "llm_m_gpt54_mini",
+      "exact_model_id": "openai/gpt-5.4-mini",
+      "summary": {
+        "expected_states": 240,
+        "completed_states": 240,
+        "failure_count": 0,
+        "api_success_rate": 1.0,
+        "schema_valid_response_rate": 1.0,
+        "semantic_valid_candidate_rate": 1.0,
+        "fallback_candidate_rate": 0.0,
+        "duplicate_candidate_rate": 0.0,
+        "retry_state_rate": 0.0,
+        "cache_hits_this_run": 0,
+        "cache_misses_this_run": 240,
+        "live_api_calls_this_run": 240,
+        "unique_plan_ratio_mean": 1.0,
+        "per_position_action_entropy": [
+          {
+            "position": 0,
+            "counts": [
+              508,
+              825,
+              59,
+              48
+            ],
+            "entropy_nats": 0.9309621239519931,
+            "entropy_normalized": 0.6715472197404985
+          },
+          {
+            "position": 1,
+            "counts": [
+              542,
+              607,
+              193,
+              98
+            ],
+            "entropy_nats": 1.1841781367910444,
+            "entropy_normalized": 0.8542039627387862
+          },
+          {
+            "position": 2,
+            "counts": [
+              839,
+              293,
+              240,
+              68
+            ],
+            "entropy_nats": 1.0814989323464075,
+            "entropy_normalized": 0.7801365732114354
+          },
+          {
+            "position": 3,
+            "counts": [
+              973,
+              67,
+              139,
+              261
+            ],
+            "entropy_nats": 0.942842961679375,
+            "entropy_normalized": 0.6801174325759487
+          }
+        ],
+        "global_action_coverage": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "all_no_op_plan_rate": 0.05277777777777778,
+        "all_restore_plan_rate": 0.0,
+        "top_prior_value_mean": -9.974312140854696,
+        "best_of_k_value_mean": -8.79361867401749,
+        "mean_candidate_value_mean": -9.976554574341408,
+        "candidate_value_spread_mean": 2.6022744493559005,
+        "mean_uncertainty_mean": 1.308347066790437,
+        "max_uncertainty_mean": 1.5913798730752309,
+        "prior_value_spearman_mean_finite": -0.050331154335480265,
+        "prior_value_spearman_defined_states": 240,
+        "top_prior_rank_mean": 3.370833333333333,
+        "latency_ms_p50": 3426.4837000228,
+        "latency_ms_p95": 8189.487804996277,
+        "prompt_tokens_total": 171505,
+        "completion_tokens_total": 67811,
+        "estimated_cost_usd_total": 0.43377825,
+        "pass": true
+      },
+      "pass": true
+    },
+    {
+      "tier": "tier_l",
+      "experiment_alias": "llm_l_gemini35_flash_lite",
+      "exact_model_id": "google/gemini-3.5-flash-lite",
+      "summary": {
+        "expected_states": 240,
+        "completed_states": 240,
+        "failure_count": 0,
+        "api_success_rate": 1.0,
+        "schema_valid_response_rate": 1.0,
+        "semantic_valid_candidate_rate": 1.0,
+        "fallback_candidate_rate": 0.0,
+        "duplicate_candidate_rate": 0.0,
+        "retry_state_rate": 0.0,
+        "cache_hits_this_run": 0,
+        "cache_misses_this_run": 240,
+        "live_api_calls_this_run": 240,
+        "unique_plan_ratio_mean": 1.0,
+        "per_position_action_entropy": [
+          {
+            "position": 0,
+            "counts": [
+              300,
+              804,
+              231,
+              105
+            ],
+            "entropy_nats": 1.136678335129891,
+            "entropy_normalized": 0.8199400985889085
+          },
+          {
+            "position": 1,
+            "counts": [
+              407,
+              468,
+              378,
+              187
+            ],
+            "entropy_nats": 1.3385946104446251,
+            "entropy_normalized": 0.9655919031245773
+          },
+          {
+            "position": 2,
+            "counts": [
+              730,
+              159,
+              344,
+              207
+            ],
+            "entropy_nats": 1.208556865889924,
+            "entropy_normalized": 0.8717894985258506
+          },
+          {
+            "position": 3,
+            "counts": [
+              940,
+              7,
+              85,
+              408
+            ],
+            "entropy_nats": 0.8286686580213181,
+            "entropy_normalized": 0.597758081733734
+          }
+        ],
+        "global_action_coverage": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "all_no_op_plan_rate": 0.08472222222222223,
+        "all_restore_plan_rate": 0.0,
+        "top_prior_value_mean": -11.15497017831852,
+        "best_of_k_value_mean": -8.685761448430519,
+        "mean_candidate_value_mean": -10.653695714866949,
+        "candidate_value_spread_mean": 3.766182662981252,
+        "mean_uncertainty_mean": 1.3625310872444132,
+        "max_uncertainty_mean": 1.7219226015175892,
+        "prior_value_spearman_mean_finite": -0.1928147931341665,
+        "prior_value_spearman_defined_states": 240,
+        "top_prior_rank_mean": 3.5125,
+        "latency_ms_p50": 2411.3456499762833,
+        "latency_ms_p95": 3829.893689978049,
+        "prompt_tokens_total": 236499,
+        "completion_tokens_total": 86080,
+        "estimated_cost_usd_total": 0.28614969999999995,
+        "pass": true
+      },
+      "pass": true
+    }
+  ],
+  "uniform": {
+    "expected_states": 240,
+    "completed_states": 240,
+    "failure_count": 0,
+    "api_success_rate": null,
+    "schema_valid_response_rate": null,
+    "semantic_valid_candidate_rate": null,
+    "fallback_candidate_rate": null,
+    "duplicate_candidate_rate": null,
+    "retry_state_rate": null,
+    "cache_hits_this_run": null,
+    "cache_misses_this_run": null,
+    "live_api_calls_this_run": 0,
+    "unique_plan_ratio_mean": 1.0,
+    "per_position_action_entropy": [
+      {
+        "position": 0,
+        "counts": [
+          4,
+          2,
+          0,
+          0
+        ],
+        "entropy_nats": 0.6365141682948128,
+        "entropy_normalized": 0.4591479170272447
+      },
+      {
+        "position": 1,
+        "counts": [
+          3,
+          1,
+          2,
+          0
+        ],
+        "entropy_nats": 1.0114042647073518,
+        "entropy_normalized": 0.7295739585136225
+      },
+      {
+        "position": 2,
+        "counts": [
+          1,
+          1,
+          2,
+          2
+        ],
+        "entropy_nats": 1.3296613488547582,
+        "entropy_normalized": 0.9591479170272448
+      },
+      {
+        "position": 3,
+        "counts": [
+          1,
+          1,
+          2,
+          2
+        ],
+        "entropy_nats": 1.3296613488547582,
+        "entropy_normalized": 0.9591479170272448
+      }
+    ],
+    "global_action_coverage": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "all_no_op_plan_rate": 0.0,
+    "all_restore_plan_rate": 0.0,
+    "top_prior_value_mean": -9.72824829351157,
+    "best_of_k_value_mean": -8.222777303494514,
+    "mean_candidate_value_mean": -9.943184711059763,
+    "candidate_value_spread_mean": 3.99618335980922,
+    "mean_uncertainty_mean": 1.3670749276714937,
+    "max_uncertainty_mean": 1.772751455376057,
+    "prior_value_spearman_mean_finite": null,
+    "prior_value_spearman_defined_states": 0,
+    "top_prior_rank_mean": 3.433333333333333,
+    "latency_ms_p50": null,
+    "latency_ms_p95": null,
+    "prompt_tokens_total": null,
+    "completion_tokens_total": null,
+    "estimated_cost_usd_total": 0.0,
+    "pass": true
+  },
+  "pass": true
+}

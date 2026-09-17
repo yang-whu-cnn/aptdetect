@@ -1,0 +1,97 @@
+{
+  "status": "PASS",
+  "pass": true,
+  "coverage_complete": true,
+  "probe_record_count": 1994,
+  "validation_one_step_rmse": 0.13223170196479042,
+  "one_step": {
+    "completed_count": 1975,
+    "incomplete_count": 19,
+    "rmse": 0.13839398400023503,
+    "mae": 0.04722371807920745,
+    "uncertainty_error_spearman": 0.7611556071981961,
+    "bottom_uncertainty_quartile_mean_error": 0.04173842739771161,
+    "top_uncertainty_quartile_mean_error": 0.18110820817611503,
+    "per_action": {
+      "no_op": {
+        "count": 1193,
+        "rmse": 0.13317112042512014,
+        "mae": 0.03769043333620194
+      },
+      "analyse": {
+        "count": 547,
+        "rmse": 0.1459570741209713,
+        "mae": 0.06279869544136478
+      },
+      "remove": {
+        "count": 166,
+        "rmse": 0.11962715958990361,
+        "mae": 0.04857025558070815
+      },
+      "restore": {
+        "count": 69,
+        "rmse": 0.195644104162794,
+        "mae": 0.08534213628292359
+      }
+    },
+    "canonical_action_counts": {
+      "0": 1193,
+      "1": 547,
+      "2": 166,
+      "3": 69
+    }
+  },
+  "h4_diagnostic": {
+    "window_count": 1855,
+    "rmse": 0.18285932719843156,
+    "mae": 0.08645098867146045,
+    "uncertainty_error_spearman": 0.7124678333375382
+  },
+  "ood": {
+    "knn_k": 5,
+    "threshold": 4.085569750152434,
+    "fraction_above_threshold": 0.02357071213640923,
+    "knn_mean": 0.8143384964308616,
+    "knn_p95": 3.4711918267140653,
+    "normalized_z_rms_mean": 1.0119806678286256,
+    "normalized_z_rms_p95": 2.206597827536722
+  },
+  "gate_checks": {
+    "probe_to_validation_rmse_ratio": 1.0466021532195469,
+    "rmse_ratio_ok": true,
+    "uncertainty_error_spearman": 0.7611556071981961,
+    "uncertainty_spearman_positive": true,
+    "bottom_uncertainty_quartile_mean_error": 0.04173842739771161,
+    "top_uncertainty_quartile_mean_error": 0.18110820817611503,
+    "uncertainty_quartile_order_ok": true,
+    "ood_fraction": 0.02357071213640923,
+    "ood_fraction_ok": true,
+    "finite_ok": true
+  },
+  "contract": {
+    "phase": "gate_b0_2_policy_induced_ood",
+    "train_only_probe": true,
+    "knn_k": 5,
+    "validation_percentile": 99.0,
+    "max_ood_fraction": 0.1,
+    "max_probe_validation_rmse_ratio": 1.25,
+    "world_model_target": "absolute",
+    "ensemble_size": 5
+  },
+  "sources": [
+    {
+      "path": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\lwm_rl_v2\\b4\\provisional\\llm_l_gemini35_flash_lite\\probe_transitions.jsonl",
+      "records": 1994
+    }
+  ],
+  "reference": {
+    "train_state_count": 9041,
+    "validation_state_count": 2336,
+    "knn_k": 5,
+    "validation_percentile": 99.0,
+    "threshold": 4.085569750152434,
+    "validation_knn_mean": 0.5412790106285251,
+    "validation_knn_p95": 2.130301064948454
+  },
+  "recommended_next_stage": null
+}

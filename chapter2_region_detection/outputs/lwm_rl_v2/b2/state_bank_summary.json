@@ -1,0 +1,308 @@
+{
+  "agents": [
+    "blue_agent_0",
+    "blue_agent_1",
+    "blue_agent_2",
+    "blue_agent_3",
+    "blue_agent_4"
+  ],
+  "bank_format_version": 1,
+  "bank_sha256": "b42472e9a20f66b56164d846e8bd41caa2cae54f0e9a6558d7ebebff2c771e17",
+  "expected_record_count": 240,
+  "feature17_counts": {
+    "0": 118,
+    "1": 122
+  },
+  "feature17_index": 17,
+  "future_state_fields": false,
+  "hidden_truth_fields": false,
+  "pass": true,
+  "per_agent": {
+    "blue_agent_0": 48,
+    "blue_agent_1": 48,
+    "blue_agent_2": 48,
+    "blue_agent_3": 48,
+    "blue_agent_4": 48
+  },
+  "per_cell": {
+    "2000:blue_agent_0": 6,
+    "2000:blue_agent_1": 6,
+    "2000:blue_agent_2": 6,
+    "2000:blue_agent_3": 6,
+    "2000:blue_agent_4": 6,
+    "2001:blue_agent_0": 6,
+    "2001:blue_agent_1": 6,
+    "2001:blue_agent_2": 6,
+    "2001:blue_agent_3": 6,
+    "2001:blue_agent_4": 6,
+    "2002:blue_agent_0": 6,
+    "2002:blue_agent_1": 6,
+    "2002:blue_agent_2": 6,
+    "2002:blue_agent_3": 6,
+    "2002:blue_agent_4": 6,
+    "2003:blue_agent_0": 6,
+    "2003:blue_agent_1": 6,
+    "2003:blue_agent_2": 6,
+    "2003:blue_agent_3": 6,
+    "2003:blue_agent_4": 6,
+    "2004:blue_agent_0": 6,
+    "2004:blue_agent_1": 6,
+    "2004:blue_agent_2": 6,
+    "2004:blue_agent_3": 6,
+    "2004:blue_agent_4": 6,
+    "2005:blue_agent_0": 6,
+    "2005:blue_agent_1": 6,
+    "2005:blue_agent_2": 6,
+    "2005:blue_agent_3": 6,
+    "2005:blue_agent_4": 6,
+    "2006:blue_agent_0": 6,
+    "2006:blue_agent_1": 6,
+    "2006:blue_agent_2": 6,
+    "2006:blue_agent_3": 6,
+    "2006:blue_agent_4": 6,
+    "2007:blue_agent_0": 6,
+    "2007:blue_agent_1": 6,
+    "2007:blue_agent_2": 6,
+    "2007:blue_agent_3": 6,
+    "2007:blue_agent_4": 6
+  },
+  "per_seed": {
+    "2000": 30,
+    "2001": 30,
+    "2002": 30,
+    "2003": 30,
+    "2004": 30,
+    "2005": 30,
+    "2006": 30,
+    "2007": 30
+  },
+  "record_count": 240,
+  "reward_fields": false,
+  "selection_config": {
+    "agents": [
+      "blue_agent_0",
+      "blue_agent_1",
+      "blue_agent_2",
+      "blue_agent_3",
+      "blue_agent_4"
+    ],
+    "algorithm": "seed_agent_6_exact_d27_unique_feature17_stratified_v1",
+    "complete_transitions_only": true,
+    "exact_state_dedupe": true,
+    "feature17_index": 17,
+    "format_version": 1,
+    "hidden_truth_selection": false,
+    "reward_based_selection": false,
+    "source_replay": "outputs/formal_replay_v2/validation.jsonl",
+    "split": "validation",
+    "state_dim": 27,
+    "state_dtype": "float32_le",
+    "states_per_seed_agent_cell": 6,
+    "validation_seeds": [
+      2000,
+      2001,
+      2002,
+      2003,
+      2004,
+      2005,
+      2006,
+      2007
+    ]
+  },
+  "selection_config_sha256": "00698b76e1adeeec9bba9eb3148bea1319052584a47ae8e4771792d6f10f4117",
+  "source_feature17_coverage": {
+    "2000": {
+      "blue_agent_0": [
+        0,
+        1
+      ],
+      "blue_agent_1": [
+        0,
+        1
+      ],
+      "blue_agent_2": [
+        0,
+        1
+      ],
+      "blue_agent_3": [
+        0,
+        1
+      ],
+      "blue_agent_4": [
+        0,
+        1
+      ]
+    },
+    "2001": {
+      "blue_agent_0": [
+        0,
+        1
+      ],
+      "blue_agent_1": [
+        0,
+        1
+      ],
+      "blue_agent_2": [
+        0,
+        1
+      ],
+      "blue_agent_3": [
+        0,
+        1
+      ],
+      "blue_agent_4": [
+        0,
+        1
+      ]
+    },
+    "2002": {
+      "blue_agent_0": [
+        0,
+        1
+      ],
+      "blue_agent_1": [
+        0,
+        1
+      ],
+      "blue_agent_2": [
+        0,
+        1
+      ],
+      "blue_agent_3": [
+        0,
+        1
+      ],
+      "blue_agent_4": [
+        0,
+        1
+      ]
+    },
+    "2003": {
+      "blue_agent_0": [
+        0,
+        1
+      ],
+      "blue_agent_1": [
+        0,
+        1
+      ],
+      "blue_agent_2": [
+        0,
+        1
+      ],
+      "blue_agent_3": [
+        0,
+        1
+      ],
+      "blue_agent_4": [
+        0,
+        1
+      ]
+    },
+    "2004": {
+      "blue_agent_0": [
+        0,
+        1
+      ],
+      "blue_agent_1": [
+        0,
+        1
+      ],
+      "blue_agent_2": [
+        0,
+        1
+      ],
+      "blue_agent_3": [
+        0,
+        1
+      ],
+      "blue_agent_4": [
+        0,
+        1
+      ]
+    },
+    "2005": {
+      "blue_agent_0": [
+        0,
+        1
+      ],
+      "blue_agent_1": [
+        0,
+        1
+      ],
+      "blue_agent_2": [
+        0,
+        1
+      ],
+      "blue_agent_3": [
+        0,
+        1
+      ],
+      "blue_agent_4": [
+        0,
+        1
+      ]
+    },
+    "2006": {
+      "blue_agent_0": [
+        0,
+        1
+      ],
+      "blue_agent_1": [
+        0,
+        1
+      ],
+      "blue_agent_2": [
+        0,
+        1
+      ],
+      "blue_agent_3": [
+        0,
+        1
+      ],
+      "blue_agent_4": [
+        0,
+        1
+      ]
+    },
+    "2007": {
+      "blue_agent_0": [
+        0,
+        1
+      ],
+      "blue_agent_1": [
+        0,
+        1
+      ],
+      "blue_agent_2": [
+        0,
+        1
+      ],
+      "blue_agent_3": [
+        0,
+        1
+      ],
+      "blue_agent_4": [
+        0,
+        1
+      ]
+    }
+  },
+  "source_replay": "outputs/formal_replay_v2/validation.jsonl",
+  "source_seeds": [
+    2000,
+    2001,
+    2002,
+    2003,
+    2004,
+    2005,
+    2006,
+    2007
+  ],
+  "split": "validation",
+  "state_dim": 27,
+  "state_dtype": "float32_le",
+  "states_per_seed_agent_cell": 6,
+  "status": "PASS",
+  "unique_exact_state_count": 240
+}

@@ -1,0 +1,30 @@
+{
+  "feature17_counts": {
+    "0": 15,
+    "1": 15
+  },
+  "format_version": 1,
+  "pass": true,
+  "per_agent": {
+    "blue_agent_0": 6,
+    "blue_agent_1": 6,
+    "blue_agent_2": 6,
+    "blue_agent_3": 6,
+    "blue_agent_4": 6
+  },
+  "per_seed": {
+    "2000": 4,
+    "2001": 4,
+    "2002": 4,
+    "2003": 4,
+    "2004": 4,
+    "2005": 4,
+    "2006": 3,
+    "2007": 3
+  },
+  "record_count": 30,
+  "selection_algorithm": "position_mod_agent_seed_feature17_v1",
+  "source_bank_sha256": "b42472e9a20f66b56164d846e8bd41caa2cae54f0e9a6558d7ebebff2c771e17",
+  "subset_sha256": "be063e3de7b19eee6da7728ce3b2365b10d73806112128d9be048014ad58ae49",
+  "unique_exact_state_count": 30
+}

@@ -1,0 +1,649 @@
+{
+  "contract": {
+    "state_dim": 27,
+    "ensemble_size": 5,
+    "hidden_dim": 128,
+    "epochs": 50,
+    "target_modes": [
+      "absolute",
+      "delta"
+    ],
+    "rollout_horizons": [
+      2,
+      4
+    ],
+    "selection_primary": "held-out H4 final-state RMSE",
+    "calibration_test_seeds_used": false
+  },
+  "train_replay_count": 9041,
+  "validation_replay_count": 2336,
+  "modes": {
+    "absolute": {
+      "target_mode": "absolute",
+      "checkpoint": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\world_model\\a4_5b\\world_model_absolute.pt",
+      "training": {
+        "n_samples": 8952,
+        "member_final_losses": [
+          -2.15367260660444,
+          -2.169004842213222,
+          -2.1574316910334996,
+          -2.1801734719957624,
+          -2.111938170024327
+        ],
+        "bootstrap_unique_fractions": [
+          0.631478999106345,
+          0.6310321715817694,
+          0.6340482573726541,
+          0.6341599642537981,
+          0.6331546023235032
+        ]
+      },
+      "one_step": {
+        "count": 2315,
+        "rmse": 0.13258083085314015,
+        "mae": 0.041528703025366556,
+        "mixture_gaussian_nll_per_dim": -3.1264555959158233,
+        "persistence_rmse": 0.18065321618238353,
+        "persistence_mae": 0.040608976806936606,
+        "epistemic_error_spearman": 0.7025942711945805,
+        "per_feature": {
+          "agent_blue_0": {
+            "rmse": 0.013054611161351204,
+            "mae": 0.004183297976851463
+          },
+          "agent_blue_1": {
+            "rmse": 0.012783223763108253,
+            "mae": 0.003926186356693506
+          },
+          "agent_blue_2": {
+            "rmse": 0.013419765047729015,
+            "mae": 0.004063446074724197
+          },
+          "agent_blue_3": {
+            "rmse": 0.012827887199819088,
+            "mae": 0.004033772274851799
+          },
+          "agent_blue_4": {
+            "rmse": 0.011181693524122238,
+            "mae": 0.004557534120976925
+          },
+          "global_tick_fraction": {
+            "rmse": 0.012485559098422527,
+            "mae": 0.006161937955766916
+          },
+          "inventory_size": {
+            "rmse": 0.0026591764762997627,
+            "mae": 0.0019298635888844728
+          },
+          "suspicious_host_fraction": {
+            "rmse": 0.040022533386945724,
+            "mae": 0.021295782178640366
+          },
+          "current_evidence_host_fraction": {
+            "rmse": 0.040538664907217026,
+            "mae": 0.019203007221221924
+          },
+          "process_evidence_host_fraction": {
+            "rmse": 0.04000061750411987,
+            "mae": 0.0211616363376379
+          },
+          "connection_evidence_host_fraction": {
+            "rmse": 0.0406666062772274,
+            "mae": 0.02038085088133812
+          },
+          "file_evidence_host_fraction": {
+            "rmse": 0.02154477685689926,
+            "mae": 0.005844832863658667
+          },
+          "current_process_event_density": {
+            "rmse": 0.06947705894708633,
+            "mae": 0.02818305976688862
+          },
+          "current_connection_event_density": {
+            "rmse": 0.06769324839115143,
+            "mae": 0.027812346816062927
+          },
+          "current_file_event_density": {
+            "rmse": 0.01833479478955269,
+            "mae": 0.0031240538228303194
+          },
+          "max_host_score": {
+            "rmse": 0.1871059238910675,
+            "mae": 0.08309230953454971
+          },
+          "mean_positive_host_score": {
+            "rmse": 0.1854020655155182,
+            "mae": 0.08330610394477844
+          },
+          "any_observable_target": {
+            "rmse": 0.22599594295024872,
+            "mae": 0.09599117934703827
+          },
+          "top_host_has_process": {
+            "rmse": 0.2261715829372406,
+            "mae": 0.09580720216035843
+          },
+          "top_host_has_connection": {
+            "rmse": 0.2271779626607895,
+            "mae": 0.0945471003651619
+          },
+          "top_host_has_file": {
+            "rmse": 0.22264717519283295,
+            "mae": 0.06590348482131958
+          },
+          "top_host_observation_hits": {
+            "rmse": 0.11766628175973892,
+            "mae": 0.06410890817642212
+          },
+          "top_host_recency": {
+            "rmse": 0.25996649265289307,
+            "mae": 0.15233449637889862
+          },
+          "success_false": {
+            "rmse": 2.4104134244140596e-09,
+            "mae": 1.5551784304790317e-09
+          },
+          "success_true": {
+            "rmse": 0.22682559490203857,
+            "mae": 0.10519152879714966
+          },
+          "success_unknown": {
+            "rmse": 0.22638919949531555,
+            "mae": 0.10513114184141159
+          },
+          "success_in_progress": {
+            "rmse": 1.947006778024729e-09,
+            "mae": 1.303269159258491e-09
+          }
+        },
+        "per_executed_action": {
+          "Analyse": {
+            "count": 212,
+            "rmse": 0.13459412662361495,
+            "mae": 0.04940647949989527
+          },
+          "Remove": {
+            "count": 230,
+            "rmse": 0.11467849858786042,
+            "mae": 0.046249710745452276
+          },
+          "Restore": {
+            "count": 232,
+            "rmse": 0.1943910663743649,
+            "mae": 0.08019471417163072
+          },
+          "Sleep": {
+            "count": 1641,
+            "rmse": 0.12357724812138085,
+            "mae": 0.034382795058180024
+          }
+        },
+        "per_agent": {
+          "blue_agent_0": {
+            "count": 477,
+            "rmse": 0.1378528108765668,
+            "mae": 0.04577485883507607
+          },
+          "blue_agent_1": {
+            "count": 481,
+            "rmse": 0.12532324010886728,
+            "mae": 0.03827522321899836
+          },
+          "blue_agent_2": {
+            "count": 503,
+            "rmse": 0.13059829522364402,
+            "mae": 0.03881829532525719
+          },
+          "blue_agent_3": {
+            "count": 530,
+            "rmse": 0.12374394227234953,
+            "mae": 0.03714497106155022
+          },
+          "blue_agent_4": {
+            "count": 324,
+            "rmse": 0.15090644317391907,
+            "mae": 0.051486173641444734
+          }
+        }
+      },
+      "rollout_h2": {
+        "horizon": 2,
+        "window_count": 2275,
+        "rmse": 0.16250641527948712,
+        "mae": 0.06207965370533325,
+        "persistence_rmse": 0.21453423042661243,
+        "persistence_mae": 0.05742213610837166,
+        "epistemic_error_spearman": 0.7769661937826249,
+        "per_episode_rmse": {
+          "2000": 0.14623901955232516,
+          "2001": 0.13888900944446111,
+          "2002": 0.15021820834324817,
+          "2003": 0.17983089043285347,
+          "2004": 0.16402843947774626,
+          "2005": 0.1840815368846185,
+          "2006": 0.14876365943175737,
+          "2007": 0.19198100684812133
+        },
+        "per_episode_epistemic_error_spearman": {
+          "2000": 0.7677875365903213,
+          "2001": 0.8347471437229242,
+          "2002": 0.8124015073655362,
+          "2003": 0.6084132659244766,
+          "2004": 0.8365497352000419,
+          "2005": 0.664592676911402,
+          "2006": 0.8688210912293418,
+          "2007": 0.6684958245017205
+        },
+        "positive_episode_spearman_count": 8,
+        "high_error_threshold": 0.16897577674964664,
+        "high_error_auroc": 0.8155553541001778,
+        "uncertainty_quantiles": [
+          {
+            "bin": 1,
+            "count": 569,
+            "mean_uncertainty": 0.0063935717467958455,
+            "mean_error": 0.06411291860894044
+          },
+          {
+            "bin": 2,
+            "count": 569,
+            "mean_uncertainty": 0.007934136262985178,
+            "mean_error": 0.06826548221781222
+          },
+          {
+            "bin": 3,
+            "count": 569,
+            "mean_uncertainty": 0.013013498749590506,
+            "mean_error": 0.11551991019165701
+          },
+          {
+            "bin": 4,
+            "count": 568,
+            "mean_uncertainty": 0.020369917593738983,
+            "mean_error": 0.2129457676561385
+          }
+        ]
+      },
+      "rollout_h4": {
+        "horizon": 4,
+        "window_count": 2195,
+        "rmse": 0.19124072940924156,
+        "mae": 0.08878805115388134,
+        "persistence_rmse": 0.21874799798998742,
+        "persistence_mae": 0.06299664550385052,
+        "epistemic_error_spearman": 0.6955114700871142,
+        "per_episode_rmse": {
+          "2000": 0.1743301119281809,
+          "2001": 0.17318627720621807,
+          "2002": 0.17491128453800278,
+          "2003": 0.2019222412641961,
+          "2004": 0.20071468732887185,
+          "2005": 0.21795008028340093,
+          "2006": 0.16319980475187593,
+          "2007": 0.2253843010848367
+        },
+        "per_episode_epistemic_error_spearman": {
+          "2000": 0.7616168369146966,
+          "2001": 0.8209536451497436,
+          "2002": 0.6879672270617173,
+          "2003": 0.55951952235366,
+          "2004": 0.7314862379685406,
+          "2005": 0.5586211035286857,
+          "2006": 0.7366550801928925,
+          "2007": 0.574050849470636
+        },
+        "positive_episode_spearman_count": 8,
+        "high_error_threshold": 0.19845140702384167,
+        "high_error_auroc": 0.7741076783813273,
+        "uncertainty_quantiles": [
+          {
+            "bin": 1,
+            "count": 549,
+            "mean_uncertainty": 0.012673481362439244,
+            "mean_error": 0.08256199441863048
+          },
+          {
+            "bin": 2,
+            "count": 549,
+            "mean_uncertainty": 0.01686883564760233,
+            "mean_error": 0.12041208191437189
+          },
+          {
+            "bin": 3,
+            "count": 549,
+            "mean_uncertainty": 0.021184056406952645,
+            "mean_error": 0.16497629742371422
+          },
+          {
+            "bin": 4,
+            "count": 548,
+            "mean_uncertainty": 0.029991920581971206,
+            "mean_error": 0.2392329313890317
+          }
+        ]
+      }
+    },
+    "delta": {
+      "target_mode": "delta",
+      "checkpoint": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\world_model\\a4_5b\\world_model_delta.pt",
+      "training": {
+        "n_samples": 8952,
+        "member_final_losses": [
+          -2.525107969556536,
+          -2.510978589739118,
+          -2.5177716663905554,
+          -2.5389353139059883,
+          -2.547062723977225
+        ],
+        "bootstrap_unique_fractions": [
+          0.631478999106345,
+          0.6310321715817694,
+          0.6340482573726541,
+          0.6341599642537981,
+          0.6331546023235032
+        ]
+      },
+      "one_step": {
+        "count": 2315,
+        "rmse": 0.12858561321299558,
+        "mae": 0.038143575652409924,
+        "mixture_gaussian_nll_per_dim": -3.44651209229739,
+        "persistence_rmse": 0.18065321618238353,
+        "persistence_mae": 0.040608976806936606,
+        "epistemic_error_spearman": 0.6695770608338597,
+        "per_feature": {
+          "agent_blue_0": {
+            "rmse": 0.0006084628403186798,
+            "mae": 0.0003217172634322196
+          },
+          "agent_blue_1": {
+            "rmse": 0.0006599411717616022,
+            "mae": 0.00045177649008110166
+          },
+          "agent_blue_2": {
+            "rmse": 0.0007970657316036522,
+            "mae": 0.0006304963026195765
+          },
+          "agent_blue_3": {
+            "rmse": 0.0006969327223487198,
+            "mae": 0.0005037424270994961
+          },
+          "agent_blue_4": {
+            "rmse": 0.0006173867732286453,
+            "mae": 0.00035385278169997036
+          },
+          "global_tick_fraction": {
+            "rmse": 0.0006065921043045819,
+            "mae": 0.00028889652458019555
+          },
+          "inventory_size": {
+            "rmse": 4.491386061999947e-05,
+            "mae": 2.5169612854369916e-05
+          },
+          "suspicious_host_fraction": {
+            "rmse": 0.04027193784713745,
+            "mae": 0.020832540467381477
+          },
+          "current_evidence_host_fraction": {
+            "rmse": 0.04437476769089699,
+            "mae": 0.020387860015034676
+          },
+          "process_evidence_host_fraction": {
+            "rmse": 0.04027591645717621,
+            "mae": 0.020701510831713676
+          },
+          "connection_evidence_host_fraction": {
+            "rmse": 0.040264859795570374,
+            "mae": 0.020627127960324287
+          },
+          "file_evidence_host_fraction": {
+            "rmse": 0.01865358278155327,
+            "mae": 0.004388582427054644
+          },
+          "current_process_event_density": {
+            "rmse": 0.08188209682703018,
+            "mae": 0.03249229118227959
+          },
+          "current_connection_event_density": {
+            "rmse": 0.07919121533632278,
+            "mae": 0.031773000955581665
+          },
+          "current_file_event_density": {
+            "rmse": 0.025110891088843346,
+            "mae": 0.005697476211935282
+          },
+          "max_host_score": {
+            "rmse": 0.18604107201099396,
+            "mae": 0.07596031576395035
+          },
+          "mean_positive_host_score": {
+            "rmse": 0.18617576360702515,
+            "mae": 0.07489271461963654
+          },
+          "any_observable_target": {
+            "rmse": 0.2287057340145111,
+            "mae": 0.08847197145223618
+          },
+          "top_host_has_process": {
+            "rmse": 0.22937744855880737,
+            "mae": 0.08698354661464691
+          },
+          "top_host_has_connection": {
+            "rmse": 0.22858484089374542,
+            "mae": 0.08741375058889389
+          },
+          "top_host_has_file": {
+            "rmse": 0.22307461500167847,
+            "mae": 0.06059501692652702
+          },
+          "top_host_observation_hits": {
+            "rmse": 0.11765749752521515,
+            "mae": 0.0581074059009552
+          },
+          "top_host_recency": {
+            "rmse": 0.2695310711860657,
+            "mae": 0.1560816913843155
+          },
+          "success_false": {
+            "rmse": 1.868824206496811e-09,
+            "mae": 1.2684342465263398e-09
+          },
+          "success_true": {
+            "rmse": 0.17864583432674408,
+            "mae": 0.09201092272996902
+          },
+          "success_unknown": {
+            "rmse": 0.17613087594509125,
+            "mae": 0.08988315612077713
+          },
+          "success_in_progress": {
+            "rmse": 1.874865596107611e-09,
+            "mae": 1.3724911207546597e-09
+          }
+        },
+        "per_executed_action": {
+          "Analyse": {
+            "count": 212,
+            "rmse": 0.13598890362278243,
+            "mae": 0.044957330133489674
+          },
+          "Remove": {
+            "count": 230,
+            "rmse": 0.10289635548543971,
+            "mae": 0.0404556480699533
+          },
+          "Restore": {
+            "count": 232,
+            "rmse": 0.22517763848811923,
+            "mae": 0.08977878271887837
+          },
+          "Sleep": {
+            "count": 1641,
+            "rmse": 0.1108319461455059,
+            "mae": 0.029639212065911115
+          }
+        },
+        "per_agent": {
+          "blue_agent_0": {
+            "count": 477,
+            "rmse": 0.13077198178287586,
+            "mae": 0.04039481794264069
+          },
+          "blue_agent_1": {
+            "count": 481,
+            "rmse": 0.12284337049261405,
+            "mae": 0.03619405065683652
+          },
+          "blue_agent_2": {
+            "count": 503,
+            "rmse": 0.12920131444452623,
+            "mae": 0.036497569198202066
+          },
+          "blue_agent_3": {
+            "count": 530,
+            "rmse": 0.12414950375736372,
+            "mae": 0.03501287561635277
+          },
+          "blue_agent_4": {
+            "count": 324,
+            "rmse": 0.13939294569411328,
+            "mae": 0.045400030022803704
+          }
+        }
+      },
+      "rollout_h2": {
+        "horizon": 2,
+        "window_count": 2275,
+        "rmse": 0.16396999492388217,
+        "mae": 0.058879319781132915,
+        "persistence_rmse": 0.21453423042661243,
+        "persistence_mae": 0.05742213610837166,
+        "epistemic_error_spearman": 0.6317024517569452,
+        "per_episode_rmse": {
+          "2000": 0.14913047566637977,
+          "2001": 0.14134902056647058,
+          "2002": 0.14391943646649483,
+          "2003": 0.18416607635210744,
+          "2004": 0.16386636956432193,
+          "2005": 0.1890675280774295,
+          "2006": 0.1509379785238247,
+          "2007": 0.19311713260942673
+        },
+        "per_episode_epistemic_error_spearman": {
+          "2000": 0.4762981255220469,
+          "2001": 0.7342304325379903,
+          "2002": 0.6643277083402404,
+          "2003": 0.552015340131932,
+          "2004": 0.5670211315610089,
+          "2005": 0.6193534433693796,
+          "2006": 0.799949708581298,
+          "2007": 0.4369539478412617
+        },
+        "positive_episode_spearman_count": 8,
+        "high_error_threshold": 0.13140990330867725,
+        "high_error_auroc": 0.8080989869312691,
+        "uncertainty_quantiles": [
+          {
+            "bin": 1,
+            "count": 569,
+            "mean_uncertainty": 0.0056506023171025545,
+            "mean_error": 0.07146047993499727
+          },
+          {
+            "bin": 2,
+            "count": 569,
+            "mean_uncertainty": 0.00743346260320428,
+            "mean_error": 0.06663696312840582
+          },
+          {
+            "bin": 3,
+            "count": 569,
+            "mean_uncertainty": 0.011373790987621606,
+            "mean_error": 0.13999461538900257
+          },
+          {
+            "bin": 4,
+            "count": 568,
+            "mean_uncertainty": 0.020402198990242898,
+            "mean_error": 0.18336184096622204
+          }
+        ]
+      },
+      "rollout_h4": {
+        "horizon": 4,
+        "window_count": 2195,
+        "rmse": 0.1937741815429737,
+        "mae": 0.08444602118442712,
+        "persistence_rmse": 0.21874799798998742,
+        "persistence_mae": 0.06299664550385052,
+        "epistemic_error_spearman": 0.5675603057638947,
+        "per_episode_rmse": {
+          "2000": 0.17848512694012142,
+          "2001": 0.17720100869159722,
+          "2002": 0.1671310623580639,
+          "2003": 0.21101195954057436,
+          "2004": 0.20177258203356588,
+          "2005": 0.22160077210198495,
+          "2006": 0.16706731118837476,
+          "2007": 0.2278558918439822
+        },
+        "per_episode_epistemic_error_spearman": {
+          "2000": 0.4316353832193694,
+          "2001": 0.6255419003301118,
+          "2002": 0.6022452791803066,
+          "2003": 0.5201693319855653,
+          "2004": 0.5623443636908122,
+          "2005": 0.43975258050135463,
+          "2006": 0.7145552129964088,
+          "2007": 0.3942042858112388
+        },
+        "positive_episode_spearman_count": 8,
+        "high_error_threshold": 0.19038303483482444,
+        "high_error_auroc": 0.7275162838874171,
+        "uncertainty_quantiles": [
+          {
+            "bin": 1,
+            "count": 549,
+            "mean_uncertainty": 0.014011319114305825,
+            "mean_error": 0.10112468814238877
+          },
+          {
+            "bin": 2,
+            "count": 549,
+            "mean_uncertainty": 0.01703769910761676,
+            "mean_error": 0.11983687199681214
+          },
+          {
+            "bin": 3,
+            "count": 549,
+            "mean_uncertainty": 0.02001214228936883,
+            "mean_error": 0.17543402806275177
+          },
+          {
+            "bin": 4,
+            "count": 548,
+            "mean_uncertainty": 0.028556939564563715,
+            "mean_error": 0.21716335943515105
+          }
+        ]
+      }
+    }
+  },
+  "selection": {
+    "selected_target_mode": "absolute",
+    "absolute_h4_rmse": 0.19124072940924156,
+    "delta_h4_rmse": 0.1937741815429737,
+    "delta_relative_h4_improvement": -0.013247450695038653,
+    "delta_episode_h4_wins": 1,
+    "common_validation_episode_count": 8,
+    "rule": "delta requires >=2% aggregate H4 improvement and >=6/8 episode wins"
+  },
+  "quality_gate": {
+    "one_step_beats_persistence": true,
+    "h4_beats_persistence": true,
+    "h4_aggregate_spearman_positive": true,
+    "h4_positive_episode_spearman_count": 8,
+    "h4_stable_positive_spearman": true,
+    "pass": true
+  }
+}
