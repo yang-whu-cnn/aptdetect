@@ -20,6 +20,7 @@ from formal_experiments.evaluation.run_b4_tiny_pipeline_smoke import (
     validate_completed_alignment,
 )
 from formal_experiments.ours.ppo_training import RolloutStep
+from formal_experiments.ours.prior_cache import CACHE_FORMAT_VERSION
 
 
 class _FakeEvaluator:
@@ -147,6 +148,34 @@ def _audit(*, requested=1, candidate=2):
     )
 
 
+def _valid_report():
+    return {
+        "cache_format_version": CACHE_FORMAT_VERSION,
+        "agent_aware_cache_identity": True,
+        "transition_count": 10,
+        "ppo_step_count": 10,
+        "per_agent_transitions": {f"blue_agent_{i}": 2 for i in range(5)},
+        "plan0_match_count": 10,
+        "alignment_count": 10,
+        "cache_misses_before_update": 4,
+        "cache_misses_after_update": 4,
+        "live_transactions_before_update": 4,
+        "live_transactions_after_update": 4,
+        "policy_parameters_changed": True,
+        "all_agents_done": True,
+        "primary_model_selected_is_false": True,
+        "update_metrics": {
+            "policy_loss_mean": 0.1,
+            "value_loss_mean": 1.0,
+            "entropy_mean": 1.5,
+            "approx_kl_mean": 0.01,
+            "clip_fraction_mean": 0.0,
+            "grad_norm_mean": 0.5,
+            "grad_norm_max": 1.0,
+        },
+    }
+
+
 class TestGateB4TinyPipelineSmoke(unittest.TestCase):
     def test_default_smoke_is_train_only_low_cost_engineering_model(self):
         self.assertEqual(DEFAULT_TRAIN_SEED, 1000)
@@ -226,7 +255,7 @@ class TestGateB4TinyPipelineSmoke(unittest.TestCase):
         changed[0] += 1.0
         self.assertFalse(_context_matches_state(fake, changed))
 
-    def test_candidate_context_builder_uses_train_cache_and_hits_second_time(self):
+    def test_candidate_context_builder_uses_agent_aware_train_cache_and_hits_second_time(self):
         fake_client = _FakeClient()
         with tempfile.TemporaryDirectory() as tmp:
             builder = CandidateContextBuilder(
@@ -251,60 +280,48 @@ class TestGateB4TinyPipelineSmoke(unittest.TestCase):
             self.assertEqual(len(paths), 1)
             self.assertIn("train", paths[0].parts)
             self.assertIn(DEFAULT_MODEL_ALIAS, paths[0].parts)
+            self.assertIn("blue_agent_0", paths[0].parts)
 
-    def test_report_gate_requires_alignment_no_optimizer_api_and_all_agents(self):
-        report = {
-            "transition_count": 10,
-            "ppo_step_count": 10,
-            "per_agent_transitions": {f"blue_agent_{i}": 2 for i in range(5)},
-            "plan0_match_count": 10,
-            "alignment_count": 10,
-            "cache_misses_before_update": 4,
-            "cache_misses_after_update": 4,
-            "live_transactions_before_update": 4,
-            "live_transactions_after_update": 4,
-            "policy_parameters_changed": True,
-            "all_agents_done": True,
-            "primary_model_selected_is_false": True,
-            "update_metrics": {
-                "policy_loss_mean": 0.1,
-                "value_loss_mean": 1.0,
-                "entropy_mean": 1.5,
-                "approx_kl_mean": 0.01,
-                "clip_fraction_mean": 0.0,
-                "grad_norm_mean": 0.5,
-                "grad_norm_max": 1.0,
-            },
-        }
+    def test_same_d27_different_agent_forces_second_provider_transaction(self):
+        fake_client = _FakeClient()
+        with tempfile.TemporaryDirectory() as tmp:
+            builder = CandidateContextBuilder(
+                model_alias=DEFAULT_MODEL_ALIAS,
+                evaluator=_FakeEvaluator(),
+                cache_root=tmp,
+                client_factory=lambda: fake_client,
+            )
+            state = np.linspace(0.0, 1.0, 27, dtype=np.float32)
+            first = builder.build(state=state, agent_name="blue_agent_0")
+            second = builder.build(state=state, agent_name="blue_agent_1")
+            self.assertNotEqual(first.cache_key, second.cache_key)
+            self.assertEqual(fake_client.calls, 2)
+            self.assertEqual(builder.cache_misses, 2)
+            self.assertEqual(builder.live_transactions, 2)
+
+    def test_report_gate_requires_agent_cache_alignment_no_optimizer_api_and_all_agents(self):
+        report = _valid_report()
         self.assertTrue(_report_pass(report))
+
         broken = dict(report)
         broken["live_transactions_after_update"] = 5
         self.assertFalse(_report_pass(broken))
 
+        broken = dict(report)
+        broken["agent_aware_cache_identity"] = False
+        self.assertFalse(_report_pass(broken))
+
+        broken = dict(report)
+        broken["cache_format_version"] = 1
+        self.assertFalse(_report_pass(broken))
+
     def test_report_gate_rejects_missing_agent_or_unchanged_policy(self):
-        base = {
-            "transition_count": 5,
-            "ppo_step_count": 5,
-            "per_agent_transitions": {f"blue_agent_{i}": 1 for i in range(5)},
-            "plan0_match_count": 5,
-            "alignment_count": 5,
-            "cache_misses_before_update": 1,
-            "cache_misses_after_update": 1,
-            "live_transactions_before_update": 1,
-            "live_transactions_after_update": 1,
-            "policy_parameters_changed": True,
-            "all_agents_done": True,
-            "primary_model_selected_is_false": True,
-            "update_metrics": {
-                "policy_loss_mean": 0.0,
-                "value_loss_mean": 0.0,
-                "entropy_mean": 1.0,
-                "approx_kl_mean": 0.0,
-                "clip_fraction_mean": 0.0,
-                "grad_norm_mean": 0.1,
-                "grad_norm_max": 0.1,
-            },
-        }
+        base = _valid_report()
+        base["transition_count"] = 5
+        base["ppo_step_count"] = 5
+        base["per_agent_transitions"] = {f"blue_agent_{i}": 1 for i in range(5)}
+        base["plan0_match_count"] = 5
+        base["alignment_count"] = 5
         missing = dict(base)
         missing["per_agent_transitions"] = {"blue_agent_0": 5}
         self.assertFalse(_report_pass(missing))
