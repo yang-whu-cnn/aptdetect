@@ -42,7 +42,12 @@ from formal_experiments.ours.ppo_training import (
     assert_formal_train_seed,
     build_training_batch,
 )
-from formal_experiments.ours.prior_cache import PriorCache, exact_state_sha256, make_identity
+from formal_experiments.ours.prior_cache import (
+    CACHE_FORMAT_VERSION,
+    PriorCache,
+    exact_state_sha256,
+    make_identity,
+)
 from formal_experiments.ours.ofox_prior_client import ofox_network_mode
 from shared.action_contract import get_action
 from shared.cyborg_action_adapter import CybORGActionAdapter
@@ -198,6 +203,7 @@ class CandidateContextBuilder:
         self.generation_config = {
             "temperature": float(self.spec.actual_temperature),
             "structured_output": str(self.spec.structured_output_requested),
+            "public_agent_identifier": True,
         }
 
     def build(self, *, state, agent_name: str) -> CandidateContext:
@@ -216,6 +222,7 @@ class CandidateContextBuilder:
             registry_version=self.registry.version,
             registry_sha256=self.registry_sha256,
             prompt_version=self.registry.prompt_version,
+            agent_name=agent,
             generation_config=self.generation_config,
             state=state_np,
         )
@@ -283,6 +290,10 @@ def _context_matches_state(context: CandidateContext, state) -> bool:
 
 
 def _report_pass(report: dict) -> bool:
+    if int(report.get("cache_format_version", -1)) != CACHE_FORMAT_VERSION:
+        return False
+    if not bool(report.get("agent_aware_cache_identity")):
+        return False
     if int(report.get("transition_count", 0)) <= 0:
         return False
     if int(report.get("transition_count", -1)) != int(report.get("ppo_step_count", -2)):
@@ -659,6 +670,8 @@ def run_tiny_smoke(
         "registry_sha256": context_builder.registry_sha256,
         "world_model_sha256": _file_sha256(world_model_path),
         "reward_model_sha256": _file_sha256(reward_model_path),
+        "cache_format_version": int(CACHE_FORMAT_VERSION),
+        "agent_aware_cache_identity": True,
         "transition_count": int(transition_count),
         "ppo_step_count": int(len(ppo_buffer.steps)),
         "per_agent_transitions": {
@@ -727,6 +740,7 @@ def main() -> None:
     print("development_only:", report["development_only"])
     print("model:", report["model_alias"], report["exact_model_id"])
     print("seed/steps:", report["seed"], report["scenario_steps"])
+    print("cache_format/agent_aware:", report["cache_format_version"], report["agent_aware_cache_identity"])
     print("transitions:", report["transition_count"])
     print("per_agent:", report["per_agent_transitions"])
     print("requested_actions:", report["requested_action_counts"])
