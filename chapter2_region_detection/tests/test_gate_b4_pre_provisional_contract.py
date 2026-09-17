@@ -51,7 +51,7 @@ class TestGateB4PreProvisionalContract(unittest.TestCase):
         text = DOC.read_text(encoding="utf-8")
         self.assertIn("2,000 -> 5,000 -> 10,000 -> 20,000", text)
         self.assertIn("max 20,000 real decision transitions / model variant", text)
-        self.assertIn("fresh provisional PPO initialization", text)
+        self.assertIn("fresh policy initialization", text)
         self.assertIn("formal_result_eligible=false", text)
 
     def test_b02_requires_each_llm_variant_to_pass(self):
