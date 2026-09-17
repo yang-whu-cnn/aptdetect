@@ -88,7 +88,7 @@ Required metadata is validated before write.
 
 `fallback_count` must exactly match non-LLM sources in PriorBatch.
 
-Failed provider transaction (`api_success=false`) must not be treated as a valid formal cached live prior by the later provider integration; provider failure is not allowed to masquerade as live success.
+Formal cache **硬性要求 `api_success=True`**。`api_success=False` 的 provider transaction 会被拒绝，且不会写入 cache；provider failure 不能通过 fallback 被伪装成可复用的 live success。
 
 Forbidden serialization：
 
@@ -142,6 +142,7 @@ Must pass：
 - split/model/prompt/generation-config/registry change => different key；
 - hit => generator call count unchanged；
 - miss => one generator call；
+- `api_success=false` => reject and no cache entry；
 - corrupt entry quarantined and not reused；
 - sensitive metadata rejected；
 - atomic write leaves no temp/lock file；
@@ -155,14 +156,15 @@ Must pass：
 tests/test_prior_cache.py
 ```
 
-6 tests cover：
+7 tests cover：
 
 1. exact state hashing；
 2. namespace/key isolation including registry/config；
 3. miss-once / hit-zero-call semantics；
 4. sensitive metadata rejection；
-5. corrupt quarantine + regeneration；
-6. atomic/checksum/roundtrip/no temp-lock leftovers。
+5. failed provider transaction rejection；
+6. corrupt quarantine + regeneration；
+7. atomic/checksum/roundtrip/no temp-lock leftovers。
 
 ## 9. Current close condition
 
