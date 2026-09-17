@@ -13,7 +13,7 @@ from formal_experiments.ours.llm_prior_v2 import (
 )
 
 
-DEFAULT_REGISTRY = "configs/lwm_rl_llm_model_registry_v2_3.yaml"
+DEFAULT_REGISTRY = "configs/llm_model_registry_v1.yaml"
 EXPECTED_TIERS = ("tier_h", "tier_m", "tier_l")
 ALLOWED_CAPABILITY_TIERS = {"high", "medium", "low_cost"}
 ALLOWED_ENDPOINT_FAMILIES = {"openai_chat_completions"}
