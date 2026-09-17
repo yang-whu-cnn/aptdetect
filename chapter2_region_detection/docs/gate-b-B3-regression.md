@@ -1,7 +1,7 @@
 # Gate B3 — Provider-Neutral Posterior Candidate Representation Regression
 
 日期：2026-09-17  
-状态：**SOURCE READY / LOCAL 10-TEST PENDING**
+状态：**PASS / CLOSED**
 
 ---
 
@@ -25,7 +25,7 @@ Primary LLM remains unselected.
 
 B3 does not add new evidence and does not choose a model. It proves that the posterior observation used by the later PPO remains identical across all LLM variants after the provider-neutral/multi-model migration.
 
-The posterior must depend only on：
+The posterior depends only on：
 
 ```text
 current planner-visible state
@@ -139,7 +139,7 @@ Hard fail on：
 
 ## 8. Explicitly forbidden evidence
 
-B3 source must contain no model/provider-specific feature and no legacy evidence：
+B3 source contains no model/provider-specific feature and no legacy evidence：
 
 ```text
 action cost
@@ -156,25 +156,38 @@ hidden host identity
 
 B3 is a structural regression gate. It does not introduce a new posterior-feature normalizer after observing the B2 results.
 
-Any later PPO preprocessing change would require an explicit taskbook amendment before B4 implementation. The frozen B3 evidence semantics themselves must remain unchanged.
+Any later PPO preprocessing change requires an explicit taskbook amendment before changing formal semantics. The frozen B3 evidence definition remains unchanged.
 
 ## 10. Source
 
-Production source already existed and remains unchanged because it is provider-neutral：
+Production source remains：
 
 ```text
 formal_experiments/ours/posterior_features.py
 ```
 
-New regression suite：
+Regression suite：
 
 ```text
 tests/test_gate_b3_posterior_regression.py
 ```
 
-## 11. Local acceptance
+## 11. Local acceptance — PASS
 
-10 tests cover：
+用户本地执行：
+
+```bash
+python -m unittest tests.test_gate_b3_posterior_regression -v
+```
+
+结果：
+
+```text
+Ran 10 tests
+OK
+```
+
+10 tests 覆盖：
 
 1. exact 27+16+1+1+1=46 contract + config components；
 2. exact feature column layout；
@@ -187,42 +200,23 @@ tests/test_gate_b3_posterior_regression.py
 9. state shape/finite guards；
 10. source scan for provider-specific and legacy evidence。
 
-Run：
-
-```bash
-python -m unittest tests.test_gate_b3_posterior_regression -v
-```
-
-Expected：
+## 12. PASS conclusion
 
 ```text
-Ran 10 tests
-OK
+B2 Multi-LLM Prior Study     PASS / CLOSED
+B3 posterior schema          46D / FROZEN
+B3 provider-neutrality       PASS
+B3 candidate permutation     PASS
+B3 local regression          10/10 PASS
+Primary LLM selected         NO
+Test seeds touched           NO
 ```
 
-## 12. PASS / FAIL
-
-PASS requires all 10 tests to pass without modifying the frozen B3 evidence definition.
-
-If a failure exposes a real provider-specific dependency or permutation inconsistency：
+下一阶段：
 
 ```text
-STOP
--> fix shared posterior representation
--> rerun B1-B3 structural regression as needed
--> do not start PPO until B3 closes
+Gate B4.1 candidate-wise PPO network + unit tests
+Gate B4.3 duration-aware GAE + reference tests
 ```
 
-No threshold or feature may be relaxed based on which LLM performed better in B2.
-
-## 13. Current conclusion
-
-```text
-B2 Multi-LLM Prior Study    PASS / CLOSED
-B3 production representation provider-neutral by inspection
-B3 regression suite         SOURCE READY
-B3 local execution          PENDING
-B4 PPO                       NOT STARTED
-```
-
-**FINAL STATUS: SOURCE READY / LOCAL 10-TEST PENDING**
+**FINAL STATUS: PASS / CLOSED**
