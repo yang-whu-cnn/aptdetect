@@ -216,10 +216,10 @@ def compute_duration_aware_gae(
         raise ValueError("gae_lambda must lie in [0,1]")
 
     rewards = _as_float_vector(real_response_rewards, name="real_response_rewards")
-    values_t = _as_float_vector(values, name="values")
-    next_values_t = _as_float_vector(next_values, name="next_values")
-    discounts = duration_discounts(decision_dt, gamma_tick=gamma_tick)
-    done_t = torch.as_tensor(dones, dtype=torch.bool)
+    values_t = _as_float_vector(values, name="values").to(device=rewards.device)
+    next_values_t = _as_float_vector(next_values, name="next_values").to(device=rewards.device)
+    discounts = duration_discounts(decision_dt, gamma_tick=gamma_tick).to(device=rewards.device)
+    done_t = torch.as_tensor(dones, dtype=torch.bool, device=rewards.device)
     if done_t.ndim != 1:
         raise ValueError("dones must be one-dimensional")
 
@@ -238,12 +238,9 @@ def compute_duration_aware_gae(
     not_done = (~done_t).to(dtype=torch.float32)
     deltas = rewards + discounts * not_done * next_values_t - values_t
     advantages = torch.zeros_like(rewards)
-    gae = torch.zeros((), dtype=torch.float32)
+    gae = torch.zeros((), dtype=torch.float32, device=rewards.device)
     for index in range(n - 1, -1, -1):
-        gae = (
-            deltas[index]
-            + discounts[index] * lam * not_done[index] * gae
-        )
+        gae = deltas[index] + discounts[index] * lam * not_done[index] * gae
         advantages[index] = gae
     returns = advantages + values_t
 
