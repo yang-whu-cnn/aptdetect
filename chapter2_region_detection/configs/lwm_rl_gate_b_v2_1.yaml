@@ -1,7 +1,7 @@
 config:
   name: lwm_rl_gate_b_v2_1
   version: "2.1"
-  status: gate_b_b1_b3_contract_ofox_amended
+  status: gate_b_b4_core_frozen
   source_of_truth: docs/UG_CEM_APT_REPRODUCTION_PLAN.md
   provider_amendment: docs/gate-b-B2-ofox-amendment.md
 
@@ -83,14 +83,35 @@ ppo_pretrain_contract:
   old_checkpoints_legacy: true
   candidate_count: 6
   formal_action_space: 4
+  candidate_feature_dim: 46
+  candidate_encoder_hidden: [128, 128]
+  actor_head: shared_scalar_per_candidate
+  critic_pool: mean
+  critic_hidden: 128
+  permutation_equivariant_actor: true
+  permutation_invariant_critic: true
+  orthogonal_initialization: true
+  actor_output_gain: 0.01
+  critic_output_gain: 1.0
   learning_rate: 0.0003
   rollout_length: 128
   update_epochs: 5
+  minibatch_size: 64
   clip_epsilon: 0.2
   gae_lambda: 0.95
   entropy_coefficient: 0.01
+  value_coefficient: 0.5
+  max_grad_norm: 0.5
+  advantage_normalization: true
   gamma_tick: 0.99
   duration_aware_discount: true
+  duration_gae_rule: gamma_tick_power_dt_times_lambda_per_decision
+  reward_source: real_cc4_accumulated_response_reward_only
+  wm_predicted_value_is_reward_target: false
+  provisional_max_decision_transitions: 20000
+  formal_max_decision_transitions: 100000
+  checkpoint_interval: 10000
+  minimum_training_seeds_per_model: 3
   train_seeds:
     - 1000
     - 1001
@@ -126,7 +147,7 @@ ppo_pretrain_contract:
     - 1031
   validation_seeds: [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007]
   calibration_test_forbidden: true
-  b4_network_and_training_details: pending
+  b4_network_and_training_details: frozen_v2_3
 
 legacy_isolation:
   src_llm_prior_allowed: false
