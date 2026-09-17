@@ -1,7 +1,7 @@
 # Gate B0 — Frozen World Model Final Audit
 
 日期：2026-09-17  
-状态：**B0.1 SOURCE READY / LOCAL TEST + REAL AUDIT PENDING；B0.2 WAITING FOR PROVISIONAL PPO**
+状态：**B0.1 PASS / CLOSED；B0.2 WAITING FOR PROVISIONAL PPO**
 
 ---
 
@@ -138,7 +138,7 @@ BootstrapProbabilisticWorldModel checkpoint loader
 tests/test_gate_b0_world_model_audit.py
 ```
 
-当前 9 个 unit tests 锁定：
+9 个 unit tests 锁定：
 
 1. frozen thresholds/action names；
 2. happy-path Gate；
@@ -150,45 +150,89 @@ tests/test_gate_b0_world_model_audit.py
 8. missing H4 bucket requires review；
 9. incomplete transitions excluded from action counts。
 
-## 9. Local execution
-
-在：
-
-```bash
-cd /d/paper/github-me/aptdetect/chapter2_region_detection
-source .venv_cc4/Scripts/activate
-```
-
-先跑：
-
-```bash
-python -m unittest tests.test_gate_b0_world_model_audit -v
-```
-
-预期：
+本地执行结果：
 
 ```text
-Ran 9 tests
+Ran 9 tests in 0.001s
 OK
 ```
 
-然后运行真实 audit：
+## 9. Real B0.1 result
+
+正式运行：
 
 ```bash
 python -m formal_experiments.evaluation.audit_world_model_final --device cpu
 ```
 
-关键 summary：
+completed coverage：
 
 ```text
-[GATE B0.1 WM FINAL AUDIT]
-train_counts: ...
-validation_counts: ...
-no_op/analyse/remove/restore per-action metrics
-aggregate_reproduction: ...
-actions_beating_persistence: ...
-h4_manual_review_required: False
-pass: True
+train_counts:
+  no_op   6114
+  analyse  916
+  remove   957
+  restore  965
+
+validation_counts:
+  no_op   1641
+  analyse  212
+  remove   230
+  restore  232
+```
+
+one-step / H4 action-conditioned 结果：
+
+```text
+no_op:
+  one-step RMSE       0.1230845151
+  persistence         0.1475714589
+  ratio               0.8340672102
+  uncertainty/error ρ 0.4706396871
+  H4 windows          1592
+  H4 ratio            0.8595271162
+
+analyse:
+  one-step RMSE       0.1342953655
+  persistence         0.3119809499
+  ratio               0.4304601468
+  uncertainty/error ρ 0.0002947129
+  H4 windows          184
+  H4 ratio            1.1682244783
+
+remove:
+  one-step RMSE       0.1136328298
+  persistence         0.1479138938
+  ratio               0.7682363492
+  uncertainty/error ρ 0.1490678298
+  H4 windows          201
+  H4 ratio            0.8259541276
+
+restore:
+  one-step RMSE       0.1950259091
+  persistence         0.2482390671
+  ratio               0.7856374556
+  uncertainty/error ρ 0.3841989740
+  H4 windows          218
+  H4 ratio            0.7930127734
+```
+
+aggregate reproduction：
+
+```text
+one_step_rmse                      0.13223170196479042
+one_step_persistence_rmse          0.18083025022779947
+h4_rmse                            0.1910520662354734
+h4_persistence_rmse                0.21913333903939589
+h4_uncertainty_error_spearman      0.6876206337584564
+```
+
+Gate：
+
+```text
+actions_beating_persistence = 4 / 4
+h4_manual_review_required   = False
+pass                        = True
 ```
 
 正式报告：
@@ -197,20 +241,19 @@ pass: True
 outputs/world_model_v2/b0_1/per_action_audit.json
 ```
 
-## 10. Close condition
+## 10. Interpretation
 
-只有：
+B0.1 证明 aggregate 指标没有掩盖某个动作的一步预测崩溃：四动作均优于各自 persistence baseline，且四个 H4 first-action bucket 均低于 catastrophic threshold 2.0。
+
+`analyse` 的 one-step uncertainty-error Spearman 接近 0，且 H4 ratio=1.168 >1，说明该动作的局部 uncertainty calibration / multi-step quality 仍是后续 B0.2 OOD audit 的重点观察项；但它不违反预先冻结的 B0.1 hard gate，也没有达到 catastrophic review 条件。
+
+因此当前结论：
 
 ```text
-9/9 tests PASS
-+
-real audit pass=True
-+
-h4_manual_review_required=False
-+
-aggregate reproduction PASS
+CURRENT WM MODIFICATION / RETRAIN: NOT REQUIRED
+CURRENT WM STATUS: KEEP FROZEN
+B0.1: PASS / CLOSED
+B0.2: REQUIRED AFTER PROVISIONAL PPO
 ```
 
-之后 B0.1 才 CLOSED，并进入 B2 registry / validation state bank。
-
-B0.2 在 provisional PPO 后再执行，此时 B0.1 不替代 B0.2。
+B0.1 PASS 不能替代 B0.2。若 provisional PPO 将 policy distribution 推入 WM replay 未覆盖区域，仍必须按 B0.2 规则重新评估并在必要时重开 WM training。
