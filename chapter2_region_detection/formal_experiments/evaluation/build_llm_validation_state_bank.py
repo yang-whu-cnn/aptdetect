@@ -9,9 +9,7 @@ from typing import Iterable, Sequence
 
 import numpy as np
 
-from formal_experiments.data_collection.collect_cc4_formal_replay import (
-    DEFAULT_SPLIT_SEEDS,
-)
+from formal_experiments.data_collection.collect_cc4_formal_replay import DEFAULT_SPLIT_SEEDS
 from formal_experiments.data_collection.decision_replay import DecisionEpochTransition
 from formal_experiments.evaluation.validate_bootstrap_world_model import (
     load_replay_jsonl,
@@ -23,8 +21,10 @@ from shared.formal_state import BLUE_AGENTS, FORMAL_STATE_DIM
 DEFAULT_VALIDATION_REPLAY = "outputs/formal_replay_v2/validation.jsonl"
 DEFAULT_OUT = "outputs/lwm_rl_v2/b2/validation_state_bank.jsonl"
 DEFAULT_SUMMARY = "outputs/lwm_rl_v2/b2/validation_state_bank_summary.json"
+BANK_FORMAT_VERSION = 1
 TARGET_STATES_PER_CELL = 6
 FEATURE17_INDEX = 17
+SELECTION_ALGORITHM = "seed_agent_6_exact_d27_unique_feature17_stratified_v1"
 
 
 def resolve_path(value: str | Path) -> Path:
@@ -38,7 +38,31 @@ def state_sha256(state: np.ndarray) -> str:
     array = np.asarray(state, dtype="<f4")
     if array.shape != (FORMAL_STATE_DIM,) or not np.isfinite(array).all():
         raise ValueError("state must be finite D27")
-    return hashlib.sha256(array.tobytes(order="C")).hexdigest()
+    return hashlib.sha256(np.ascontiguousarray(array).tobytes(order="C")).hexdigest()
+
+
+def selection_config(source_replay: str) -> dict:
+    return {
+        "format_version": BANK_FORMAT_VERSION,
+        "algorithm": SELECTION_ALGORITHM,
+        "split": "validation",
+        "source_replay": str(source_replay),
+        "validation_seeds": list(DEFAULT_SPLIT_SEEDS["validation"]),
+        "agents": list(BLUE_AGENTS),
+        "states_per_seed_agent_cell": TARGET_STATES_PER_CELL,
+        "complete_transitions_only": True,
+        "state_dim": FORMAL_STATE_DIM,
+        "state_dtype": "float32_le",
+        "exact_state_dedupe": True,
+        "feature17_index": FEATURE17_INDEX,
+        "hidden_truth_selection": False,
+        "reward_based_selection": False,
+    }
+
+
+def selection_config_sha256(source_replay: str) -> str:
+    payload = json.dumps(selection_config(source_replay), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def _even_pick(items: Sequence[DecisionEpochTransition], count: int) -> list[DecisionEpochTransition]:
@@ -52,7 +76,6 @@ def _even_pick(items: Sequence[DecisionEpochTransition], count: int) -> list[Dec
         return [items[(len(items) - 1) // 2]]
     positions = np.linspace(0, len(items) - 1, num=count)
     indices = np.rint(positions).astype(np.int64)
-    # np.linspace+rint is unique when len(items) >= count, but lock the invariant.
     if len(set(int(x) for x in indices)) != count:
         raise RuntimeError("deterministic even sampling produced duplicate indices")
     return [items[int(index)] for index in indices]
@@ -68,15 +91,34 @@ def _feature17(transition: DecisionEpochTransition) -> int:
     return int(value)
 
 
+def _unique_completed(
+    transitions: Sequence[DecisionEpochTransition],
+    *,
+    forbidden_hashes: set[str] | None = None,
+) -> list[DecisionEpochTransition]:
+    forbidden = set() if forbidden_hashes is None else set(forbidden_hashes)
+    items = [item for item in transitions if bool(item.action_completed)]
+    items.sort(key=lambda item: (int(item.decision_index), int(item.global_tick_start)))
+    unique: list[DecisionEpochTransition] = []
+    seen = set(forbidden)
+    for item in items:
+        digest = state_sha256(item.state)
+        if digest in seen:
+            continue
+        seen.add(digest)
+        unique.append(item)
+    return unique
+
+
 def select_cell(
     transitions: Sequence[DecisionEpochTransition],
     *,
     count: int = TARGET_STATES_PER_CELL,
+    forbidden_hashes: set[str] | None = None,
 ) -> list[DecisionEpochTransition]:
-    items = [item for item in transitions if bool(item.action_completed)]
-    items.sort(key=lambda item: (int(item.decision_index), int(item.global_tick_start)))
+    items = _unique_completed(transitions, forbidden_hashes=forbidden_hashes)
     if len(items) < count:
-        raise ValueError(f"cell has only {len(items)} completed states; need {count}")
+        raise ValueError(f"cell has only {len(items)} globally-unique completed states; need {count}")
 
     by_feature = {
         0: [item for item in items if _feature17(item) == 0],
@@ -89,16 +131,11 @@ def select_cell(
         if len(by_feature[0]) >= left and len(by_feature[1]) >= right:
             selected = _even_pick(by_feature[0], left) + _even_pick(by_feature[1], right)
         else:
-            # Coverage is mandatory; if one class is scarce, take at least one and
-            # fill the rest evenly from the remaining ordered cell without duplicates.
             scarce_value = 0 if len(by_feature[0]) < len(by_feature[1]) else 1
             scarce_take = min(max(1, len(by_feature[scarce_value])), count - 1)
             selected = _even_pick(by_feature[scarce_value], scarce_take)
-            selected_ids = {(x.decision_index, x.global_tick_start) for x in selected}
-            remaining = [
-                item for item in items
-                if (item.decision_index, item.global_tick_start) not in selected_ids
-            ]
+            selected_hashes = {state_sha256(item.state) for item in selected}
+            remaining = [item for item in items if state_sha256(item.state) not in selected_hashes]
             selected += _even_pick(remaining, count - len(selected))
     else:
         selected = _even_pick(items, count)
@@ -106,6 +143,9 @@ def select_cell(
     selected.sort(key=lambda item: (int(item.decision_index), int(item.global_tick_start)))
     if len(selected) != count:
         raise RuntimeError("state-bank cell count mismatch")
+    selected_hashes = [state_sha256(item.state) for item in selected]
+    if len(set(selected_hashes)) != len(selected_hashes):
+        raise RuntimeError("state-bank cell contains exact D27 duplicates")
     if by_feature[0] and by_feature[1]:
         observed = {_feature17(item) for item in selected}
         if observed != {0, 1}:
@@ -115,6 +155,8 @@ def select_cell(
 
 def build_state_bank(
     transitions: Sequence[DecisionEpochTransition],
+    *,
+    source_replay: str = DEFAULT_VALIDATION_REPLAY,
 ) -> tuple[list[dict], dict]:
     validate_frozen_split(transitions, "validation")
     groups: dict[tuple[int, str], list[DecisionEpochTransition]] = defaultdict(list)
@@ -132,8 +174,11 @@ def build_state_bank(
         extra = sorted(set(groups) - expected_keys)
         raise ValueError(f"validation state-bank group mismatch: missing={missing}, extra={extra}")
 
+    config_hash = selection_config_sha256(source_replay)
     records: list[dict] = []
     source_feature_coverage: dict[str, dict[str, list[int]]] = {}
+    globally_selected_hashes: set[str] = set()
+
     for seed in DEFAULT_SPLIT_SEEDS["validation"]:
         seed_key = str(int(seed))
         source_feature_coverage[seed_key] = {}
@@ -142,18 +187,30 @@ def build_state_bank(
             completed = [item for item in cell if bool(item.action_completed)]
             source_values = sorted({_feature17(item) for item in completed})
             source_feature_coverage[seed_key][str(agent)] = source_values
-            selected = select_cell(cell, count=TARGET_STATES_PER_CELL)
+            selected = select_cell(
+                cell,
+                count=TARGET_STATES_PER_CELL,
+                forbidden_hashes=globally_selected_hashes,
+            )
             for item in selected:
                 state = np.asarray(item.state, dtype=np.float32)
+                digest = state_sha256(state)
+                if digest in globally_selected_hashes:
+                    raise RuntimeError("global exact D27 duplicate survived selection")
+                globally_selected_hashes.add(digest)
                 records.append(
                     {
+                        "bank_format_version": BANK_FORMAT_VERSION,
                         "split": "validation",
+                        "source_replay": str(source_replay),
+                        "selection_config_sha256": config_hash,
                         "episode_seed": int(item.episode_seed),
                         "agent_name": str(item.agent_name),
                         "decision_index": int(item.decision_index),
                         "global_tick_start": int(item.global_tick_start),
                         "feature17_any_valid_observable_target": _feature17(item),
-                        "state_sha256": state_sha256(state),
+                        "state_dtype": "float32_le",
+                        "state_sha256": digest,
                         "state": [float(x) for x in state.tolist()],
                     }
                 )
@@ -169,6 +226,8 @@ def build_state_bank(
     expected_total = len(DEFAULT_SPLIT_SEEDS["validation"]) * len(BLUE_AGENTS) * TARGET_STATES_PER_CELL
     if len(records) != expected_total:
         raise RuntimeError(f"expected {expected_total} bank states, got {len(records)}")
+    if len({row["state_sha256"] for row in records}) != len(records):
+        raise RuntimeError("state bank contains global exact D27 duplicates")
 
     canonical_lines = [json.dumps(row, sort_keys=True, separators=(",", ":")) for row in records]
     bank_sha256 = hashlib.sha256(("\n".join(canonical_lines) + "\n").encode("utf-8")).hexdigest()
@@ -180,13 +239,19 @@ def build_state_bank(
 
     summary = {
         "status": "PASS",
+        "bank_format_version": BANK_FORMAT_VERSION,
         "split": "validation",
+        "source_replay": str(source_replay),
+        "selection_config": selection_config(source_replay),
+        "selection_config_sha256": config_hash,
         "source_seeds": list(DEFAULT_SPLIT_SEEDS["validation"]),
         "agents": list(BLUE_AGENTS),
         "states_per_seed_agent_cell": TARGET_STATES_PER_CELL,
         "record_count": len(records),
         "expected_record_count": expected_total,
+        "unique_exact_state_count": len({row["state_sha256"] for row in records}),
         "state_dim": FORMAL_STATE_DIM,
+        "state_dtype": "float32_le",
         "feature17_index": FEATURE17_INDEX,
         "per_seed": {str(k): int(v) for k, v in sorted(per_seed.items())},
         "per_agent": {str(k): int(v) for k, v in sorted(per_agent.items())},
@@ -222,15 +287,20 @@ def main() -> None:
     args = parser.parse_args()
 
     transitions = load_replay_jsonl(resolve_path(args.validation_replay))
-    records, summary = build_state_bank(transitions)
+    records, summary = build_state_bank(
+        transitions,
+        source_replay=str(args.validation_replay),
+    )
     write_state_bank(records, summary, out=args.out, summary_out=args.summary_out)
 
     print("=" * 80)
     print("[GATE B2 VALIDATION STATE BANK]")
     print("record_count:", summary["record_count"])
+    print("unique_exact_state_count:", summary["unique_exact_state_count"])
     print("source_seeds:", summary["source_seeds"])
     print("agents:", summary["agents"])
     print("feature17_counts:", summary["feature17_counts"])
+    print("selection_config_sha256:", summary["selection_config_sha256"])
     print("bank_sha256:", summary["bank_sha256"])
     print("pass:", summary["pass"])
     print("[OK] bank:", resolve_path(args.out))
