@@ -3,9 +3,12 @@ pyyaml
 tqdm
 torch>=1.10
 
-# Optional dependencies (install whepip install -e .n needed):
+# Optional dependencies (install when needed):
 # transformers  # for local HF LLM backend
-# requests      # for HTTP LLM backend
+# requests      # for legacy HTTP LLM backend
 
-# Gate B live Gemini prior (install only when running B2-live / PPO with Gemini):
-# google-genai  # install with: python -m pip install -U google-genai
+# Gate B formal live prior via OFOX OpenAI-compatible API:
+# openai  # install with: python -m pip install -U openai
+
+# Historical B2-live Gemini adapter only; no longer the formal provider:
+# google-genai
