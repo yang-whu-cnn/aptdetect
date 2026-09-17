@@ -1,182 +1,283 @@
-# Gate B — B2-live Gemini Prior Smoke
+# Gate B — B2-live OFOX GPT-5.6 Sol Prior Smoke
 
-日期：2026-09-16  
-状态：**TRANSPORT PASS / EXACT-MODEL QUOTA BLOCKED / LOCAL 15-TEST PENDING / LIVE RESPONSE PENDING**
+日期：2026-09-17  
+状态：**OFOX MIGRATION SOURCE READY / LOCAL 15-TEST + LIVE API SMOKE PENDING**
 
 ---
 
-## 1. Purpose
+## 1. Provider/model amendment
 
-B1–B3 已完成 formal contract；本子 Gate 只验证真实 Gemini 网络链路：
+B2 原先尝试使用 Gemini-3.1 direct Google API。真实 smoke 已证明网络层可达，但 `gemini-3.1-pro-preview` 对当前项目返回 free-tier quota limit=0。
 
-```text
-environment API key
--> google-genai client
--> Gemini Interactions API
--> D27 planner-visible prompt
--> JSON-Schema structured output
--> frozen B2 parser
--> K=6 x H=4 four-action PriorBatch
-```
-
-不训练 PPO，不改 prompt，不调 temperature，不做 validation selection。
-
-## 2. Authentication
-
-代码不接受 `api_key=` 参数。
-
-只允许 Google GenAI SDK 官方环境变量：
+根据当前实际实验接入条件，正式 B2 provider/model 已通过：
 
 ```text
-GOOGLE_API_KEY   # if present, takes precedence
-GEMINI_API_KEY
+docs/gate-b-B2-ofox-amendment.md
 ```
 
-程序只记录环境变量名称，例如：
+修订为：
 
 ```text
-key_source = GEMINI_API_KEY
+provider protocol = OFOX OpenAI-compatible API
+base_url          = https://api.ofox.ai/v1
+model             = openai/gpt-5.6-sol
+paper label       = GPT-5.6 Sol via OFOX gateway
 ```
 
-绝不读取/打印/保存 key value。
+Gemini-specific client 与两次 Gemini live failure 仅保留为历史审计记录，不再属于 active formal provider。
 
-## 3. SDK / API
+## 2. Frozen B2 contract that remains unchanged
 
-正式 live adapter：
+provider/model 变化不改变：
+
+```text
+A = 4
+K = 6
+H = 4
+temperature = 0.2
+FormalState D = 27
+```
+
+动作固定：
+
+```text
+no_op / analyse / remove / restore
+```
+
+仍禁止：
+
+- hidden compromise truth；
+- future reward；
+- attack labels；
+- test information；
+- method-specific host target generation。
+
+host target 仍由后续 shared resolver 决定。
+
+## 3. Authentication
+
+正式 key 只允许：
+
+```text
+OFOX_API_KEY
+```
+
+客户端构造函数不接受 `api_key=` 参数；真实 key 只从环境变量读取并传给 OpenAI SDK。
+
+禁止：
+
+- 写入 Python；
+- 写入 YAML；
+- 写入 GitHub；
+- 打印到日志；
+- 保存到 smoke report。
+
+report 只记录：
+
+```text
+key_source = OFOX_API_KEY
+api_key_value_recorded = false
+```
+
+## 4. Formal client
+
+active implementation：
+
+```text
+formal_experiments/ours/ofox_prior_client.py
+```
+
+使用：
+
+```python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.ofox.ai/v1",
+    api_key=<OFOX_API_KEY from environment>,
+)
+```
+
+正式调用：
+
+```text
+client.chat.completions.create(...)
+model = openai/gpt-5.6-sol
+temperature = 0.2
+```
+
+历史文件：
 
 ```text
 formal_experiments/ours/gemini_prior_client.py
 ```
 
-使用当前 Google GenAI SDK：
+仅保留审计，不再由 formal smoke/import path 使用。
+
+## 5. Structured output
+
+OFOX OpenAI-compatible Chat Completions 支持 `response_format.type=json_schema`。
+
+正式 request：
 
 ```text
-from google import genai
-client = genai.Client()
-client.interactions.create(...)
+response_format:
+  type = json_schema
+  json_schema.name = lwm_rl_candidate_plans
+  json_schema.schema = frozen B2 schema
 ```
 
-API request 冻结：
-
-```text
-model = gemini-3.1-pro-preview
-temperature = 0.2
-store = false
-response mime = application/json
-JSON Schema = exact K=6 / H=4 / four-action enum / score [0,1]
-```
-
-`store=false` 显式关闭 Interactions API 默认 server-side Interaction storage。
-
-## 4. Structured-output schema
-
-服务端 schema 已约束：
+schema 强制：
 
 - exactly 6 candidates；
-- each candidate actions exactly 4；
-- each action enum only no_op/analyse/remove/restore；
+- each plan exactly 4 actions；
+- action enum only no_op/analyse/remove/restore；
 - prior_score number in [0,1]；
 - reason string。
 
-即使 structured output 合法，客户端仍必须再经过已冻结 `parse_prior_response()` 做语义验证、duplicate handling 与 fallback。
+服务端 structured output 后仍必须进入本地 frozen semantic parser：
 
-## 5. Live smoke state
+```text
+parse_prior_response()
+```
 
-runner：
+因此 duplicate handling、invalid-plan rejection、neutral deterministic fallback 不变。
+
+## 6. Network modes
+
+为了避免 Windows/Git Bash 隐式代理再次污染实验，OFOX client 支持：
+
+```text
+default:
+  sdk_environment_proxy
+
+OFOX_DISABLE_ENV_PROXY=1:
+  direct_no_env_proxy
+
+OFOX_PROXY_URL=<proxy-url>:
+  explicit_proxy
+```
+
+`OFOX_PROXY_URL` 与 `OFOX_DISABLE_ENV_PROXY` 互斥。
+
+直连/显式代理模式均通过自建 `httpx.Client(..., trust_env=False)` 交给 OpenAI SDK。
+
+proxy diagnostics 只显示：
+
+```text
+scheme://host:port
+```
+
+不会保存 user/password。
+
+## 7. Live smoke state
+
+runner 不改路径：
 
 ```text
 formal_experiments/evaluation/run_gate_b_b2_live_prior_smoke.py
 ```
 
-默认从 Step-6 planner-visible state-only artifact 选：
+默认仍使用 Step-6 state-only artifact：
 
 ```text
 agent = blue_agent_0
 seed = 3000
-earliest deterministic state
+earliest deterministic planner-visible D27 state
 ```
 
-这里只做 API connectivity / contract smoke，不参与 prompt tuning、model selection 或 PPO training。
+这只是 API connectivity/contract smoke，不参与 prompt tuning、模型选择或 PPO training。
 
-该 state-only artifact 已在 Step 6 验证：不含 hidden truth / reward labels。
+## 8. Report
 
-## 6. Failure semantics
-
-真实 B2-live smoke：
-
-- missing key -> hard fail；
-- SDK missing -> hard fail；
-- API transport/auth/quota/model error -> hard fail；
-- empty response -> hard fail。
-
-不会用 fallback 掩盖“API 根本没调用成功”。
-
-API 成功后，如果模型内容经过 semantic parser 出现 duplicate/incomplete candidates，正式 neutral parser fallback 仍可补齐 K；报告会记录 `fallback_count`。
-
-因此 live Gate 验证的是：
-
-```text
-API call succeeded
-+ final formal PriorBatch valid
-```
-
-而不是用一次调用对 prior quality 做调参。
-
-## 7. Privacy / report
-
-正式 report：
+输出：
 
 ```text
 outputs/lwm_rl_v2/gate_b/b2_live_prior_report.json
 ```
 
-只记录：
+记录：
 
-- key source name，不记录 value；
-- model / temperature；
-- agent / seed；
-- parsed plans / raw prior scores / normalized preferences / sources；
-- unique_plan_count / fallback_count；
-- prompt SHA256 / response SHA256。
+- provider；
+- base_url；
+- model；
+- temperature；
+- key source name；
+- network mode；
+- parsed plans；
+- raw prior scores；
+- normalized prior preferences；
+- unique plan count；
+- fallback count；
+- prompt/response SHA256。
 
-明确不记录：
+不记录：
 
-- raw API key；
+- API key value；
 - raw prompt；
-- raw response。
+- raw response；
+- proxy credentials。
 
-## 8. Tests
+## 9. Failure semantics
 
-新增：
+分类：
 
 ```text
-tests/test_gate_b_b2_live_prior.py
+quota_blocked
+auth_blocked
+network_blocked
+model_blocked
+api_error
 ```
 
-原始 10 tests + 3 network tests，当前共 15 tests：
+真实 API 没成功返回时 hard fail；不会使用 fallback 掩盖 transport/auth/model/quota failure。
 
-1. key env precedence / missing guard；
-2. structured-output exact K/H/action/score schema；
-3. mock Interactions request + `store=False`；
-4. client constructor 不存在 api_key 参数；
-5. empty response hard failure；
-6. hashes present / key value not exposed；
-7. report 不保存 raw prompt/response/key；
-8. API success 后 parser fallback 仍可审计；
-9. smoke state deterministic selection；
-10. missing agent/seed state rejection。
+只有 API 成功后，semantic parser 才允许用 neutral deterministic fallback 补足不完整/重复 candidate。
 
-mock tests 不需要 API key，也不会访问网络。
+## 10. Tests
 
-## 9. Local sequence
+`tests/test_gate_b_b2_live_prior.py` 继续保持 15 个 tests，但语义已全部迁移到 OFOX：
 
-先安装当前官方 SDK：
+1. `OFOX_API_KEY` source / missing guard；
+2. default/direct/explicit network mode；
+3. explicit network client construction；
+4. exact K/H/A/score JSON schema；
+5. OpenAI-compatible json_schema wrapper；
+6. mock Chat Completions exact model/temp/schema；
+7. client constructor 无 api_key 参数；
+8. empty output hard fail；
+9. hashes / no key exposure；
+10. report privacy + OFOX metadata；
+11. parser fallback after successful API call；
+12. failure-class separation；
+13. proxy diagnostic redaction；
+14. deterministic smoke-state selection；
+15. missing state rejection。
+
+同时原 B1–B3 15 tests 也必须重新跑，因为 provider/model constants/config 已正式变更。
+
+## 11. Local sequence
+
+同步后安装 OpenAI SDK：
 
 ```bash
-python -m pip install -U google-genai
+python -m pip install -U openai
 ```
 
-然后先跑无网络单测：
+先跑 B1–B3 regression：
+
+```bash
+python -m unittest tests.test_gate_b_llm_prior_posterior_contract -v
+```
+
+目标：
+
+```text
+Ran 15 tests
+OK
+```
+
+再跑 B2-live mock tests：
 
 ```bash
 python -m unittest tests.test_gate_b_b2_live_prior -v
@@ -189,163 +290,91 @@ Ran 15 tests
 OK
 ```
 
-之后在环境变量已配置的同一终端执行：
+## 12. Key setup
+
+Git Bash 当前 session：
+
+```bash
+export OFOX_API_KEY="<your key>"
+```
+
+不要把真实 key 发到聊天或 commit。
+
+如果 OFOX 可以直连，建议避免之前的系统代理：
+
+```bash
+export OFOX_DISABLE_ENV_PROXY=1
+unset OFOX_PROXY_URL
+```
+
+如果必须使用本机代理：
+
+```bash
+unset OFOX_DISABLE_ENV_PROXY
+export OFOX_PROXY_URL="http://127.0.0.1:<actual-port>"
+```
+
+## 13. Real live command
 
 ```bash
 python -m formal_experiments.evaluation.run_gate_b_b2_live_prior_smoke
 ```
 
-live summary 必须：
+目标 summary：
 
 ```text
+[GATE B B2-LIVE SUMMARY]
 api_call_succeeded: True
-model: gemini-3.1-pro-preview
+key_source: OFOX_API_KEY
+network_mode: ...
+provider: ofox_openai_compatible
+base_url: https://api.ofox.ai/v1
+model: openai/gpt-5.6-sol
 temperature: 0.2
 plans_shape: [6, 4]
+unique_plan_count: ...
+fallback_count: ...
 prior_sum: approximately 1.0
 pass: True
 ```
 
-`fallback_count` 可以记录为 0..6；它是 parser robustness 诊断，不作为单次 live connectivity Gate 的调参指标。
-
-## 10. Close condition
+## 14. Close condition
 
 B2-live 只有在：
 
-- 15/15 mock tests PASS；
-- real Gemini API call PASS；
+- B1–B3 amended 15/15 regression PASS；
+- OFOX B2-live 15/15 tests PASS；
+- real OFOX `openai/gpt-5.6-sol` API call PASS；
+- final PriorBatch 6×4 legal + finite；
 - report 不含 key/raw prompt/raw response；
 
 之后才能 CLOSED。
 
-关闭后才进入 B4 PPO network / training pipeline。
+关闭后才进入 B4 PPO network/training pipeline。
 
-## 11. Current conclusion
+## 15. Historical Gemini attempt
 
-```text
-B1-B3 formal contract : PASS / CLOSED
-Gemini live client    : READY
-Structured output     : READY
-Key hygiene           : READY
-Stateless store=false : READY
-Mock tests            : READY (15)
-Live API execution    : PENDING
+历史 B2-live 曾经历：
 
-FINAL STATUS: SOURCE READY / LIVE SMOKE PENDING
-```
+1. system proxy TLS EOF；
+2. `GEMINI_DISABLE_ENV_PROXY=1` 后 transport PASS；
+3. Gemini 3.1 Pro free-tier quota limit=0。
 
+这些结果证明旧 Gemini transport/path 的失败原因，但不再构成当前 OFOX formal Gate 条件。
 
-## 12. First live failure — proxy/TLS preflight
-
-首次真实调用在 Gemini 响应前失败：
+## 16. Current conclusion
 
 ```text
-httpcore._sync.http_proxy
--> start_tls
--> SSL: UNEXPECTED_EOF_WHILE_READING
--> google.genai ... APIConnectionError
+B1/B3 invariant contract       : FROZEN
+B2 provider/model amendment    : APPLIED
+Formal model                   : openai/gpt-5.6-sol
+Formal gateway                 : OFOX OpenAI-compatible
+Formal key env                 : OFOX_API_KEY
+OFOX client                    : SOURCE READY
+JSON Schema + semantic parser  : SOURCE READY
+Local B1-B3 regression         : PENDING
+Local B2-live tests            : PENDING
+Real OFOX response             : PENDING
+
+FINAL STATUS: OFOX MIGRATION SOURCE READY / TEST + LIVE SMOKE PENDING
 ```
-
-该堆栈说明请求已经进入 HTTP proxy transport，失败发生在 TLS CONNECT/handshake 阶段；因此不能归因于 B2 parser、K/H/A contract、模型输出质量或 PPO。
-
-Google GenAI SDK 默认 httpx client 使用环境代理发现。为使实验网络条件可审计，新增仅通过环境变量控制的 Gemini-specific network modes：
-
-```text
-default:
-  sdk_environment_proxy
-
-GEMINI_DISABLE_ENV_PROXY=1:
-  direct_no_env_proxy
-
-GEMINI_PROXY_URL=<proxy-url>:
-  explicit_proxy
-```
-
-`GEMINI_PROXY_URL` 与 `GEMINI_DISABLE_ENV_PROXY` 互斥。
-
-explicit/direct 模式均向 `google.genai.types.HttpOptions(client_args=...)` 传递 `trust_env=False`，从而避免 Windows/Git Bash 的隐式代理污染；explicit 模式再单独传 `proxy=`。
-
-新增 `masked_detected_proxies()` 仅显示：
-
-```text
-scheme://hostname:port
-```
-
-会删除 user/password，不记录 proxy credential。
-
-runner 网络异常现在会给出：
-
-- `network_mode`；
-- redacted detected proxy endpoints；
-- direct / explicit proxy 修复提示。
-
-report 成功后额外记录 `network_mode`，仍不记录 proxy URL 或 credentials。
-
-新增 3 tests：
-
-11. network mode default/direct/explicit + mutual exclusion；
-12. HttpOptions direct/explicit proxy contract；
-13. proxy diagnostic userinfo redaction。
-
-因此 B2-live 当前共 13 tests。首次 SSL failure 作为网络 preflight 历史保留；13 tests + real API PASS 前 Gate 仍保持 OPEN。
-
-## 13. Second live result — transport PASS, quota BLOCKED
-
-在：
-
-```text
-GEMINI_DISABLE_ENV_PROXY=1
-network_mode=direct_no_env_proxy
-```
-
-下重新调用后，TLS/HTTP 已成功到达 Gemini API，错误变为：
-
-```text
-429 too_many_requests
-Quota exceeded for:
-  generate_content_free_tier_input_token_count
-  generate_content_free_tier_requests
-limit: 0
-model: gemini-3.1-pro
-```
-
-这证明上一阶段的 proxy/TLS transport 问题已经解决。
-
-Google 当前官方 pricing 对 `gemini-3.1-pro-preview` 明确标注 Free Tier 为 `Not available`；因此当前 API key/project 的 free-tier limit=0 与官方产品策略一致，不是 planner/parser bug。
-
-Gate-B 冻结的是 exact model：
-
-```text
-gemini-3.1-pro-preview
-```
-
-所以不允许为了免费额度静默换成 Flash/Flash-Lite 后把 B2-live 视为通过。
-
-正式解决方式：给该 API key 所属 project 在 Google AI Studio / Cloud Billing 开通 Paid Tier quota，然后用同一 exact-model smoke 重跑。
-
-当前状态解释：
-
-```text
-network transport        : PASS
-API endpoint reached     : PASS
-authentication/project   : sufficient to reach quota evaluation
-exact-model free quota   : BLOCKED (limit=0)
-valid model response     : PENDING
-B2-live Gate             : OPEN
-```
-
-runner 已新增 exception classification：
-
-- `quota_blocked`；
-- `auth_blocked`；
-- `network_blocked`；
-- `api_error`。
-
-同时修正 proxy diagnostic：`GEMINI_DISABLE_ENV_PROXY` 等项目私有变量不再被误显示为 detected proxy。
-
-新增 2 tests：
-
-14. quota/auth/network exception classification；
-15. non-proxy Gemini flags excluded from proxy diagnostics。
-
-因此 B2-live tests 当前总数为 15。
