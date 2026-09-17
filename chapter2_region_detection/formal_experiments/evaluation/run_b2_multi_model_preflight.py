@@ -104,7 +104,7 @@ def validate_raw_prior_contract(text: str, *, k: int, h: int) -> dict:
             "semantic_valid_candidate_count": 0,
             "duplicate_candidate_count": 0,
         }
-    if not isinstance(obj, dict):
+    if not isinstance(obj, dict) or set(obj.keys()) != {"candidates"}:
         return {
             "json_valid": True,
             "schema_valid": False,
@@ -122,8 +122,9 @@ def validate_raw_prior_contract(text: str, *, k: int, h: int) -> dict:
 
     valid_plans: list[tuple[str, ...]] = []
     schema_valid = True
+    required_candidate_keys = {"actions", "prior_score", "reason"}
     for item in candidates:
-        if not isinstance(item, dict):
+        if not isinstance(item, dict) or set(item.keys()) != required_candidate_keys:
             schema_valid = False
             continue
         actions = item.get("actions")
