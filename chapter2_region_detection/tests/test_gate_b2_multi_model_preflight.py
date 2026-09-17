@@ -94,6 +94,14 @@ class TestGateB2MultiModelPreflight(unittest.TestCase):
         obj["candidates"][0]["actions"][0] = "control_traffic"
         self.assertFalse(validate_raw_prior_contract(json.dumps(obj), k=6, h=4)["schema_valid"])
 
+    def test_raw_contract_rejects_additional_properties(self):
+        obj = json.loads(valid_text())
+        obj["extra"] = 1
+        self.assertFalse(validate_raw_prior_contract(json.dumps(obj), k=6, h=4)["schema_valid"])
+        obj = json.loads(valid_text())
+        obj["candidates"][0]["extra"] = "not allowed"
+        self.assertFalse(validate_raw_prior_contract(json.dumps(obj), k=6, h=4)["schema_valid"])
+
     def test_exception_classification(self):
         self.assertEqual(classify_preflight_exception(RuntimeError("429 rate limit")), "rate_limit")
         self.assertEqual(classify_preflight_exception(RuntimeError("503 service unavailable")), "server_5xx")
