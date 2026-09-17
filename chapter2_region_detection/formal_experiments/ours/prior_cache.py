@@ -255,6 +255,8 @@ def _validate_metadata(metadata: Mapping[str, object], prior: PriorBatch) -> dic
         raise ValueError(f"cache metadata missing required keys: {sorted(missing)}")
     if not isinstance(data["api_success"], bool):
         raise ValueError("metadata.api_success must be bool")
+    if data["api_success"] is not True:
+        raise ValueError("formal live cache requires api_success=True")
     fallback_count = int(data["fallback_count"])
     actual_fallback = sum(source != "llm" for source in prior.sources)
     if fallback_count != actual_fallback:
