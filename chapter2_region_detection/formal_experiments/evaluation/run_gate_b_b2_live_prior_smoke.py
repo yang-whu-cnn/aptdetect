@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 
 import numpy as np
 
@@ -11,12 +10,12 @@ from formal_experiments.evaluation.calibrate_ug_normalizer import (
     load_calibration_records,
     resolve_project_path,
 )
-from formal_experiments.ours.gemini_prior_client import (
-    GeminiPriorLiveClient,
+from formal_experiments.ours.ofox_prior_client import (
+    OFOXPriorLiveClient,
     api_key_source,
     classify_live_exception,
-    gemini_network_mode,
     masked_detected_proxies,
+    ofox_network_mode,
 )
 from formal_experiments.ours.llm_prior_v2 import (
     FORMAL_ACTION_NAMES,
@@ -82,6 +81,8 @@ def build_report(result, *, agent_name: str, episode_seed: int) -> dict:
         "key_source": str(result.key_source),
         "network_mode": str(result.network_mode),
         "api_key_value_recorded": False,
+        "provider": "ofox_openai_compatible",
+        "base_url": str(result.base_url),
         "model": str(result.model),
         "temperature": float(result.temperature),
         "agent_name": str(agent_name),
@@ -106,7 +107,7 @@ def build_report(result, *, agent_name: str, episode_seed: int) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Gate-B B2-live Gemini prior connectivity/contract smoke"
+        description="Gate-B B2-live OFOX GPT-5.6 Sol prior connectivity/contract smoke"
     )
     parser.add_argument("--states", default=DEFAULT_STATES)
     parser.add_argument("--out", default=DEFAULT_OUT)
@@ -117,8 +118,8 @@ def main() -> None:
     source = api_key_source()
     if source is None:
         raise RuntimeError(
-            "No Gemini API key environment variable is configured. "
-            "Set GEMINI_API_KEY or GOOGLE_API_KEY before B2-live smoke."
+            "No OFOX API key environment variable is configured. "
+            "Set OFOX_API_KEY before B2-live smoke."
         )
 
     records = load_calibration_records(args.states)
@@ -128,40 +129,40 @@ def main() -> None:
         episode_seed=int(args.seed),
     )
 
-    client = GeminiPriorLiveClient(require_env_key=True)
+    client = OFOXPriorLiveClient(require_env_key=True)
     try:
         result = client.generate(state, agent_name=str(args.agent))
     except Exception as exc:
-        mode = gemini_network_mode()
+        mode = ofox_network_mode()
         failure_class = classify_live_exception(exc)
         proxies = masked_detected_proxies()
 
         if failure_class == "quota_blocked":
             guidance = (
-                "The request reached Gemini but this project/model has no usable "
-                "quota. For the frozen gemini-3.1-pro-preview contract, enable "
-                "billing/paid-tier quota for the API key's project."
+                "The request reached OFOX but the account/model has no usable "
+                "quota or balance. Check OFOX account balance and model access."
             )
         elif failure_class == "auth_blocked":
-            guidance = (
-                "Check that the configured API key belongs to the intended "
-                "project and has Gemini API access."
-            )
+            guidance = "Check OFOX_API_KEY and OFOX model/API permissions."
         elif failure_class == "network_blocked":
             guidance = (
-                "If this is an SSL/proxy error, use "
-                "GEMINI_DISABLE_ENV_PROXY=1 for direct access or a valid "
-                "GEMINI_PROXY_URL for a Gemini-only proxy."
+                "If this is an SSL/proxy error, use OFOX_DISABLE_ENV_PROXY=1 "
+                "for direct access or set a valid OFOX_PROXY_URL."
+            )
+        elif failure_class == "model_blocked":
+            guidance = (
+                "Confirm that openai/gpt-5.6-sol is available to this OFOX account."
             )
         else:
-            guidance = "Inspect the underlying Gemini API error."
+            guidance = "Inspect the underlying OFOX/OpenAI-compatible API error."
 
         raise RuntimeError(
-            "B2-live Gemini request did not produce a valid prior. "
+            "B2-live OFOX request did not produce a valid prior. "
             f"failure_class={failure_class}; network_mode={mode}; "
             f"detected_proxies={proxies}. {guidance} "
             "Do not put proxy credentials or API keys in source."
         ) from exc
+
     report = build_report(
         result,
         agent_name=str(args.agent),
@@ -178,6 +179,8 @@ def main() -> None:
     print("api_call_succeeded:", report["api_call_succeeded"])
     print("key_source:", report["key_source"])
     print("network_mode:", report["network_mode"])
+    print("provider:", report["provider"])
+    print("base_url:", report["base_url"])
     print("model:", report["model"])
     print("temperature:", report["temperature"])
     print("plans_shape:", [FORMAL_K_CANDIDATES, FORMAL_HORIZON])
