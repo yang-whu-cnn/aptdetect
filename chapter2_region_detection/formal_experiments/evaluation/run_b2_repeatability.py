@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Callable
@@ -13,18 +12,17 @@ import numpy as np
 from formal_experiments.evaluation.build_llm_validation_state_bank import state_sha256
 from formal_experiments.evaluation.run_b2_multi_model_preflight import make_live_client
 from formal_experiments.evaluation.run_b2_prior_quality import (
-    DEFAULT_BANK_RECORDS if False else EXPECTED_BANK_RECORDS,
-    DEFAULT_CACHE_ROOT as PRIOR_QUALITY_CACHE_ROOT,
+    EXPECTED_BANK_RECORDS,
     DEFAULT_REGISTRY,
     DEFAULT_REWARD_MODEL,
     DEFAULT_STATE_BANK,
     DEFAULT_STATE_BANK_SUMMARY,
     DEFAULT_WORLD_MODEL,
     build_evaluator,
+    evaluate_prior,
     file_sha256,
     load_frozen_state_bank,
     request_prior_once_logical_transaction,
-    evaluate_prior,
     resolve_project_path,
 )
 from formal_experiments.ours.model_registry import LLMModelSpec, load_model_registry
@@ -50,14 +48,13 @@ def _sha256_json_lines(rows: list[dict]) -> str:
 
 
 def select_repeatability_subset(rows: list[dict]) -> tuple[list[dict], dict]:
-    """Deterministic 30-state subset: 6 per agent, 15/15 feature17, near-even seeds."""
+    """Select 30 deterministic validation states, balanced by agent and feature17."""
     if len(rows) != EXPECTED_BANK_RECORDS:
         raise ValueError("repeatability selection requires the frozen 240-state bank")
 
     groups: dict[tuple[int, str], list[dict]] = defaultdict(list)
     for row in rows:
         groups[(int(row["episode_seed"]), str(row["agent_name"]))].append(row)
-
     for cell_rows in groups.values():
         cell_rows.sort(
             key=lambda row: (
@@ -77,8 +74,7 @@ def select_repeatability_subset(rows: list[dict]) -> tuple[list[dict], dict]:
     seen_hashes: set[str] = set()
 
     for position in range(REPEATABILITY_STATE_COUNT):
-        agent_index = position % len(agents)
-        agent = agents[agent_index]
+        agent = agents[position % len(agents)]
         seed = seeds[position % len(seeds)]
         desired_feature17 = position % 2
         cell = (seed, agent)
@@ -124,7 +120,6 @@ def select_repeatability_subset(rows: list[dict]) -> tuple[list[dict], dict]:
     if feature17 != Counter({0: 15, 1: 15}):
         raise RuntimeError("repeatability subset must be feature17-balanced 15/15")
 
-    subset_hash = _sha256_json_lines(selected)
     summary = {
         "format_version": REPEATABILITY_FORMAT_VERSION,
         "selection_algorithm": "position_mod_agent_seed_feature17_v1",
@@ -133,7 +128,7 @@ def select_repeatability_subset(rows: list[dict]) -> tuple[list[dict], dict]:
         "per_agent": {agent: int(per_agent[agent]) for agent in agents},
         "per_seed": {str(seed): int(per_seed[seed]) for seed in seeds},
         "feature17_counts": {"0": int(feature17[0]), "1": int(feature17[1])},
-        "subset_sha256": subset_hash,
+        "subset_sha256": _sha256_json_lines(selected),
         "pass": True,
     }
     return selected, summary
@@ -149,12 +144,6 @@ def make_repeatability_identity(
 ):
     if replicate not in (0, 1, 2):
         raise ValueError("repeatability replicate must be 0,1,2")
-    generation_config = {
-        "temperature": float(spec.actual_temperature),
-        "structured_output": str(spec.structured_output_requested),
-        "experiment": EXPERIMENT_TAG,
-        "replicate": int(replicate),
-    }
     return make_identity(
         split="validation",
         model_alias=spec.experiment_alias,
@@ -163,13 +152,14 @@ def make_repeatability_identity(
         registry_version=registry.version,
         registry_sha256=registry_sha256,
         prompt_version=registry.prompt_version,
-        generation_config=generation_config,
+        generation_config={
+            "temperature": float(spec.actual_temperature),
+            "structured_output": str(spec.structured_output_requested),
+            "experiment": EXPERIMENT_TAG,
+            "replicate": int(replicate),
+        },
         state=state,
     )
-
-
-def _pairwise_indices() -> tuple[tuple[int, int], ...]:
-    return ((0, 1), (0, 2), (1, 2))
 
 
 def _plan_set(record: dict) -> set[tuple[int, ...]]:
@@ -190,12 +180,13 @@ def analyze_state_replicates(records: list[dict]) -> dict:
         raise ValueError("repeatability replicate IDs must be 0,1,2")
 
     sets = [_plan_set(row) for row in records]
+    pairs = ((0, 1), (0, 2), (1, 2))
     jaccards: list[float] = []
     overlaps: list[int] = []
     top_agreement: list[int] = []
-    for left, right in _pairwise_indices():
-        union = sets[left] | sets[right]
+    for left, right in pairs:
         intersection = sets[left] & sets[right]
+        union = sets[left] | sets[right]
         jaccards.append(float(len(intersection) / len(union)))
         overlaps.append(int(len(intersection)))
         top_agreement.append(int(_top_plan(records[left]) == _top_plan(records[right])))
@@ -254,25 +245,20 @@ def summarize_repeatability(
     *,
     expected_states: int,
 ) -> dict:
-    successful_generations = [row for row in generation_records if row.get("status") == "ok"]
-    failed_generations = [row for row in generation_records if row.get("status") != "ok"]
+    successful = [row for row in generation_records if row.get("status") == "ok"]
+    failed = [row for row in generation_records if row.get("status") != "ok"]
     analyses = [row["repeatability"] for row in state_results if row.get("status") == "ok"]
-    metadata = [row["metadata"] for row in successful_generations]
-
+    metadata = [row["metadata"] for row in successful]
     expected_generations = expected_states * REPLICATES
-    cache_hits = sum(bool(row.get("cache_hit")) for row in successful_generations)
-    live_records = [row for row in successful_generations if not bool(row.get("cache_hit"))]
+    cache_hits = sum(bool(row.get("cache_hit")) for row in successful)
+    live_records = [row for row in successful if not bool(row.get("cache_hit"))]
 
     matched = [
         float(item["matched_plan_preference_variance_mean"])
         for item in analyses
         if item["matched_plan_preference_variance_mean"] is not None
     ]
-    artifact_costs = [
-        float(item["cost_usd"])
-        for item in metadata
-        if item.get("cost_usd") is not None
-    ]
+    artifact_costs = [float(item["cost_usd"]) for item in metadata if item.get("cost_usd") is not None]
     live_costs = [
         float(row["metadata"]["cost_usd"])
         for row in live_records
@@ -284,8 +270,8 @@ def summarize_repeatability(
         "expected_states": int(expected_states),
         "completed_states": len(analyses),
         "expected_generations": int(expected_generations),
-        "successful_generations": len(successful_generations),
-        "failed_generations": len(failed_generations),
+        "successful_generations": len(successful),
+        "failed_generations": len(failed),
         "schema_valid_generation_rate": float(
             sum(bool(item.get("schema_valid")) for item in metadata) / max(1, expected_generations)
         ),
@@ -306,7 +292,7 @@ def summarize_repeatability(
             / max(1, expected_generations)
         ),
         "cache_hits_this_run": int(cache_hits),
-        "cache_misses_this_run": int(len(successful_generations) - cache_hits),
+        "cache_misses_this_run": int(len(successful) - cache_hits),
         "live_api_calls_this_run": int(len(live_records)),
         "candidate_set_jaccard_mean": _mean(
             [float(item["candidate_set_jaccard_mean"]) for item in analyses]
@@ -342,8 +328,8 @@ def summarize_repeatability(
         ),
         "pass": bool(
             len(analyses) == expected_states
-            and len(successful_generations) == expected_generations
-            and not failed_generations
+            and len(successful) == expected_generations
+            and not failed
         ),
     }
 
@@ -367,7 +353,7 @@ def run_model_repeatability(
         if state.shape != (FORMAL_STATE_DIM,) or state_sha256(state) != str(row["state_sha256"]):
             raise RuntimeError("repeatability state integrity failure")
 
-        per_state_records: list[dict] = []
+        per_state: list[dict] = []
         for replicate in range(REPLICATES):
             identity = make_repeatability_identity(
                 spec=spec,
@@ -391,7 +377,6 @@ def run_model_repeatability(
             try:
                 lookup = cache.get_or_generate(identity, generate)
                 cached = lookup.cached_prior
-                quality = evaluate_prior(state, cached.prior, evaluator)
                 record = {
                     "status": "ok",
                     "replicate": int(replicate),
@@ -402,7 +387,7 @@ def run_model_repeatability(
                     "cache_hit": bool(lookup.cache_hit),
                     "cache_key": str(cached.cache_key),
                     "metadata": dict(cached.metadata),
-                    "quality": quality,
+                    "quality": evaluate_prior(state, cached.prior, evaluator),
                 }
             except Exception as exc:
                 record = {
@@ -416,9 +401,9 @@ def run_model_repeatability(
                     "error_type": type(exc).__name__,
                 }
             generation_records.append(record)
-            per_state_records.append(record)
+            per_state.append(record)
 
-        if all(item["status"] == "ok" for item in per_state_records):
+        if all(item["status"] == "ok" for item in per_state):
             state_results.append(
                 {
                     "status": "ok",
@@ -426,8 +411,8 @@ def run_model_repeatability(
                     "episode_seed": int(row["episode_seed"]),
                     "agent_name": str(row["agent_name"]),
                     "decision_index": int(row["decision_index"]),
-                    "repeatability": analyze_state_replicates(per_state_records),
-                    "replicates": per_state_records,
+                    "repeatability": analyze_state_replicates(per_state),
+                    "replicates": per_state,
                 }
             )
         else:
@@ -438,7 +423,7 @@ def run_model_repeatability(
                     "episode_seed": int(row["episode_seed"]),
                     "agent_name": str(row["agent_name"]),
                     "decision_index": int(row["decision_index"]),
-                    "replicates": per_state_records,
+                    "replicates": per_state,
                 }
             )
 
@@ -507,10 +492,7 @@ def run_repeatability(
     subset, subset_summary = select_repeatability_subset(rows)
     out_root = resolve_project_path(out_root)
     _write_jsonl(out_root / "repeatability_state_subset.jsonl", subset)
-    subset_summary = {
-        **subset_summary,
-        "source_bank_sha256": str(bank_summary["bank_sha256"]),
-    }
+    subset_summary = {**subset_summary, "source_bank_sha256": str(bank_summary["bank_sha256"])}
     _write_json(out_root / "repeatability_state_subset_summary.json", subset_summary)
 
     evaluator = build_evaluator(
@@ -536,7 +518,6 @@ def run_repeatability(
         _write_json(out_root / f"{spec.experiment_alias}.json", report)
         model_reports.append(report)
 
-    overall_pass = all(report["pass"] for report in model_reports)
     summary = {
         "phase": "gate_b2_repeatability",
         "format_version": REPEATABILITY_FORMAT_VERSION,
@@ -556,7 +537,7 @@ def run_repeatability(
             }
             for report in model_reports
         ],
-        "pass": bool(overall_pass),
+        "pass": bool(all(report["pass"] for report in model_reports)),
     }
     _write_json(out_root / "repeatability_summary.json", summary)
     return summary
