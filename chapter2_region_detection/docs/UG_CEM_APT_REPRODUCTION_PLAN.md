@@ -1,37 +1,28 @@
-# UG-CEM-APT / LWM-RL 复现、领域适配与公平对比总任务书（v2.2）
+# UG-CEM-APT / LWM-RL 复现、领域适配与公平对比总任务书（v2.3 Final Execution Contract）
 
 > 仓库：`yang-whu-cnn/aptdetect`  
 > 稳定备份分支：`me`  
 > 实验分支：`ug-cem-apt`  
 > 最后更新：2026-09-17  
-> 当前阶段：Gate A、Step 4–7 已 PASS / CLOSED；Gate B 重新组织为 **WM Final Audit → Multi-LLM Prior Study / Cache → PPO → OOD Audit → Full Training**。  
-> 本文件是后续实现、审核、实验与论文撰写的唯一 source of truth。任何实质方案变化必须先修订本文件，再改实现。
+> 当前阶段：Gate A、Step 4–7 已 PASS / CLOSED；当前进入 **Gate B0.1 — Frozen World Model Final Audit**。  
+> 本文件是后续实现、审核、实验、统计与论文撰写的唯一 source of truth。任何实质性方案变化必须先修订本文件，再修改实现。
 
 ---
 
-# 0. v2.2 修订目的与 supersede 规则
+# 0. v2.3 修订原则与 supersede 规则
 
-v2.2 保留 v2.1 已冻结的领域契约与已通过结果，但修订 Gate B 及后续实验计划，原因是进入 PPO 前需要解决三个问题：
+v2.3 在 v2.2 基础上完成最终实验路线冻结。核心修订不是更换已通过的领域契约，而是把 PPO 前后所有阶段补全为可执行 Gate：每一阶段都明确 **任务、输入、设计、产物、禁止项、验收条件、失败分支**。
 
-1. 当前 World Model 已达到原 Gate A planning-readiness，但正式 PPO 可能访问训练 replay 未覆盖的状态，因此必须增加 **per-action quality audit** 与 **policy-induced OOD / model-exploitation audit**；
-2. 正式研究不再把单一 Gemini 或单一 OFOX/GPT 模型预先冻结为唯一 LLM，而是增加 **多 LLM prior-quality + end-to-end 比较**；
-3. PPO 需要 LLM prior，但不应在每次 gradient update 都重复调用 API，因此必须先冻结 **model-specific persistent prior cache protocol**。
+v2.3 的核心决定：
 
-以下历史记录继续保留在各阶段文档与 Git 历史中：
+1. 当前 frozen World Model 不因“训练速度快”而直接重训；先完成 per-action 与后续 policy-induced OOD 审计，只有 audit FAIL 才重新开放 WM training。
+2. 不再预先把 Gemini 或 OFOX/GPT-5.6 Sol 固定为唯一正式 LLM。最终至少比较 3 个能力/成本层级模型，并加入 uniform non-LLM baseline。
+3. LLM prior 与 PPO 解耦：API 只在 cache miss 时调用；PPO gradient update 不重复调用 LLM。
+4. 每个 LLM variant 必须独立训练 PPO；不同 LLM 不共享同一个 PPO checkpoint 作为正式公平结论。
+5. 所有 LLM、LWM-RL、UG-CEM、CEM-APT 共享同一个 D27/A4、WM、reward predictor、resolver、adapter、seed protocol。
+6. 正式 test seeds 在全部模型、prompt、K/H、PPO、beta、ablation 定义冻结前不可使用。
 
-- `docs/step3-A*.md`：Gate A；
-- `docs/step4.md`：SharedRolloutEvaluator；
-- `docs/step5.md`：UG-CEM planner；
-- `docs/step6.md`：UG normalizer；
-- `docs/step7.md`：integration smoke；
-- `docs/gate-b-B1-B3.md`：B1/B3 与旧 B2 contract 历史；
-- `docs/gate-b-B2-live.md`、`docs/gate-b-B2-ofox-amendment.md`：Gemini/OFOX 接入历史。
-
-从 v2.2 起：
-
-- Gemini-3.1 与 OFOX `openai/gpt-5.6-sol` 都只能视为 **LLM candidate/provider history or candidate**，不得在多模型比较完成前宣称为最终唯一主模型；
-- `A=4 / D=27 / H=4 / K=6 / reward / posterior evidence` 仍保持冻结；
-- test seeds 在所有设计、调参、模型选择结束前保持不可见。
+历史 Gemini/OFOX live 接入仅保留工程审计价值；从 v2.3 起它们属于 provider/model candidate history，不自动代表最终主模型。
 
 ---
 
@@ -39,94 +30,104 @@ v2.2 保留 v2.1 已冻结的领域契约与已通过结果，但修订 Gate B �
 
 ## 1.1 主问题
 
-在相同 CC4 observation、FormalState、四动作空间、host resolver、World Model、response reward 和 paired seeds 下，比较：
+在相同 CC4 observation、FormalState、动作空间、World Model、response reward、target resolver、adapter 与 paired seeds 下，比较：
 
 ```text
-LWM-RL:
-LLM candidate prior
+LWM-RL
+= LLM candidate prior
 + bootstrap ensemble WM foresight
 + PPO posterior plan selection
 
-vs
+UG-CEM-APT
+= categorical CEM
++ ensemble uncertainty penalty
 
-UG-CEM-APT:
-Categorical CEM
-+ source-faithful uncertainty penalty
-
-vs
-
-CEM-APT:
-UG-CEM mechanism with beta=0
+CEM-APT
+= same CEM mechanism with beta=0
 ```
 
-核心问题：
+主要回答：
 
-> LLM prior + model-based foresight + learned posterior selection，是否能在 APT 动态响应中减少攻击消除时间、降低 incident-host normal-operation failure，并提高 cumulative response return？
+- 是否缩短 Attack Eradication Time；
+- 是否降低 incident-host Host Work Fail；
+- 是否提高 cumulative response return；
+- 是否保持或改善 CC4 official team return。
 
-## 1.2 新增多 LLM 子问题
+## 1.2 多 LLM 子问题
 
-必须另外回答：
+必须回答：
 
-1. 不同 LLM 的 candidate-plan quality / diversity / stability 是否不同？
-2. 更强 LLM prior 是否一定带来更好的 end-to-end PPO performance？
+1. 不同 LLM 的 candidate-plan validity、diversity、quality、repeatability 是否不同？
+2. 更高的 LLM prior quality 是否转化为更好的 end-to-end PPO performance？
 3. WM + PPO posterior 是否能纠正较弱或不完美的 LLM prior？
-4. 性能提升相对于 API latency / token / monetary cost 是否值得？
+4. LLM 性能提升相对于 API latency / token / monetary cost 是否值得？
+5. Uniform prior / uniform generator 与 LLM prior 的差距多大？
 
 ---
 
-# 2. 已完成且继续冻结的正式领域契约
+# 2. 已冻结领域契约（不得因后续实验改变）
 
-## 2.1 Environment / agents
+## 2.1 Environment
 
 - CAGE Challenge 4 / CybORG CC4；
 - `FiniteStateRedAgent`；
 - `EnterpriseGreenAgent`；
-- Blue agents：`blue_agent_0..4`；
+- Blue agents=`blue_agent_0..4`；
 - `pad_spaces=false`；
-- planner 仅在 agent ready 的 decision epoch 被调用。
+- planner 只在 agent ready 的 decision epoch 调用。
 
-## 2.2 Formal state
+## 2.2 FormalState
 
 ```text
 D = 27
-FormalStateEncoder
 feature 17 = any_valid_observable_target
 ```
 
 只允许 planner-visible observation / tracker evidence。
 
-禁止：
+禁止 policy/planner/LLM prompt 使用：
 
 - hidden Red sessions；
-- true compromise label；
-- future reward；
-- attack ground-truth label；
+- true compromise labels；
+- future state/reward；
+- attack ground-truth labels；
 - test information。
 
 ## 2.3 High-level action contract
 
 ```text
 A = 4
-0 no_op   -> Sleep            duration 1
-1 analyse -> Analyse(host)    duration 2
-2 remove  -> Remove(host)     duration 3
-3 restore -> Restore(host)    duration 5
+0 no_op   -> Sleep            duration=1
+1 analyse -> Analyse(host)    duration=2
+2 remove  -> Remove(host)     duration=3
+3 restore -> Restore(host)    duration=5
 ```
 
-动作 ID 是 categorical ID，不代表强度。
+动作 ID 是 categorical ID，不表示强度。
 
-Analyse / Remove / Restore 共用同一个 planner-visible deterministic host target resolver。
+Targeted action 无合法 observable target 时：
 
-若 targeted action 无合法 observable target：
+- requested action 保留用于审计；
+- runtime 执行 Sleep fallback；
+- model-space 使用 shared canonicalizer 转为 executed/canonical action；
+- fallback reason 必须记录。
 
-- requested action 保留；
-- runtime fallback 到 Sleep；
-- model-space 通过 shared canonicalizer 映射为 executed/canonical action；
-- fallback 必须记录。
+## 2.4 Decision epoch
 
-## 2.4 Response objective
+一个 high-level transition：
 
-正式 response reward：
+```text
+s_t
++ requested action
++ actual executed/canonical action
++ real duration dt
++ accumulated real response reward
+-> s_next_decision
+```
+
+busy agent 不提交 filler action。
+
+## 2.5 Response reward
 
 ```text
 r_resp
@@ -134,27 +135,25 @@ r_resp
   + 1.0 * raw incident-host LWF penalty
 ```
 
-事件级：
+闭合 incident：
 
 ```text
 T_erad = t_normal - t_compromise
-sum(active tick penalty) = T_erad
+sum(active tick penalties) = T_erad
 ```
 
-不包含：
+正式 objective 不包含：
 
 - early-warning lead reward；
 - fixed action cost；
-- `lambda_delay`；
+- lambda_delay；
 - checkpoint coverage。
 
-CC4 official team return 始终作为独立 external metric。
+CC4 official team return 始终单独报告。
 
 ---
 
-# 3. Seed / data protocol
-
-冻结：
+# 3. Seed / split protocol
 
 ```text
 train       = 1000..1031  (32)
@@ -165,255 +164,215 @@ test        = 4000..4019  (20)
 
 用途：
 
-- train：replay / WM / reward predictor / PPO；
-- validation：WM audit、LLM comparison、PPO checkpoint selection、beta、K/H sensitivity、消融设计；
-- calibration：UG uncertainty normalizer only；
-- test：所有配置完全冻结后的 paired evaluation only。
+- train：replay、WM/reward fitting、PPO training、provisional OOD probe；
+- validation：WM audit、LLM prior study、model selection、PPO checkpoint selection、beta/K/H/ablation；
+- calibration：UG uncertainty normalizer；
+- test：全部冻结后唯一正式 paired evaluation。
 
-禁止：
+严格禁止：
 
-- transition-level random split 代替 episode-seed split；
-- calibration/test 更新 WM、reward predictor、PPO normalizer、prompt、模型选择；
-- test-seed tuning。
+- transition-level random split 代替 episode split；
+- calibration/test 更新模型或 normalizer；
+- test 调 prompt/model/K/H/PPO/beta；
+- 根据 test 结果决定是否重训 WM。
 
 ---
 
-# 4. 已完成阶段状态
+# 4. 已完成并冻结的阶段
 
 ```text
-[x] Gate A — A=4 / D=27 / replay / WM / reward / integration
+[x] Gate A — A4/D27/replay/WM/reward/integration
 [x] Step 4 — Vectorized SharedRolloutEvaluator
-[x] Step 5 — UGCEM Planner
-[x] Step 6 — UG uncertainty normalizer calibration
+[x] Step 5 — UG-CEM planner
+[x] Step 6 — UG uncertainty normalizer
 [x] Step 7 — integration smoke
 ```
 
-Gate A 最终本地 regression：191/191 PASS。
-
-Step 7 最终：
+Step 7 final smoke：
 
 ```text
-local short = 20 planner calls
-local long  = 500 planner calls
-official seeds = [1000,1001]
-scenario ticks = [50,50]
-post-reset env steps = [49,49]
-official decisions = [205,182]
+local_short_calls = 20
+local_long_calls = 500
+official_seeds = [1000,1001]
+official_scenario_ticks = [50,50]
+official_post_reset_env_steps = [49,49]
+official_decisions = [205,182]
 pass = True
 ```
 
+历史阶段详细记录保留在 `docs/step3-A*.md`, `docs/step4.md`, `docs/step5.md`, `docs/step6.md`, `docs/step7.md`。
+
 ---
 
-# 5. 当前 frozen World Model / reward predictor
+# 5. 当前 frozen World Model / Reward Predictor
 
-## 5.1 Selected WM
-
-正式 checkpoint：
+## 5.1 World Model
 
 ```text
-outputs/world_model_v2/a4_5b/world_model_absolute.pt
-```
-
-结构：
-
-```text
+checkpoint = outputs/world_model_v2/a4_5b/world_model_absolute.pt
 state_dim = 27
-n_actions = 4
+actions = 4
 ensemble M = 5
 hidden = 128 x 2
 probabilistic diagonal Gaussian
-independent init / bootstrap / optimizer
 absolute next-state target
-train-only state normalization
+independent init/bootstrap/optimizer
+train-only normalization
 fixed-member deterministic mean rollout
-```
-
-训练 config：
-
-```text
 lr = 3e-4
 batch = 256
 epochs = 50
 ```
 
-正式 replay：
+Replay：
 
 ```text
-train transitions      = 9041
-validation transitions = 2336
+train completed transitions      = 9041
+validation completed transitions = 2336
+validation executed counts:
+  Sleep   1641
+  Analyse 214
+  Remove  233
+  Restore 248
 ```
 
-validation executed counts：
+已有 aggregate validation：
 
 ```text
-Sleep    = 1641
-Analyse  = 214
-Remove   = 233
-Restore  = 248
-```
-
-## 5.2 Existing WM quality
-
-```text
-one-step RMSE = 0.132231702
-persistence   = 0.180830250
-
-H4 RMSE       = 0.191052066
-persistence   = 0.219133339
-
+one-step RMSE = 0.132231702 < persistence 0.180830250
+H4 RMSE       = 0.191052066 < persistence 0.219133339
 H4 uncertainty-error Spearman = 0.687620634
-positive validation episodes  = 8/8
+positive validation episodes = 8/8
 ```
 
-因此当前结论是：
-
-> WM 已达到短 horizon planning-ready 条件，但不能解释为“长期预测高度准确”。
-
-## 5.3 Shared reward predictor
-
-正式 checkpoint：
+## 5.2 Reward predictor
 
 ```text
-outputs/world_model_v2/a4_5c/response_reward_predictor.pt
+checkpoint = outputs/world_model_v2/a4_5c/response_reward_predictor.pt
+one-step reward RMSE = 2.258064 < train-mean 4.854820
+WM+reward H4 value RMSE = 7.626011 < constant baseline 15.522030
+H4 value Spearman = 0.670119
+positive episodes = 8/8
 ```
 
-已有结果：
-
-```text
-one-step reward RMSE = 2.258064
-train-mean baseline  = 4.854820
-
-WM + reward H4 value RMSE = 7.626011
-constant baseline          = 15.522030
-H4 value Spearman          = 0.670119
-positive episodes          = 8/8
-```
-
-A4.6 requested-plan integration rerun：
+A4.6 integration rerun：
 
 ```text
 H4 state RMSE = 0.200014838 < 0.219133339
 H4 value RMSE = 7.608134616 < 15.522029957
 H4 value Spearman = 0.681404826
-8/8 episodes positive
+positive episodes = 8/8
 ```
+
+当前判断：**planning-ready but not assumed globally accurate**。
 
 ---
 
-# 6. Gate B0 — World Model Final Audit（PPO 前新增）
+# 6. Gate B0.1 — Frozen WM Per-Action Final Audit（CURRENT）
 
-目标：不是重新训练 WM，而是确认当前 frozen WM 足以进入 PPO；只有 audit FAIL 才重新打开 WM training。
+## 6.1 任务
 
-## B0.1 Per-action / coverage audit — CURRENT FIRST IMPLEMENTATION
+在不训练任何参数的前提下，对 frozen WM 做 action-conditioned 与 coverage 审计，确认 aggregate 指标没有掩盖 targeted action 的局部失效。
 
-### 任务
+## 6.2 输入
 
-在 frozen v2 train/validation replay 上重新加载 selected WM，不训练参数，只做分动作与序列诊断。
+只允许：
 
-### 设计
+```text
+outputs/formal_replay_v2/train.jsonl
+outputs/formal_replay_v2/validation.jsonl
+outputs/world_model_v2/a4_5b/world_model_absolute.pt
+```
 
-对 `Sleep / Analyse / Remove / Restore` 分别报告：
+train 仅用于 coverage/count provenance；质量 Gate 使用 validation。
 
-- train / validation completed sample count；
-- one-step WM RMSE / MAE；
+## 6.3 设计
+
+对 `no_op/analyse/remove/restore` 分别报告：
+
+### one-step
+
+- train completed count；
+- validation completed count；
+- WM RMSE / MAE；
 - action-specific persistence RMSE / MAE；
-- ratio `WM_RMSE / persistence_RMSE`；
-- sample-level ensemble uncertainty vs prediction-error Spearman；
-- uncertainty quartile calibration；
-- first-action-conditioned H=4 window count、H4 RMSE、H4 persistence RMSE；
-- per-agent × action count / RMSE（diagnostic）。
+- RMSE ratio=`WM/persistence`；
+- sample-level epistemic uncertainty vs true error Spearman；
+- uncertainty quartile：count、mean uncertainty、mean/median true error。
 
-不得：
+### H=4 first-action conditioned
+
+按同 agent 连续 decision transitions 构建 H4 window，只以 window 第一个 executed action 分桶：
+
+- window count；
+- H4 RMSE/MAE；
+- persistence H4 RMSE/MAE；
+- uncertainty-error Spearman；
+- quartile diagnostics。
+
+### per-agent diagnostic
+
+对 5 Blue agents × 4 actions 报告 count、RMSE、persistence RMSE。小 bucket 只 diagnostic，不单独触发 retraining。
+
+### aggregate reproduction
+
+必须重新计算并复现冻结的：
+
+```text
+one-step RMSE
+one-step persistence RMSE
+H4 RMSE
+H4 persistence RMSE
+H4 uncertainty-error Spearman
+```
+
+## 6.4 禁止项
 
 - 重新 fit normalizer；
 - 重新训练 WM；
+- 修改 replay；
 - 使用 calibration/test；
-- 根据结果修改 threshold。
+- 运行后再改 Gate threshold；
+- 因某模型后续更喜欢某 action 而对该 action 单独放宽标准。
 
-### B0.1 验收
+## 6.5 PASS 条件（运行前冻结）
 
-硬条件：
+全部必须满足：
 
-1. exact frozen train/validation seeds；
-2. selected checkpoint target mode=`absolute`；
-3. 所有数值 finite；
-4. 四个 action validation completed count 均 >= 150；
-5. 四个 action one-step `WM_RMSE / action_persistence_RMSE <= 1.25`；
-6. 至少 3/4 action 的 one-step WM RMSE <= action-specific persistence；
-7. aggregate one-step/H4/uncertainty 指标必须在数值容差内复现 A4.5b frozen report；
-8. 不允许某 action 出现无法解释的空 bucket / action-ID mismatch。
+1. checkpoint=`absolute`, D27, A4, M5；
+2. validation 四动作 completed count 均 >=150；
+3. 所有输出 finite；
+4. 每个 action one-step `WM_RMSE/persistence_RMSE <= 1.25`；
+5. 至少 3/4 actions 的 one-step WM RMSE <= action persistence；
+6. frozen aggregate metrics absolute delta <=5e-4；
+7. action family→ID mapping 无 mismatch；
+8. 四 action 均有非空 one-step bucket。
 
-若第 5/6 条失败：WM Gate 重新打开，必须先做 train-only targeted data augmentation，再全方法统一重训 WM。
+H4 first-action bucket 与 per-action Spearman 为 diagnostic：如果出现明显 catastrophic bucket（例如 H4 ratio >2 或 nonfinite），不得静默 PASS，必须人工 reopen review。
 
-H4 first-action bucket 与 per-action Spearman 先作为 diagnostic，不因单一小 bucket 轻微波动自动重训；若出现明显 catastrophic bucket，则在文档审核后再决定是否 reopen。
+## 6.6 FAIL 分支
 
-### 输出
-
-```text
-outputs/world_model_v2/b0_1/per_action_audit.json
-```
-
-记录文档：
-
-```text
-docs/gate-b-B0-WM-audit.md
-```
-
-## B0.2 Policy-induced OOD / model-exploitation audit — 在 provisional PPO 后执行
-
-### 任务
-
-正式 PPO 全量训练前，先用一个 provisional PPO seed 在 **train seeds only** 上做短 rollout，收集 PPO 实际访问的真实 decision transitions，检查其是否显著偏离 WM replay distribution。
-
-### 设计
-
-provisional probe：
-
-```text
-PPO seed: one development seed only
-train environment seeds only
-max decisions: 20,000
-results: integration/audit only, not paper table
-```
-
-对真实 visited transitions 计算：
-
-- one-step WM RMSE；
-- model-space action coverage；
-- normalized state z-RMS distance；
-- normalized train-state kNN distance；
-- ensemble uncertainty；
-- uncertainty-error Spearman；
-- top-quartile uncertainty vs bottom-quartile error；
-- OOD fraction：visited state 的 normalized kNN distance 超过 frozen validation 99th percentile 的比例。
-
-能构造连续窗口时额外报告 H=4 real rollout error。
-
-### B0.2 验收
-
-硬条件：
-
-1. probe 只使用 train seeds；
-2. no hidden truth into policy；
-3. probe one-step RMSE <= `1.25 * frozen validation one-step RMSE`；
-4. aggregate uncertainty-error Spearman > 0；
-5. uncertainty top quartile 的 mean true error > bottom quartile；
-6. OOD fraction <= 10%；
-7. 无 action bucket 完全消失；
-8. 不允许 PPO reward 由 WM predicted return 代替真实 CC4 response reward。
-
-若 FAIL：
+若硬条件失败且不是实现 bug：
 
 ```text
 train-only targeted recollection
--> append new replay version
--> retrain WM + reward predictor if target distribution changed
--> rerun A4.5/A4.6 + B0.1
--> invalidate provisional PPO
--> restart PPO from scratch
+-> new replay version
+-> retrain shared WM
+-> 如 reward distribution changed，则同步 retrain reward predictor
+-> rerun A4.5/A4.6
+-> rerun B0.1
 ```
 
-若 PASS：当前 WM 正式继续冻结到所有 LLM / UG / CEM 比较结束。
+不得只给 LWM-RL 单独换 WM。
+
+## 6.7 产物
+
+```text
+formal_experiments/evaluation/audit_world_model_final.py
+outputs/world_model_v2/b0_1/per_action_audit.json
+docs/gate-b-B0-WM-audit.md
+tests/test_gate_b0_world_model_audit.py
+```
 
 ---
 
@@ -421,326 +380,379 @@ train-only targeted recollection
 
 状态：**PASS / CLOSED**。
 
-已通过 executable test 证明：
-
-```text
-False -> True @1
-True  -> False @4
-active ticks = 3
-T_erad = 4 - 1 = 3
-```
-
-后续 PPO 使用真实 environment decision interval 的 accumulated `response_reward`。
+后续 PPO training reward 必须来自真实 CC4 decision interval 的 accumulated response reward。
 
 禁止：
 
-- 用 WM predicted value 直接当 PPO training reward；
-- 用 LLM prior score 当 reward；
-- 恢复旧 action cost / delay reward。
+- predicted WM value 当 PPO reward；
+- LLM prior score 当 reward；
+- 恢复 action-cost/delay/early-warning reward。
 
 ---
 
-# 8. Gate B2 — Multi-LLM Prior Study（v2.2 重构）
+# 8. Gate B2 — Multi-LLM Prior Study
 
-B2 不再预先冻结一个唯一 provider/model。
+B2 目标是先研究 candidate prior，再决定 primary LLM；不允许在实验前把单一 provider/model 写死为最终主模型。
 
-## B2.1 Structural prior contract — FROZEN
+## B2.1 Provider-neutral structural contract
 
-主 contract：
+冻结：
 
 ```text
-A = 4
-K = 6
-H = 4
-prompt versioned
+A=4
+K=6
+H=4
 planner-visible D27 only
-strict structured JSON if provider supports it
+host target not selected by LLM
+versioned prompt
+strict structured output when provider supports it
 local semantic parser always required
-exact duplicate -> keep highest score
+duplicate plan -> keep highest score
 invalid plan -> reject
-candidate shortage -> deterministic neutral fallback
-prior preference -> nonnegative linear normalize to sum 1
+shortage -> deterministic neutral fallback
+prior scores -> nonnegative linear normalize to sum=1
 ```
 
-动作名：
+若 provider 不支持某 generation parameter，必须记录为 `unsupported/omitted`，不可伪造或为单个模型单独调优。
+
+## B2.2 Model registry
+
+正式 prior study 前必须创建 model registry，至少 3 个模型：
 
 ```text
-no_op / analyse / remove / restore
+Tier-H: strong/high-capability
+Tier-M: medium-cost
+Tier-L: lower-cost/smaller or open-weight-access
 ```
 
-host target 不由 LLM 选择。
+registry 每项必须记录：
 
-## B2.2 Candidate model tiers
+- stable experiment alias；
+- provider；
+- exact API model ID；
+- endpoint family；
+- structured-output capability；
+- requested/actual temperature；
+- tokenizer/usage availability；
+- cost source/version if available；
+- retry policy；
+- model entry freeze timestamp。
 
-正式比较至少 3 个 LLM，按能力/成本层级选择，而不是只比较品牌：
+当前 OFOX `openai/gpt-5.6-sol` 只是 Tier-H candidate。历史 Gemini-3.1 不自动进入最终三模型集合。
 
-```text
-Tier-H: strong / high-capability model
-Tier-M: medium-cost general model
-Tier-L: small / low-cost or open-weight-access model
-```
+### Registry PASS
 
-当前 `openai/gpt-5.6-sol` via OFOX 只作为 Tier-H candidate；历史 Gemini-3.1 接入结果作为 engineering history，不自动进入最终模型集。
+- 至少 3 tiers；
+- exact IDs 可调用或明确标记 pending-live；
+- alias 不可在 state-bank collection 开始后映射到另一模型；
+- 所有正式模型共享同一 prompt/A/K/H/parser；
+- 无 API key 写入 registry。
 
-exact provider/model IDs 必须在 prior study 开始前写入 model registry；一旦开始 formal validation state bank，不得中途替换同一 model alias。
+## B2.3 Validation state bank
 
-## B2.3 Generation-parameter fairness
+只从 validation seeds `2000..2007` 生成固定 planner-visible D27 state bank。
 
-默认请求：
+目标：240 states；选择过程必须 deterministic 且不看 hidden labels/reward。
 
-```text
-temperature = 0.2
-K = 6
-H = 4
-```
+覆盖约束：
 
-若某 provider/model 明确不支持某 generation parameter：
-
-- 不允许伪造支持；
-- registry 记录 unsupported / omitted；
-- paper 明确报告实际 generation config；
-- 不能为了某个模型单独调 prompt 或 K/H 获得优势。
-
-## B2.4 Validation state bank
-
-只使用 validation seeds `2000..2007`。
-
-构建固定 planner-visible state bank，默认目标 240 states：
-
-- five agents 全覆盖；
+- 5 agents 全覆盖；
 - 8 validation seeds 全覆盖；
-- 按 agent×seed deterministic selection；
-- decision order 均匀取样；
-- 若同一 agent/seed 同时存在 feature17=0/1，则两种 target-availability 都必须覆盖；
-- 不看 hidden attack labels / future reward 选样本。
+- 每个 agent×seed 至少一个 state；
+- decision order 尽量均匀覆盖 early/mid/late；
+- 当某 agent×seed 存在 feature17=0 与1时，两类都应进入 bank；
+- duplicate D27 exact states 去重后仍不足目标时，按 deterministic next candidate 补齐。
 
-state bank 一旦冻结，所有 LLM 完全相同。
+state bank 保存：
 
-## B2.5 Prior quality metrics
+- bank format version；
+- seed/agent/decision index/global tick；
+- exact D27 float32 state；
+- state SHA256；
+- source replay/provenance；
+- selection config/hash。
 
-每个 LLM 报告：
+禁止保存 hidden truth / future reward / attack labels。
 
-### Format / reliability
+### State-bank PASS
+
+- records=240，除非源数据客观不足并有显式报告；
+- seed/agent coverage 完整；
+- D27 finite；
+- deterministic rerun hash 完全一致；
+- no calibration/test；
+- no hidden/reward labels。
+
+## B2.4 Prior generation protocol
+
+对每个正式 LLM，在同一 state bank 上生成 K=6/H=4 plans。
+
+默认：
+
+```text
+temperature=0.2
+max retries=2 per cache miss
+retry only on transport/5xx/rate-limit classes
+semantic-invalid successful response does not trigger unlimited regeneration
+```
+
+API success 与 final PriorBatch validity 分开记录。
+
+## B2.5 Prior-quality metrics
+
+### Reliability
 
 - API success rate；
-- schema-valid rate before local fallback；
-- semantic-valid plan rate；
+- schema-valid response rate；
+- semantic-valid candidate rate before fallback；
 - fallback candidate rate；
-- duplicate rate。
+- duplicate candidate rate；
+- retry/failure rate。
 
 ### Diversity
 
 - unique plan ratio；
 - per-position action entropy；
-- candidate-set action coverage。
+- action coverage across candidate set；
+- all-no-op / all-restore plan prevalence。
 
-### WM-based candidate quality
+### Frozen-WM candidate quality
 
-使用同一个 frozen WM/reward evaluator：
+使用完全相同 frozen WM/reward evaluator：
 
-- top-prior plan predicted value；
+- top-prior predicted value；
 - best-of-K predicted value；
-- candidate mean predicted value；
-- candidate-set value spread；
-- candidate uncertainty mean / max；
+- mean candidate value；
+- value spread；
+- mean/max uncertainty；
 - prior-score vs predicted-value Spearman；
-- top-prior plan rank among K by predicted value。
+- top-prior rank under predicted value。
 
-这些只用于 candidate-quality analysis，不能单独证明真实 environment superiority。
+这些指标用于 prior analysis，不等价于真实环境表现。
 
 ### Efficiency
 
 - API latency p50/p95；
-- token usage（若 provider 提供）；
-- monetary cost（若可获得）；
+- input/output token if available；
+- monetary cost if available；
 - cache hit/miss；
-- failed/retried calls。
+- total live API calls。
 
-## B2.6 Repeatability / stochasticity
+## B2.6 Repeatability
 
-从 frozen validation bank 预先选 30 states，所有 LLM 相同；每个模型重复 3 次。
+从 frozen bank 用 deterministic rule 选 30 states；每模型独立重复 3 次（独立 live generations，不读取第一次 cache）。
 
 报告：
 
-- candidate-set overlap / Jaccard；
-- top-1 plan agreement；
-- prior score variance；
+- candidate-set Jaccard/overlap；
+- top-prior plan agreement；
+- prior-score variance；
 - best-of-K predicted-value variance。
 
 repeatability subset 不用于 prompt tuning。
 
-## B2.7 Uniform baseline
+## B2.7 Uniform non-LLM baseline
 
-Prior-quality study 必须加入非 LLM baseline：
+固定：
 
 ```text
-state-independent deterministic uniform sample from 4^4 plan space
-uniform prior = 1/K
+state-independent deterministic sample from 4^4 plan space
+K=6
+uniform prior=1/6
 ```
 
-用于判断 LLM 是否真的改善 candidate set，而不只是由 WM/PPO 完成全部工作。
+使用完全相同 WM evaluation metrics。
+
+## B2.8 B2 完成条件
+
+B2 完成不要求某 LLM “必须赢”，而要求实验完整可靠：
+
+- registry frozen；
+- validation state bank PASS；
+- 3 LLM + uniform 全部生成完整 report；
+- 所有模型 API success/fallback/cost 明确；
+- 所有计划最终满足 A4/H4/K6；
+- no hidden/test leakage；
+- repeatability 完成；
+- provider failure 没有被 silent fallback 伪装成 live success。
+
+Primary LLM 只能在 validation prior-quality + 后续 end-to-end validation 完成后确定；prior-quality 单独不能决定最终 winner。
+
+## B2.9 产物
+
+```text
+configs/llm_model_registry_v1.yaml
+outputs/lwm_rl_v2/b2/state_bank.jsonl
+outputs/lwm_rl_v2/b2/state_bank_summary.json
+outputs/lwm_rl_v2/b2/<model_alias>/prior_quality.json
+outputs/lwm_rl_v2/b2/repeatability/<model_alias>.json
+docs/gate-b-B2-multi-llm.md
+```
 
 ---
 
-# 9. Gate B2.5 — Persistent LLM Prior Cache Protocol
+# 9. Gate B2.5 — Persistent Prior Cache
 
-这是 PPO 前必须完成的工程/实验协议，不再视为 P2 speed optimisation。
+Prior cache 是 formal PPO 的必要基础设施，不是可选优化。
 
-## 9.1 Cache key
+## 9.1 Canonical key
 
-默认禁止 state quantization，避免不同状态错误碰撞。
-
-canonical key 至少包含：
+主实验禁止 state quantization。Key material 必须包括：
 
 ```text
+format_version
 split
 provider
 exact model ID
+model registry hash
 prompt version
 A/K/H
 generation config
-D27 float32 state bytes/hash
+D27 dtype/shape
+exact float32 state bytes SHA256
 ```
 
-最终使用 SHA256 key。
+最终 key=SHA256(canonical serialized key material)。
 
-## 9.2 Cache namespace
+## 9.2 Namespace
 
-严格隔离：
+必须隔离：
 
 ```text
 train / validation / test
-model-A / model-B / model-C
-prompt-version
+model alias
+prompt version
+registry version
 ```
 
-不同模型不得共享 candidate output。
+不同 model/split/prompt 不能命中同一 entry。
 
-## 9.3 Cache value
+## 9.3 Value schema
 
 保存：
 
+- cache key + format version；
 - state hash；
-- model/provider；
-- prompt version；
-- generation config；
+- split/model/provider/exact model ID；
+- prompt version/config hash；
+- K/H/A；
 - candidate plans；
-- raw prior scores；
+- raw scores；
 - normalized priors；
-- source=`llm` or fallback；
+- candidate source (`llm`/fallback)；
 - fallback count；
-- prompt hash / response hash；
+- API success flag；
+- prompt/response hash；
 - latency；
-- usage/cost metadata if available；
-- creation timestamp / format version。
+- token/cost metadata；
+- retry count；
+- creation time。
 
-禁止保存：
+禁止保存：API key、hidden truth、future reward、test labels。
 
-- API key；
-- hidden CC4 truth；
-- future reward；
-- test labels。
-
-raw response 默认不进入正式 cache；如 debug 临时保存必须在非正式目录且不得提交 Git。
+raw response 默认不保存到 formal cache。
 
 ## 9.4 Runtime semantics
 
 ```text
-state -> key
-  cache hit  -> reuse frozen PriorBatch
-  cache miss -> call provider -> validate -> write atomically -> use
+state -> canonical key
+  hit  -> validate entry -> return PriorBatch; provider call count unchanged
+  miss -> one provider transaction with bounded retries
+       -> validate
+       -> atomic temp write + fsync/replace
+       -> return PriorBatch
 ```
 
-API 调用发生在 cache miss，不发生在 PPO 每次 gradient epoch。
+API 调用只发生在 cache miss，不发生在 PPO 的每个 gradient epoch。
 
-## 9.5 验收
+## 9.5 Corruption / concurrency
+
+- checksum/schema mismatch -> quarantine + hard miss；
+- partial file 不得读取；
+- atomic replace；
+- 同 key 并发写入必须通过 lock 或 deterministic last-equivalent-write；
+- incompatible format version hard fail，不 silent migrate。
+
+## 9.6 Cache PASS
 
 - same key deterministic retrieval；
-- different model/split/prompt cannot collide；
-- atomic write；
-- corrupt cache hard fail or quarantined，不 silent reuse；
-- no API key serialization；
-- cache hit does not call provider；
-- cache miss exactly one provider call in unit mock；
-- train/validation/test namespaces enforced。
+- hit=0 provider calls；
+- miss=exactly one logical provider transaction（bounded retries 内部单独计数）；
+- model/split/prompt/config change 必须 miss；
+- corrupt entry 不可 silent reuse；
+- API key serialization scan=0；
+- cache roundtrip PriorBatch exact；
+- unit tests 覆盖 atomic write/failure recovery。
+
+## 9.7 产物
+
+```text
+formal_experiments/ours/prior_cache.py
+outputs/lwm_rl_v2/prior_cache/<split>/<model_alias>/...
+tests/test_prior_cache.py
+docs/gate-b-B2-cache.md
+```
 
 ---
 
-# 10. Gate B3 — PPO Posterior Observation
+# 10. Gate B3 — Posterior Candidate Representation
 
-状态：结构 contract 已通过，继续冻结：
+结构已冻结，但 provider-neutral migration 后必须回归。
 
 每 candidate：
 
 ```text
-current state             27
-candidate plan one-hot    16
-LLM prior                  1
-predicted value             1
-predictive uncertainty      1
---------------------------------
-candidate feature          46
+state                  27
+plan one-hot           16
+prior preference        1
+predicted value         1
+predictive uncertainty  1
+--------------------------
+feature dim            46
 ```
-
-其中：
 
 ```text
-value_i = mean(member cumulative returns)
-uncertainty_i = population std(member cumulative returns)
+value_i = mean(member cumulative response returns)
+uncertainty_i = population std(member cumulative response returns)
 ```
 
-不得加入：
+禁止添加：action cost、delay、checkpoint coverage、early-warning、hidden host identity。
 
-- action cost；
-- checkpoint coverage；
-- delay；
-- early-warning evidence；
-- hidden incident identity。
+B3 regression PASS：shape、finite、permutation-safe inputs、value consistency、prior sum=1、no legacy evidence。
 
 ---
 
 # 11. Gate B4 — Formal PPO
 
-旧 PPO checkpoint 全部 legacy。
+## B4.1 Network
 
-## B4.1 Network architecture
-
-为了支持候选 permutation consistency 与未来 K sensitivity，正式网络采用 candidate-wise shared encoder，而不是简单 flatten K×46：
+采用 candidate-wise shared encoder，避免 flatten K×46 导致 candidate order dependence：
 
 ```text
-candidate feature [K,46]
-      |
-shared encoder per candidate
-46 -> 128 ReLU -> 128 ReLU
-      |
-      +--> actor scalar head per candidate -> K logits -> Categorical
-      |
-      +--> mean pool K embeddings -> critic MLP 128 -> 128 ReLU -> 1
+candidate [K,46]
+-> shared MLP 46->128 ReLU->128 ReLU
+
+actor: shared scalar head per candidate -> K logits -> Categorical
+critic: mean-pool candidate embeddings -> 128 ReLU -> 1
 ```
 
-特点：
+性质：
 
-- actor 对 candidate permutation equivariant；
-- critic 对 candidate order invariant；
-- K 在实现上可变，但正式主实验 K=6；
-- PPO action 是 candidate index，不是 high-level response action。
+- actor candidate permutation equivariant；
+- critic candidate order invariant；
+- implementation supports variable K；
+- formal main K=6；
+- PPO action=candidate index。
 
-初始化与优化固定：
+初始化：orthogonal；actor output gain=0.01；critic output gain=1.0。
 
-- orthogonal linear init；
-- actor output gain=0.01；
-- critic output gain=1.0；
-- Adam。
-
-## B4.2 PPO hyperparameters
-
-主版本：
+## B4.2 Hyperparameters
 
 ```text
-learning_rate = 3e-4
+lr = 3e-4
 rollout_length = 128 decision transitions
 update_epochs = 5
-minibatch_size = 64
+minibatch = 64
 clip_epsilon = 0.2
 GAE lambda = 0.95
 entropy_coef = 0.01
@@ -750,117 +762,195 @@ advantage_normalization = true
 gamma_tick = 0.99
 ```
 
-这些属于实现超参数，不宣称全部来自原论文。
+这些是 formal implementation defaults，不宣称全部来自原论文。
 
-variable-duration GAE：
+## B4.3 Duration-aware return/GAE
+
+每 transition：
 
 ```text
 gamma_t = gamma_tick ^ decision_dt
-TD delta = r_real + gamma_t * V(next) - V(current)
-GAE_t = delta_t + gamma_t * lambda * GAE_next
+delta_t = real_response_reward_t + gamma_t*V(next) - V(current)
+GAE_t = delta_t + gamma_t*lambda*GAE_next
 ```
 
-`lambda` 按 decision transition 使用，不做 `lambda^dt`。
+lambda 按 decision transition，不使用 `lambda^dt`。
 
-## B4.3 PPO reward
+## B4.4 Reward semantics
 
-PPO update 只能使用真实 CC4 decision interval 的 accumulated response reward。
+PPO target 只使用真实 CC4 accumulated response reward。
 
-WM predicted value：
+WM predicted value 只是 observation/evidence，不进入 reward target。
 
-- 只作为 candidate posterior evidence；
-- 不作为 PPO target reward；
-- 不覆盖 real reward。
+## B4.5 Multi-agent collection
 
-## B4.4 Multi-agent training
+每个 LLM variant 对应一个 shared PPO policy，5 Blue agents 共用参数。
 
-一个 LLM variant 对应一个 shared PPO policy，blue_agent_0..4 共用网络；不为每个 agent 单独训练策略，避免参数量与 tuning budget 不公平。
+- per-agent 独立 episode/done/GAE boundary；
+- update batch 合并；
+- busy agent 不产生 transition；
+- candidate cache split 必须为 train。
 
-trajectory 按 agent 独立维护 done / GAE boundary，但 update 时合并同一 policy 的 rollout batch。
+## B4.6 Provisional PPO（用于 B0.2）
 
-## B4.5 Pilot / provisional PPO — 先用于 B0.2
-
-在正式全量 training 前：
-
-- 只选一个 development PPO seed；
-- train seeds only；
-- <=20,000 decision transitions；
-- 使用 frozen cache/protocol；
-- 只验证 pipeline 与触发 B0.2 OOD audit；
-- 结果不进入论文表格。
-
-B0.2 PASS 后，正式 PPO 从初始化重新开始，不继承 provisional weights。
-
-## B4.6 Formal training budget
-
-每个 LLM variant、每个 PPO training seed：
+只做 pipeline/OOD probe：
 
 ```text
-max environment decision transitions = 100,000
+one PPO development seed
+train environment seeds only
+max 20,000 decision transitions
+not eligible for paper result
 ```
 
-所有 LLM 相同，不因模型质量不同增加训练预算。
+provisional weights 在 B0.2 后无论 PASS/FAIL 都不进入 formal training；formal PPO 从新初始化开始。
 
-checkpoint 每 10,000 decisions 保存并在 validation seeds 上评估。
+## B4.7 Formal training
 
-训练完整预算后，按 validation **cumulative response return** 选择 checkpoint；tie-break：
+每个 LLM variant × 每 PPO seed：
 
-1. lower mean attack eradication time；
-2. higher official CC4 return。
+```text
+max 100,000 real environment decision transitions
+checkpoint every 10,000
+minimum 3 PPO seeds/model
+```
 
-不得提前看 test。
+所有 LLM 相同 budget 与 seed list。
 
-## B4.7 PPO training seeds
+Checkpoint selection 只看 validation：
 
-formal 最少 3 个 PPO seeds / LLM variant。
+主 criterion：mean cumulative response return。
 
-先执行 1-seed engineering pilot；pipeline PASS 后再执行 3-seed formal runs。
+Tie-break：
 
-所有 LLM 使用完全相同 PPO seed list。
+1. lower mean eradication time；
+2. higher official CC4 return；
+3. earlier checkpoint（若仍完全相同，避免偏向更多训练）。
+
+不使用 test。
+
+## B4.8 PPO Network/Training PASS
+
+- permutation tests PASS；
+- duration-aware GAE reference test PASS；
+- no predicted reward leakage；
+- finite rollout/update；
+- exact seed/config/checkpoint provenance；
+- train/validation split enforcement；
+- cache model namespace matches policy variant；
+- no direct API call during repeated gradient epochs for existing rollout states。
 
 ---
 
-# 12. Gate B5 — PPO Stability Gate
+# 12. Gate B0.2 — Policy-Induced OOD / Model-Exploitation Audit
 
-每个正式 PPO run 必须记录：
+在 B4 provisional PPO 后、formal PPO 前执行。
+
+## B0.2.1 Reference distribution
+
+只使用 frozen train/validation replay + frozen WM normalizer。
+
+OOD reference metric：normalized D27 state 的 train kNN distance。
+
+固定：
+
+```text
+k = 5
+reference threshold = 99th percentile of validation->train kNN distances
+```
+
+禁止在 probe 结果出来后移动 percentile。
+
+同时报告 normalized z-RMS distance 作为辅助，不用于唯一 Gate。
+
+## B0.2.2 Probe data
+
+仅 train seeds，由 provisional PPO 在真实 CC4 环境访问并记录真实 transition。
+
+对 probe 计算：
+
+- one-step WM RMSE/MAE；
+- per-action count/RMSE；
+- state kNN distance；
+- OOD fraction above frozen threshold；
+- ensemble uncertainty；
+- uncertainty-error Spearman；
+- top vs bottom uncertainty quartile mean error；
+- 能构造时 H4 rollout error。
+
+## B0.2.3 PASS
+
+全部必须满足：
+
+1. train seeds only；
+2. no hidden policy input；
+3. probe one-step RMSE <=1.25× frozen validation one-step RMSE；
+4. uncertainty-error Spearman >0；
+5. top uncertainty quartile mean error > bottom quartile；
+6. OOD fraction <=10%；
+7. 4 action 至少各出现一次；若某 action 缺失，先视为 probe coverage incomplete，不可直接 PASS；
+8. real PPO reward 未被 predicted value 替代；
+9. no NaN/Inf。
+
+## B0.2.4 FAIL
+
+若为 coverage incomplete：扩大 train-only provisional collection，最多到预先允许的 20k transitions，不改 policy hyperparameter。
+
+若为真实 model shift：
+
+```text
+train-only targeted recollection
+-> new replay version
+-> shared WM/reward refit as required
+-> full validation
+-> B0.1 rerun
+-> discard all provisional PPO/cache entries tied to superseded model-evidence version if evidence changed
+-> restart PPO
+```
+
+PASS 后当前 WM 正式冻结至最终 comparison 结束。
+
+---
+
+# 13. Gate B5 — PPO Stability
+
+每正式 run 必须记录：
 
 - policy entropy；
 - approximate KL；
 - clip fraction；
-- policy loss；
-- value loss；
+- policy/value loss；
 - explained variance；
-- gradient norm；
+- grad norm；
 - selected candidate prior rank；
-- selected candidate predicted-value rank；
-- action distribution；
-- no_op / restore frequency；
-- cache hit rate；
+- selected predicted-value rank；
+- requested/executed action distribution；
+- no_op/restore frequency；
+- fallback-to-Sleep；
+- cache hit rate/API miss count；
 - validation response return；
-- validation eradication time；
-- validation incident-host LWF；
-- official CC4 return。
+- eradication time/LWF；
+- official return。
 
 硬失败：
 
 - NaN/Inf；
-- policy action outside current candidate count；
+- candidate index out of range；
 - hidden/test leakage；
-- long-run policy collapse 到单一 high-level action且 validation objective 同时恶化；
-- checkpoint selection 使用 test。
+- wrong model cache namespace；
+- checkpoint selected from test；
+- long-run single-action collapse + validation objective simultaneously degrades materially。
 
-单纯低 entropy 不自动判 FAIL，必须结合 action distribution 与 validation performance。
+低 entropy 本身不是硬失败。
 
 ---
 
-# 13. Step 8 — Fair Comparison Harness
+# 14. Step 8 — Fair Comparison Harness
 
 统一 method API：
 
 ```text
 method.observe(shared_state, raw_visible_obs)
-method.plan()
--> requested high_level_action_id
+method.plan() -> requested high_level_action_id
 ```
 
 统一后处理：
@@ -872,47 +962,38 @@ requested action
 -> real environment
 ```
 
-方法：
+正式方法：
 
 ```text
-LWM-RL: LLM prior -> shared WM evaluator -> PPO -> plan[0]
-UG-CEM: categorical CEM -> shared WM evaluator -> UG penalty -> plan[0]
-CEM-APT: same as UG but beta=0
+LWM-RL: LLM/cache -> shared WM evaluator -> PPO -> plan[0]
+UG-CEM: Categorical CEM -> same WM evaluator -> UG penalty -> plan[0]
+CEM-APT: same as UG, beta=0
 ```
 
-禁止：
+禁止：method-specific resolver、risk override、action vote、hidden heuristic、test boost。
 
-- method-specific resolver；
-- observation heuristic override；
-- risk threshold hard override；
-- action vote；
-- test-time bandit boost；
-- hidden red truth。
+Harness PASS：相同 seeds/environment config；相同 action canonicalizer/reward; method outputs only requested high-level action; per-method provenance complete。
 
 ---
 
-# 14. Step 9 — Validation / Multi-LLM / Sensitivity / Ablation
+# 15. Step 9 — Validation / Multi-LLM / Sensitivity / Ablation
 
-## 14.1 Multi-LLM prior-quality experiment
-
-比较：
+## 15.1 Multi-LLM prior-quality
 
 ```text
 LLM-H
 LLM-M
 LLM-L
-Uniform non-LLM baseline
+Uniform baseline
 ```
 
-使用同一 frozen validation state bank 与同一 WM。
+同一 frozen state bank/WM/prompt/A/K/H。
 
-输出独立表：quality / diversity / repeatability / latency / cost。
+输出独立 prior-quality table；它不单独决定最终 primary model。
 
-prior-quality 结果本身不决定论文主表 winner。
+## 15.2 End-to-end multi-LLM
 
-## 14.2 End-to-end multi-LLM comparison
-
-每个 LLM 独立：
+每个模型独立训练：
 
 ```text
 LLM-H + PPO-H
@@ -920,320 +1001,190 @@ LLM-M + PPO-M
 LLM-L + PPO-L
 ```
 
-禁止 `PPO-H` 直接拿去配 `LLM-M` 作为正式公平比较。
+共享 PPO architecture/budget/seeds/WM/reward/env splits。
 
-所有模型共享：
+Primary LWM-RL 只能由 validation end-to-end criterion 选出；记录所有 variant，不删除表现差的模型。
 
-- PPO architecture；
-- training budget；
-- PPO seeds；
-- WM/reward；
-- train/validation env seeds。
+## 15.3 UG beta
 
-validation 后冻结一个 **primary LWM-RL model configuration**，用于主方法对比；其余 LLM variant 仍作为多模型效果实验完整报告。
-
-## 14.3 UG beta
-
-候选：
+validation candidates：
 
 ```text
 0, 0.05, 0.1, 0.2, 0.3, 0.5, 1.0
 ```
 
-beta=0 即 CEM-APT。
+beta=0=CEM-APT。
 
-## 14.4 CEM compute sensitivity
-
-validation：
+## 15.4 CEM compute
 
 ```text
-N=64 / I=4
-N=128 / I=5
-N=200 / I=5
+N64/I4
+N128/I5
+N200/I5
 ```
 
-记录 return / latency / plan diversity。
+记录 performance、latency、plan diversity。
 
-## 14.5 K sensitivity
+## 15.5 K sensitivity
 
-主实验继续 K=6。
+主实验 K=6；validation-only：K=3/6/10。
 
-只在 validation 上做：
+先做 prior/greedy-G small validation；如做 end-to-end K ablation，必须单独重训 PPO。
 
-```text
-K = 3, 6, 10
-```
+## 15.6 H sensitivity
 
-优先评估：
+主实验 H=4；validation-only：H=2/4/6。
 
-- candidate quality；
-- best-of-K predicted value；
-- diversity；
-- latency / token / cost；
-- greedy-G small environment validation。
+报告 rollout error、uncertainty、value spread、latency/cost、greedy-G small environment result。
 
-不因 sensitivity 结果在看到 test 后修改主 K。
+不因 test 结果改变 H。
 
-由于 PPO network 为 candidate-wise architecture，未来可支持 variable K；若要做 end-to-end K ablation，必须单独重训对应 PPO，不允许直接把 K=6 checkpoint 当正式 K=10 结果。
+## 15.7 Repeatability
 
-## 14.6 H sensitivity
+30 frozen validation states × 3 independent generations/model。
 
-主实验继续 H=4。
+报告 candidate overlap、top-1 agreement、prior variance、best-of-K value variance。
 
-validation-only：
+## 15.8 Ours ablations
 
-```text
-H = 2, 4, 6
-```
+必须：
 
-报告：
+A. Full LWM-RL：LLM generator + prior + value + uncertainty + PPO。
 
-- WM rollout error；
-- candidate value spread；
-- uncertainty；
-- LLM latency/cost；
-- greedy-G small validation performance。
+B. w/o prior preference：同 LLM candidates，prior=1/K，PPO 重训。
 
-H sensitivity 是 foresight vs compounding-error 分析，不在 test 后改 H。
+C. w/o LLM generator：uniform deterministic plan generator + uniform prior，PPO 重训。
 
-## 14.7 Ours mechanism ablations
+D. w/o uncertainty：uncertainty feature=0，PPO 重训。
 
-至少：
+E. w/o PPO：选择 `argmax predicted_return`，固定 lowest-index tie-break。
 
-### A. Full LWM-RL
+可选 F. w/o WM foresight：只有资源允许且替代 evidence 预先冻结才做。
 
-LLM plans + LLM prior + WM value + uncertainty + PPO。
+## 15.9 Optional WM ablation
 
-### B. w/o prior preference
-
-保留同一 LLM candidate plans，但：
-
-```text
-prior_i = 1/K
-```
-
-PPO 必须重训。
-
-作用：只检验 LLM preference score 的贡献。
-
-### C. w/o LLM generator
-
-不调用 LLM；使用 state-independent deterministic uniform plan-space generator + uniform prior。
-
-PPO 必须重训。
-
-作用：检验整个 LLM candidate-generation contribution。
-
-### D. w/o uncertainty
-
-candidate uncertainty feature 固定为 0；其它不变；PPO 重训。
-
-### E. w/o PPO
-
-不训练 posterior，直接选择：
-
-```text
-argmax_i predicted_return_i
-```
-
-不得加入 heuristic tie-break，除固定 lowest-index deterministic tie-break 外。
-
-### F. optional w/o WM foresight
-
-只有论文篇幅/资源允许才做；必须提前冻结替代 evidence 定义，不得临时启发式实现。
-
-## 14.8 Optional WM ablation
-
-附录可选：
-
-- non-bootstrap ensemble；
-- bootstrap ensemble。
-
-主要用于证明 uncertainty quality，而不是重新寻找一个只对 Ours 更好的 WM。
+附录可做 bootstrap vs non-bootstrap，仅用于 uncertainty mechanism，不为 Ours 单独寻找更强 WM。
 
 ---
 
-# 15. Step 10 — Formal CC4 Test
+# 16. Step 10 — Formal CC4 Test
 
-所有 design/tuning/selection 完成后一次性解锁 test seeds `4000..4019`。
+全部 validation/design 完成后一次性解锁 test `4000..4019`。
 
-正式 episode：
+正式条件：
 
 - five Blue agents；
 - 500 scenario ticks；
-- same environment seed for paired methods；
-- no test-time learning/tuning。
+- same paired seed/environment；
+- no test-time learning/tuning；
+- fixed frozen artifacts。
 
-主方法表至少：
+主表至少：Primary LWM-RL / UG-CEM-APT / CEM-APT。
 
-```text
-Primary LWM-RL
-UG-CEM-APT
-CEM-APT
-```
-
-多 LLM 表：
-
-```text
-LLM-H + PPO-H
-LLM-M + PPO-M
-LLM-L + PPO-L
-```
-
-如果资源限制导致三模型不能全部做 3 training seeds ×20 test seeds，必须优先保证 primary main table 与至少 validation-complete multi-LLM study，并在论文明确说明资源限制；不得只报告最好的一次运行。
+多 LLM end-to-end 表报告所有完成 formal training 的 LLM variants。
 
 ---
 
-# 16. Step 11 — Metrics / Statistics
+# 17. Step 11 — Metrics / Statistics
 
-## 16.1 Primary response metrics
+## 17.1 Primary
 
 - Mean Attack Eradication Time；
 - incident-host LWF count；
-- incident-host weighted LWF penalty；
+- weighted LWF penalty；
 - cumulative response return。
 
-## 16.2 External metric
+## 17.2 External
 
 - CC4 official team return。
 
-## 16.3 Secondary
+## 17.3 Secondary
 
 - Restore precision；
 - action distribution；
 - valid-target rate；
-- fallback-to-Sleep rate；
-- per-agent result；
+- fallback-to-Sleep；
+- per-agent；
 - planning latency；
 - decision_dt。
 
-## 16.4 LLM-specific efficiency
+## 17.4 LLM efficiency
 
-- API call count；
+- live API calls；
 - cache hit rate；
-- latency p50/p95；
-- token input/output；
-- monetary cost when provider exposes enough information；
-- fallback / retry rate。
+- p50/p95 latency；
+- input/output token；
+- monetary cost；
+- retry/fallback rate。
 
-## 16.5 Model diagnostics
+## 17.5 Model diagnostics
 
-- one-step / H4 WM error；
-- per-action WM error；
-- policy-induced OOD fraction；
-- predicted value error；
-- uncertainty-error Spearman / quantiles。
+- aggregate/per-action one-step/H4 WM error；
+- policy OOD fraction；
+- uncertainty-error calibration；
+- value error/rank correlation。
 
-## 16.6 Statistical comparison
+## 17.6 Statistics
 
-主方法使用 paired environment seeds。
+paired seeds：
 
-至少报告：
-
-- mean / std / median；
+- mean/std/median；
 - 95% paired bootstrap CI；
 - two-sided paired permutation test；
-- paired effect size。
+- paired effect size；
+- secondary multiple pairwise comparisons 用 Holm correction。
 
-多组 pairwise secondary comparisons 使用 Holm correction。
-
-统计显著性不能替代 effect size 与 raw distribution。
-
----
-
-# 17. Step 12 — Final Paper Tables
-
-至少形成：
-
-## Table A — Main comparison
-
-```text
-LWM-RL | UG-CEM-APT | CEM-APT
-```
-
-## Table B — Multi-LLM prior quality
-
-```text
-format reliability
-diversity
-WM-based candidate quality
-repeatability
-latency/cost
-```
-
-## Table C — End-to-end LLM variants
-
-```text
-LLM-H + PPO-H
-LLM-M + PPO-M
-LLM-L + PPO-L
-```
-
-## Table D — Ablation
-
-```text
-Full
-w/o prior preference
-w/o LLM generator
-w/o uncertainty
-w/o PPO
-(optional) w/o WM
-```
-
-## Table E — WM / reward quality
-
-```text
-aggregate
-per-action
-OOD audit
-uncertainty calibration
-reward/value quality
-```
-
-## Table F — Efficiency
-
-```text
-planning latency
-WM forward count
-API calls
-cache hit
-LLM token/cost
-```
+统计显著性不能替代 effect size/raw distribution。
 
 ---
 
-# 18. Implementation order（v2.2 固定）
+# 18. Step 12 — Final Paper Tables
 
-严格按以下顺序推进：
+至少：
+
+- Table A Main: LWM-RL / UG-CEM / CEM；
+- Table B Multi-LLM prior quality；
+- Table C Multi-LLM end-to-end；
+- Table D Ablations；
+- Table E WM/reward/OOD quality；
+- Table F Efficiency/cost。
+
+论文必须明确：对比 baseline 是 domain-adapted implementation，共享本文 state/action/WM/reward/adapter，而不是原环境逐行复制。
+
+---
+
+# 19. 固定实现顺序
 
 ```text
-B0.1  WM per-action final audit
+B0.1 WM final per-action audit
   ↓
-B2.1–B2.7  multi-LLM prior protocol + validation state bank
+B2 provider-neutral registry + validation state bank
   ↓
-B2.5 prior cache implementation
+B2.5 persistent prior cache
   ↓
-B3 regression / provider-neutral cleanup
+B2 multi-LLM prior-quality/repeatability
   ↓
-B4.1 PPO network + unit tests
+B3 provider-neutral posterior regression
   ↓
-B4.5 provisional PPO (train-only)
+B4.1 PPO network/unit tests
+  ↓
+B4.6 provisional PPO (train-only)
   ↓
 B0.2 policy-induced OOD audit
-  ├─ FAIL -> train-only recollect + shared WM/reward retrain + restart PPO
+  ├─ FAIL -> train-only recollect/retrain shared WM/reward -> restart
   └─ PASS
        ↓
-B4.6 formal PPO training (3 seeds/model)
+formal PPO 3 seeds/model
   ↓
 B5 stability
   ↓
 Step 8 fair harness
   ↓
-Step 9 validation / multi-LLM / sensitivity / ablation
+Step 9 validation/sensitivity/ablation
   ↓
-freeze everything
+freeze all configs/checkpoints
   ↓
-Step 10 test
+Step 10 formal test
   ↓
 Step 11 statistics
   ↓
@@ -1242,70 +1193,45 @@ Step 12 tables/paper
 
 ---
 
-# 19. 实现优先级
+# 20. 每阶段强制审核模板
 
-P0：
+每阶段关闭前必须回答并记录：
 
-1. B0.1 WM audit；
-2. provider-neutral LLM registry / prior cache；
-3. fixed validation state bank；
-4. formal PPO network/real reward semantics；
-5. provisional PPO + B0.2 OOD audit；
-6. formal 3-seed PPO training；
-7. fair harness。
-
-P1：
-
-8. multi-LLM prior-quality experiment；
-9. multi-LLM end-to-end；
-10. UG beta / CEM compute；
-11. ablations；
-12. K/H sensitivity。
-
-P2：
-
-13. optional WM ablation；
-14. extra appendix analyses。
-
-LLM cache 不再属于 P2；它是 formal PPO 的必要基础设施。
+1. Task：本阶段精确任务是什么？
+2. Inputs：使用哪些 artifact/split？
+3. Contract：哪些冻结项不得改变？
+4. Leakage：是否接触 hidden/calibration/test？
+5. Randomness：所有 seed 是否显式记录？
+6. Design：实现是否与任务书一致？
+7. Tests：unit/regression 数量与结果？
+8. Numerical：所有正式数值是否 finite？
+9. Provenance：config/checkpoint/model ID/hash 是否记录？
+10. Acceptance：PASS/FAIL 条件是否运行前冻结？
+11. Failure branch：FAIL 后是修 bug、reopen Gate 还是扩充数据？
+12. Docs：source-of-truth 与阶段文档是否同步？
+13. Fairness：是否给某一方法/LLM 增加独享信息、预算或 heuristic？
+14. Reproducibility：同输入是否能重现 state-bank/cache/metrics？
 
 ---
 
-# 20. 禁止项
+# 21. 全局禁止项
 
-1. Ours / UG / CEM 使用不同 state / WM / reward；
-2. test seeds 调 prompt / model / PPO / beta / K / H；
-3. hidden Red truth 进入 policy/planner/LLM prompt；
-4. 用 predicted WM return 代替真实 PPO reward；
-5. 给某个 LLM 单独使用不同 K/H/prompt 提升成绩；
-6. 同一个 PPO checkpoint 跨不同 LLM 直接作为公平 end-to-end 结论；
-7. cache 跨 model/split/prompt namespace 复用；
-8. cache state quantization 未做 sensitivity 就用于主实验；
-9. API failure 被 fallback 掩盖为“live call success”；
-10. method-specific host resolver / heuristic override；
-11. old A=5 replay/checkpoint；
-12. early-warning/action-cost/delay 重新混入正式 objective；
-13. 根据 test 结果决定是否重训 WM；
-14. 只报告表现最好的一次 PPO seed。
-
----
-
-# 21. 每阶段审核模板
-
-每阶段必须回答：
-
-1. 本阶段任务是什么？
-2. 输入 split 是否正确？
-3. 是否触碰 calibration/test？
-4. 是否改变冻结 contract？
-5. 是否加入 hidden information / heuristic？
-6. 是否所有随机 seed 明确？
-7. unit/regression tests 是否通过？
-8. numerical outputs 是否 finite？
-9. output provenance / checkpoint / config 是否记录？
-10. PASS/FAIL 条件是否在运行前冻结？
-11. 失败后是修 bug、重新开 Gate，还是允许继续？
-12. docs/source-of-truth 是否同步？
+1. Ours/UG/CEM 使用不同 shared state/WM/reward；
+2. test 调 prompt/model/PPO/beta/K/H；
+3. hidden Red truth 进入 planner/LLM/PPO；
+4. predicted return 代替 PPO real reward；
+5. 给单个 LLM 不同 K/H/prompt 以提高成绩；
+6. 一个 PPO checkpoint 跨 LLM 作为正式公平结果；
+7. cache 跨 model/split/prompt/version 复用；
+8. 未验证 state quantization 就用于 formal cache；
+9. API failure 被 fallback 伪装成 live API success；
+10. method-specific resolver/heuristic override；
+11. old A5 replay/checkpoint；
+12. early-warning/action-cost/lambda_delay 回流；
+13. 根据 test 决定是否重训 WM；
+14. 只报告最好 PPO seed；
+15. prior-quality WM 指标被解释为真实环境 superiority；
+16. provisional PPO 权重进入正式结果。
 
 ---
 
@@ -1317,30 +1243,35 @@ LLM cache 不再属于 P2；它是 formal PPO 的必要基础设施。
 [x] Step 5
 [x] Step 6
 [x] Step 7
+[x] Gate B1 response reward re-audit
+[x] Gate B3 structural candidate feature contract (provider-neutral regression pending)
 
-[~] Gate B0.1 — WM per-action final audit          <- CURRENT
-[ ] Gate B2 — Multi-LLM prior study
-[ ] Gate B2.5 — Prior cache
-[ ] Gate B4.1 — PPO network
-[ ] Gate B4.5 — provisional PPO
-[ ] Gate B0.2 — policy-induced OOD audit
-[ ] Gate B4.6 — formal PPO
-[ ] Gate B5 — PPO stability
-[ ] Step 8 — fair harness
-[ ] Step 9 — validation / multi-LLM / ablation
-[ ] Step 10 — formal test
-[ ] Step 11 — statistics
-[ ] Step 12 — paper tables
+[~] Gate B0.1 WM final per-action audit        <- CURRENT
+[ ] Gate B2 registry/state bank
+[ ] Gate B2.5 prior cache
+[ ] Gate B2 multi-LLM prior-quality/repeatability
+[ ] Gate B3 provider-neutral regression
+[ ] Gate B4 PPO network
+[ ] Gate B4 provisional PPO
+[ ] Gate B0.2 OOD/model-exploitation audit
+[ ] Gate B4 formal PPO 3-seed/model
+[ ] Gate B5 stability
+[ ] Step 8 fair harness
+[ ] Step 9 validation/multi-LLM/sensitivity/ablation
+[ ] Step 10 formal test
+[ ] Step 11 statistics
+[ ] Step 12 paper tables
 ```
 
 ---
 
-# 23. 一句话记住 v2.2
+# 23. 当前一句话原则
 
 ```text
-先证明 frozen WM 对四动作与 PPO 新分布仍可靠，
-再用同一 state bank 公平比较多个 LLM prior，
-用 model-specific cache 控制 API 成本与可重复性，
-每个 LLM 独立训练同预算 PPO，
-最后在完全共享的 CC4/WM/reward/adapter 下与 UG-CEM/CEM 做 paired test。
+先证明 frozen WM 对四动作可靠，
+再用同一 validation state bank 公平比较多个 LLM，
+用严格隔离的 persistent cache 控制 API 成本与可重复性，
+每个 LLM 用同预算独立训练 PPO，
+用 provisional PPO 检查 policy-induced model shift，
+最后在完全共享的 CC4/WM/reward/adapter 与 paired test seeds 下比较 LWM-RL、UG-CEM 与 CEM。
 ```
