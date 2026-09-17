@@ -19,8 +19,8 @@ from shared.formal_state import BLUE_AGENTS, FORMAL_STATE_DIM
 
 
 DEFAULT_VALIDATION_REPLAY = "outputs/formal_replay_v2/validation.jsonl"
-DEFAULT_OUT = "outputs/lwm_rl_v2/b2/validation_state_bank.jsonl"
-DEFAULT_SUMMARY = "outputs/lwm_rl_v2/b2/validation_state_bank_summary.json"
+DEFAULT_OUT = "outputs/lwm_rl_v2/b2/state_bank.jsonl"
+DEFAULT_SUMMARY = "outputs/lwm_rl_v2/b2/state_bank_summary.json"
 BANK_FORMAT_VERSION = 1
 TARGET_STATES_PER_CELL = 6
 FEATURE17_INDEX = 17
