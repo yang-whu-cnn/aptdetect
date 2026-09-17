@@ -1,0 +1,125 @@
+config:
+  name: lwm_rl_v2_3
+  version: "2.3"
+  status: gate_b4_core_source_ready
+  source_of_truth: docs/UG_CEM_APT_REPRODUCTION_PLAN.md
+  model_registry: configs/llm_model_registry_v1.yaml
+  primary_model_selected: false
+
+shared_contract:
+  state_dim: 27
+  n_actions: 4
+  horizon: 4
+  candidate_count_main: 6
+  gamma_tick: 0.99
+  actions: [no_op, analyse, remove, restore]
+  world_model: outputs/world_model_v2/a4_5b/world_model_absolute.pt
+  response_reward_predictor: outputs/world_model_v2/a4_5c/response_reward_predictor.pt
+  response_objective:
+    source: real_cc4_decision_interval_accumulated_response_reward
+    predicted_wm_value_as_reward: false
+    llm_prior_as_reward: false
+    early_warning_lead_reward: false
+    fixed_action_cost: false
+    lambda_delay: false
+
+posterior_observation:
+  selector_action: candidate_plan_index
+  candidate_feature_dim: 46
+  components:
+    current_state_dim: 27
+    plan_one_hot_dim: 16
+    prior_preference_dim: 1
+    predicted_value_dim: 1
+    predictive_uncertainty_dim: 1
+  predicted_value: ensemble_member_cumulative_response_return_mean
+  predictive_uncertainty: ensemble_member_cumulative_response_return_population_std
+  provider_or_model_identity_feature: false
+  api_cost_or_latency_feature: false
+  rationale_text_feature: false
+  extra_feature_normalizer: false
+
+ppo:
+  network:
+    architecture: candidate_wise_shared_actor_critic
+    candidate_encoder: [46, 128, 128]
+    activation: relu
+    actor_head: shared_scalar_per_candidate
+    critic_pool: mean_over_candidates
+    critic_post_pool: [128, 128, 1]
+    actor_candidate_permutation_equivariant: true
+    critic_candidate_order_invariant: true
+    variable_candidate_count_supported: true
+    formal_main_candidate_count: 6
+    initialization: orthogonal
+    hidden_gain: sqrt_2
+    actor_output_gain: 0.01
+    critic_output_gain: 1.0
+
+  optimization:
+    learning_rate: 0.0003
+    rollout_length_decision_transitions: 128
+    update_epochs: 5
+    minibatch_size: 64
+    clip_epsilon: 0.2
+    gae_lambda: 0.95
+    entropy_coefficient: 0.01
+    value_coefficient: 0.5
+    max_grad_norm: 0.5
+    advantage_normalization: true
+
+  duration_aware_gae:
+    gamma_tick: 0.99
+    discount: gamma_tick_pow_decision_dt
+    delta: real_reward_plus_discounted_next_value_minus_value
+    recursion: delta_plus_discount_times_lambda_times_next_gae
+    lambda_power_dt: false
+    terminal_bootstrap: false
+    per_agent_boundary: true
+
+  multi_agent:
+    shared_policy_across_blue_agents: true
+    agents: [blue_agent_0, blue_agent_1, blue_agent_2, blue_agent_3, blue_agent_4]
+    per_agent_episode_and_gae_boundary: true
+    merge_agent_transitions_for_update: true
+    busy_agent_generates_transition: false
+
+  prior_cache:
+    formal_training_split: train
+    provider_call_on_cache_hit: false
+    gradient_epoch_provider_calls_for_existing_states: false
+    model_namespace_must_match_policy_variant: true
+
+  provisional:
+    purpose: pipeline_and_b0_2_ood_probe_only
+    environment_seeds: train_only
+    max_decision_transitions: 20000
+    development_policy_seed_count: 1
+    eligible_for_formal_result: false
+    weights_reused_for_formal_training: false
+
+  formal_training:
+    environment_seeds: train_only
+    max_decision_transitions_per_run: 100000
+    checkpoint_every_decision_transitions: 10000
+    minimum_ppo_seeds_per_model: 3
+    fresh_initialization_after_b0_2: true
+    checkpoint_selection_split: validation
+    checkpoint_primary_criterion: mean_cumulative_response_return
+    checkpoint_tie_break:
+      - lower_mean_attack_eradication_time
+      - higher_official_cc4_return
+      - earlier_checkpoint
+    test_selection_forbidden: true
+
+splits:
+  train: [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031]
+  validation: [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007]
+  calibration: [3000, 3001, 3002, 3003, 3004, 3005, 3006, 3007]
+  test: [4000, 4001, 4002, 4003, 4004, 4005, 4006, 4007, 4008, 4009, 4010, 4011, 4012, 4013, 4014, 4015, 4016, 4017, 4018, 4019]
+
+legacy_isolation:
+  src_ppo_posterior_allowed: false
+  old_a5_checkpoint_allowed: false
+  single_model_gate_b_v2_1_config_formal_b4_allowed: false
+  provisional_weights_formal_result_allowed: false
