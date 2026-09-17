@@ -45,6 +45,13 @@ def file_sha256(path: str | Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def _policy_device(policy: CandidateActorCritic) -> torch.device:
+    try:
+        return next(policy.parameters()).device
+    except StopIteration as exc:
+        raise RuntimeError("PPO policy has no parameters") from exc
+
+
 class LWMDecisionRuntime:
     """Provider-neutral formal LWM-RL decision runtime.
 
@@ -163,14 +170,15 @@ class LWMDecisionRuntime:
             prior.prior_preferences,
             rollout,
         )
-
-        self.policy.eval()
-        with torch.no_grad():
-            _logits, value = self.policy(features)
-        if value.ndim != 0 or not torch.isfinite(value):
-            raise RuntimeError("PPO critic emitted invalid scalar value")
         if tuple(features.shape) != (6, 46) or not torch.isfinite(features).all():
             raise RuntimeError("runtime posterior feature contract failed")
+
+        policy_device = _policy_device(self.policy)
+        self.policy.eval()
+        with torch.no_grad():
+            _logits, value = self.policy(features.to(policy_device))
+        if value.ndim != 0 or not torch.isfinite(value):
+            raise RuntimeError("PPO critic emitted invalid scalar value")
 
         self.prepare_calls += 1
         return PreparedCandidates(
@@ -195,14 +203,15 @@ class LWMDecisionRuntime:
         if prepared.agent_name not in BLUE_AGENTS:
             raise ValueError("prepared candidate set has invalid agent")
 
+        policy_device = _policy_device(self.policy)
         self.policy.eval()
         with torch.no_grad():
             action, log_prob, entropy, value = self.policy.act(
-                prepared.candidate_features,
+                prepared.candidate_features.to(policy_device),
                 deterministic=bool(deterministic),
             )
 
-        candidate_index = int(action.item())
+        candidate_index = int(action.detach().cpu().item())
         if not 0 <= candidate_index < 6:
             raise RuntimeError("PPO selected candidate index outside K=6")
         plan = tuple(int(x) for x in prepared.prior.plans[candidate_index].tolist())
