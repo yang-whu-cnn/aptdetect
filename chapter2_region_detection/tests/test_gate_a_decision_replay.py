@@ -130,6 +130,7 @@ class TestDecisionEpochReplay(
         c.record_tick(
             agent_name="blue_agent_0",
             global_tick_end=1,
+            incident_delay_penalty=1.0,
             incident_event_ids=(
                 "event_a",
             ),
@@ -141,6 +142,7 @@ class TestDecisionEpochReplay(
         c.record_tick(
             agent_name="blue_agent_0",
             global_tick_end=2,
+            incident_delay_penalty=2.0,
             incident_event_ids=(
                 "event_a",
                 "event_b",
@@ -172,6 +174,11 @@ class TestDecisionEpochReplay(
                 "host_a",
                 "host_b",
             ),
+        )
+
+        self.assertEqual(
+            t.incident_delay_penalty,
+            3.0,
         )
 
     def test_sleep_transition_dt_one(

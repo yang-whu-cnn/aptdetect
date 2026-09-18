@@ -172,6 +172,10 @@ class DecisionEpochTransition:
 
     done: bool
 
+    # Final-paper age-weighted delay term. Kept at the end with a default so
+    # historical replay JSON remains readable during migration.
+    incident_delay_penalty: float = 0.0
+
     def to_jsonable(
         self,
     ) -> dict:
@@ -280,6 +284,11 @@ class DecisionEpochTransition:
                     self.official_reward
                 ),
 
+            "incident_delay_penalty":
+                float(
+                    self.incident_delay_penalty
+                ),
+
             "done":
                 bool(self.done),
         }
@@ -310,6 +319,7 @@ class _OpenDecision:
     )
 
     incident_active_ticks: int = 0
+    incident_delay_penalty: float = 0.0
     incident_host_lwf_count: int = 0
     incident_host_lwf_raw_penalty: float = 0.0
 
@@ -630,6 +640,7 @@ class DecisionEpochReplayCollector:
             incident_event_ids: Sequence[str] = (),
             incident_host_ids: Sequence[str] = (),
             incident_active_ticks: int = 0,
+            incident_delay_penalty: float = 0.0,
             incident_host_lwf_count: int = 0,
             incident_host_lwf_raw_penalty: float = 0.0,
             response_reward: float = 0.0,
@@ -707,6 +718,15 @@ class DecisionEpochReplayCollector:
             )
         )
 
+        incident_delay_penalty = _finite_float(
+            "incident_delay_penalty",
+            incident_delay_penalty,
+        )
+        if incident_delay_penalty < 0.0:
+            raise ValueError(
+                "incident_delay_penalty must be >= 0"
+            )
+
         incident_host_lwf_count = (
             _nonnegative_int(
                 "incident_host_lwf_count",
@@ -731,6 +751,10 @@ class DecisionEpochReplayCollector:
 
         item.incident_active_ticks += (
             incident_active_ticks
+        )
+
+        item.incident_delay_penalty += (
+            incident_delay_penalty
         )
 
         item.incident_host_lwf_count += (
@@ -1008,6 +1032,13 @@ class DecisionEpochReplayCollector:
                     int(
                         item
                         .incident_active_ticks
+                    )
+                ),
+
+                incident_delay_penalty=(
+                    float(
+                        item
+                        .incident_delay_penalty
                     )
                 ),
 

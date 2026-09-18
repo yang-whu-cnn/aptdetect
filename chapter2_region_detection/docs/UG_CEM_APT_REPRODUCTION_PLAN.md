@@ -1,11 +1,13 @@
 # UG-CEM-APT / LWM-RL 复现、领域适配与公平对比总任务书（v2.3 Final Execution Contract）
 
+> **2026-09-18 口径更新：** 本文档形成于第一版论文方案，现作为工程历史计划保留。最终论文方法、奖励、三张对比表及 `100 episodes × 500 timesteps × 5 repeats` 协议，以 [FINAL_PAPER_EXPERIMENT_ALIGNMENT.md](FINAL_PAPER_EXPERIMENT_ALIGNMENT.md) 为准。本文档中基于固定 `incident_active_ticks` 的旧奖励和既有 provisional 结果不得进入最终论文表格。
+
 > 仓库：`yang-whu-cnn/aptdetect`  
 > 稳定备份分支：`me`  
 > 实验分支：`ug-cem-apt`  
 > 最后更新：2026-09-17  
 > 当前阶段：Gate A、Step 4–7 已 PASS / CLOSED；当前进入 **Gate B0.1 — Frozen World Model Final Audit**。  
-> 本文件是后续实现、审核、实验、统计与论文撰写的唯一 source of truth。任何实质性方案变化必须先修订本文件，再修改实现。
+> 本文件保留第一版工程执行记录；与最终论文口径冲突时，以 `FINAL_PAPER_EXPERIMENT_ALIGNMENT.md` 为唯一 source of truth。
 
 ---
 

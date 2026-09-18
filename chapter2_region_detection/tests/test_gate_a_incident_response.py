@@ -100,6 +100,11 @@ class TestGateAIncidentResponse(
         )
 
         self.assertEqual(
+            tick.incident_delay_penalty,
+            1.0,
+        )
+
+        self.assertEqual(
             tick.response_reward,
             -1.0,
         )
@@ -138,6 +143,11 @@ class TestGateAIncidentResponse(
             1,
         )
 
+        self.assertEqual(
+            tick.incident_delay_penalty,
+            2.0,
+        )
+
         event = book.completed_events[0]
 
         self.assertEqual(
@@ -158,6 +168,11 @@ class TestGateAIncidentResponse(
         self.assertEqual(
             book.total_incident_active_ticks,
             2,
+        )
+
+        self.assertEqual(
+            book.total_incident_delay_penalty,
+            3.0,
         )
 
     def test_active_ticks_equal_eradication_time(
@@ -193,6 +208,11 @@ class TestGateAIncidentResponse(
         self.assertEqual(
             book.total_incident_active_ticks,
             3,
+        )
+
+        self.assertEqual(
+            book.total_incident_delay_penalty,
+            6.0,
         )
 
     def test_incident_host_lwf_counted(
@@ -237,7 +257,7 @@ class TestGateAIncidentResponse(
             -3.0,
         )
 
-    def test_other_host_lwf_not_counted(
+    def test_other_tracked_host_lwf_is_counted(
         self,
     ):
         book = make_bookkeeper()
@@ -266,17 +286,22 @@ class TestGateAIncidentResponse(
 
         self.assertEqual(
             tick.incident_host_lwf_count,
-            0,
+            1,
         )
 
         self.assertEqual(
             tick.incident_host_lwf_raw_penalty,
-            0.0,
+            -10.0,
         )
 
         self.assertEqual(
             tick.response_reward,
-            -1.0,
+            -11.0,
+        )
+
+        self.assertEqual(
+            tick.counted_lwf_host_ids,
+            (HOST_B,),
         )
 
     def test_concurrent_incidents_sum_active_ticks(
@@ -303,6 +328,11 @@ class TestGateAIncidentResponse(
         self.assertEqual(
             tick.incident_active_ticks,
             2,
+        )
+
+        self.assertEqual(
+            tick.incident_delay_penalty,
+            2.0,
         )
 
         self.assertEqual(
@@ -442,6 +472,11 @@ class TestGateAIncidentResponse(
             1,
         )
 
+        self.assertEqual(
+            tick.incident_delay_penalty,
+            1.0,
+        )
+
     def test_unknown_lwf_host_rejected(
         self,
     ):
@@ -504,7 +539,7 @@ class TestGateAIncidentResponse(
         )
 
         reward = config.compute(
-            incident_active_ticks=2,
+            incident_delay_penalty=2,
             incident_host_lwf_raw_penalty=-3.0,
         )
 
@@ -542,6 +577,11 @@ class TestGateAIncidentResponse(
 
         self.assertIn(
             "response_reward",
+            payload,
+        )
+
+        self.assertIn(
+            "incident_delay_penalty",
             payload,
         )
 

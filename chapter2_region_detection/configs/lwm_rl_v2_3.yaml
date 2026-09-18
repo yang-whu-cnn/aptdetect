@@ -2,7 +2,8 @@ config:
   name: lwm_rl_v2_3
   version: "2.3"
   status: gate_b4_core_source_ready
-  source_of_truth: docs/UG_CEM_APT_REPRODUCTION_PLAN.md
+  source_of_truth: docs/FINAL_PAPER_EXPERIMENT_ALIGNMENT.md
+  historical_plan: docs/UG_CEM_APT_REPRODUCTION_PLAN.md
   model_registry: configs/llm_model_registry_v1.yaml
   primary_model_selected: false
 
@@ -16,12 +17,16 @@ shared_contract:
   world_model: outputs/world_model_v2/a4_5b/world_model_absolute.pt
   response_reward_predictor: outputs/world_model_v2/a4_5c/response_reward_predictor.pt
   response_objective:
+    reward_protocol: final_paper_20260917_v1
     source: real_cc4_decision_interval_accumulated_response_reward
+    lambda_time: 1.0
+    lambda_failure: 1.0
+    delay_term: sum_active_incident_compromise_age
+    failure_scope: all_tracked_host_local_work_failures
     predicted_wm_value_as_reward: false
     llm_prior_as_reward: false
     early_warning_lead_reward: false
     fixed_action_cost: false
-    lambda_delay: false
 
 posterior_observation:
   selector_action: candidate_plan_index

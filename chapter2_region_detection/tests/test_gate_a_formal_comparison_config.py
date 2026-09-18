@@ -102,7 +102,10 @@ class TestGateAFormalComparisonConfig(unittest.TestCase):
             float(source_objective.lambda_failure),
         )
         self.assertTrue(objective["attack_eradication_time"])
-        self.assertTrue(objective["incident_host_lwf_only"])
+        self.assertFalse(objective["incident_host_lwf_only"])
+        self.assertEqual(objective["reward_protocol"], "final_paper_20260917_v1")
+        self.assertEqual(objective["delay_term"], "sum_active_incident_compromise_age")
+        self.assertEqual(objective["failure_scope"], "all_tracked_host_local_work_failures")
         self.assertTrue(objective["official_team_reward_separate"])
 
     def test_seed_protocol_is_exact(self):
@@ -111,6 +114,21 @@ class TestGateAFormalComparisonConfig(unittest.TestCase):
         self.assertEqual(seeds["validation"], list(range(2000, 2008)))
         self.assertEqual(seeds["calibration"], list(range(3000, 3008)))
         self.assertEqual(seeds["test"], list(range(4000, 4020)))
+
+    def test_final_paper_evaluation_protocol(self):
+        evaluation = self.config["final_paper_evaluation"]
+        self.assertEqual(evaluation["episodes_per_repeat"], 100)
+        self.assertEqual(evaluation["timesteps_per_episode"], 500)
+        self.assertEqual(evaluation["independent_training_repeats"], 5)
+        self.assertEqual(
+            evaluation["metrics"],
+            [
+                "cc4_official_reward",
+                "operation_failure_penalty",
+                "recovery_precision",
+                "recovery_time",
+            ],
+        )
 
     def test_fairness_contract(self):
         fairness = self.config["fairness"]

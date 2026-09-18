@@ -7,6 +7,9 @@ from typing import Mapping, Sequence
 from shared.formal_state import BLUE_AGENTS
 
 
+RESPONSE_REWARD_PROTOCOL = "final_paper_20260917_v1"
+
+
 # ============================================================
 # Validation
 # ============================================================
@@ -93,10 +96,10 @@ class ResponseRewardConfig:
     论文正式 response objective。
 
     lambda_time:
-        attack eradication time 权重。
+        compromise-age delay 权重。
 
     lambda_failure:
-        normal-operation failure 权重。
+        agent 管辖范围内 normal-operation failure 权重。
 
     CC4 LWF raw penalty 本身 <= 0，
     因此 reward 中直接：
@@ -125,12 +128,12 @@ class ResponseRewardConfig:
     def compute(
         self,
         *,
-        incident_active_ticks: int,
+        incident_delay_penalty: float,
         incident_host_lwf_raw_penalty: float,
     ) -> float:
-        active_ticks = _nonnegative_int(
-            "incident_active_ticks",
-            incident_active_ticks,
+        delay_penalty = _finite_nonnegative(
+            "incident_delay_penalty",
+            incident_delay_penalty,
         )
 
         raw_penalty = float(
@@ -153,7 +156,7 @@ class ResponseRewardConfig:
 
         return float(
             -self.lambda_time
-            * active_ticks
+            * delay_penalty
             +
             self.lambda_failure
             * raw_penalty
@@ -331,6 +334,7 @@ class IncidentTickAccounting:
     counted_lwf_host_ids: tuple[str, ...]
 
     incident_active_ticks: int
+    incident_delay_penalty: float
 
     incident_host_lwf_count: int
     incident_host_lwf_raw_penalty: float
@@ -355,6 +359,9 @@ class IncidentTickAccounting:
 
             "incident_active_ticks":
                 self.incident_active_ticks,
+
+            "incident_delay_penalty":
+                self.incident_delay_penalty,
 
             "incident_host_lwf_count":
                 self.incident_host_lwf_count,
@@ -464,6 +471,7 @@ class IncidentResponseBookkeeper:
         self._reset_done = False
 
         self.total_incident_active_ticks = 0
+        self.total_incident_delay_penalty = 0.0
         self.total_incident_host_lwf_count = 0
         self.total_incident_host_lwf_raw_penalty = 0.0
         self.total_response_reward = 0.0
@@ -548,6 +556,7 @@ class IncidentResponseBookkeeper:
         self._events = []
 
         self.total_incident_active_ticks = 0
+        self.total_incident_delay_penalty = 0.0
         self.total_incident_host_lwf_count = 0
         self.total_incident_host_lwf_raw_penalty = 0.0
         self.total_response_reward = 0.0
@@ -659,6 +668,20 @@ class IncidentResponseBookkeeper:
             active_before
         )
 
+        # Final-paper delay term:
+        #
+        #   sum_i (t - t_compromise_i) I(c_i,t = 1)
+        #
+        # Each event that was active during this interval contributes its
+        # compromise age at the interval end. This preserves the existing
+        # convention that the recovery interval is counted.
+        incident_delay_penalty = float(
+            sum(
+                tick_end - event.t_compromise
+                for event in active_before
+            )
+        )
+
         # ====================================================
         # 2. Incident-host LWF
         # ====================================================
@@ -700,19 +723,15 @@ class IncidentResponseBookkeeper:
                     f"{hostname}"
                 )
 
-            # 只统计 interval 开始时
-            # 已经处于 active incident 的 host。
-            #
-            # newly-compromised-at-end 的 host
-            # 从下一 interval 开始计。
+            # The final paper defines operation failure over the whole Blue
+            # scope, including failures caused by attacks or response actions.
+            # Keep the legacy replay field name for compatibility, but count
+            # every LWF in this agent's tracked host inventory.
             event = (
                 self._active_by_host.get(
                     hostname
                 )
             )
-
-            if event is None:
-                continue
 
             raw = float(
                 failure.raw_lwf_penalty
@@ -721,15 +740,16 @@ class IncidentResponseBookkeeper:
             lwf_count += 1
             lwf_raw_penalty += raw
 
-            event.incident_host_lwf_count += 1
+            if event is not None:
+                event.incident_host_lwf_count += 1
 
-            event.incident_host_lwf_raw_penalty += (
-                raw
-            )
+                event.incident_host_lwf_raw_penalty += (
+                    raw
+                )
 
-            counted_lwf_event_ids.add(
-                event.incident_event_id
-            )
+                counted_lwf_event_ids.add(
+                    event.incident_event_id
+                )
 
             counted_lwf_host_ids.add(
                 hostname
@@ -741,8 +761,8 @@ class IncidentResponseBookkeeper:
 
         response_reward = (
             self.reward_config.compute(
-                incident_active_ticks=(
-                    incident_active_ticks
+                incident_delay_penalty=(
+                    incident_delay_penalty
                 ),
                 incident_host_lwf_raw_penalty=(
                     lwf_raw_penalty
@@ -858,6 +878,10 @@ class IncidentResponseBookkeeper:
             incident_active_ticks
         )
 
+        self.total_incident_delay_penalty += (
+            incident_delay_penalty
+        )
+
         self.total_incident_host_lwf_count += (
             lwf_count
         )
@@ -933,6 +957,10 @@ class IncidentResponseBookkeeper:
 
             incident_active_ticks=(
                 incident_active_ticks
+            ),
+
+            incident_delay_penalty=(
+                incident_delay_penalty
             ),
 
             incident_host_lwf_count=(

@@ -33,6 +33,7 @@ from shared.formal_state import FORMAL_STATE_DIM
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "configs" / "lwm_rl_gate_b_v2_1.yaml"
+REGISTRY_PATH = ROOT / "configs" / "llm_model_registry_v1.yaml"
 
 
 def load_config():
@@ -45,6 +46,7 @@ class TestGateBLLMPriorPosteriorContract(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.cfg = load_config()
+        cls.registry = yaml.safe_load(REGISTRY_PATH.read_text(encoding="utf-8"))
 
     def test_formal_action_k_h_and_model_contract(self):
         self.assertEqual(FORMAL_ACTION_NAMES, ("no_op","analyse","remove","restore"))
@@ -55,14 +57,16 @@ class TestGateBLLMPriorPosteriorContract(unittest.TestCase):
         self.assertEqual(FORMAL_LLM_API_MODEL, "openai/gpt-5.6-sol")
         self.assertEqual(FORMAL_LLM_TEMPERATURE, 0.2)
         llm=self.cfg["llm_prior"]
-        self.assertEqual(llm["provider"],"ofox_openai_compatible")
+        registry=self.registry["registry"]
+        tier_h=self.registry["models"]["tier_h"]
+        self.assertEqual(llm["mode"],"registry_driven_multi_model")
+        self.assertEqual(registry["gateway"],"ofox")
         self.assertEqual(llm["gateway_base_url"],"https://api.ofox.ai/v1")
-        self.assertEqual(llm["api_model"],"openai/gpt-5.6-sol")
+        self.assertEqual(tier_h["exact_model_id"],"openai/gpt-5.6-sol")
         self.assertEqual(llm["api_key_env"],"OFOX_API_KEY")
         self.assertEqual(llm["k_candidates"],6)
         self.assertEqual(llm["plan_horizon"],4)
         self.assertEqual(llm["generation_temperature"],0.2)
-        self.assertEqual(llm["prior_preference_normalization"],"nonnegative_linear_sum_to_one")
 
     def test_prompt_uses_only_four_action_vocab_and_d27_state(self):
         state=np.arange(FORMAL_STATE_DIM,dtype=np.float32)/100.0
@@ -220,7 +224,9 @@ class TestGateBLLMPriorPosteriorContract(unittest.TestCase):
         reward=self.cfg["shared_contract"]["response_objective"]
         self.assertFalse(reward["early_warning_lead_reward"])
         self.assertFalse(reward["fixed_action_cost"])
-        self.assertFalse(reward["lambda_delay"])
+        self.assertEqual(reward["reward_protocol"],"final_paper_20260917_v1")
+        self.assertEqual(reward["delay_term"],"sum_active_incident_compromise_age")
+        self.assertEqual(reward["failure_scope"],"all_tracked_host_local_work_failures")
 
     def test_legacy_modules_explicitly_excluded(self):
         legacy=self.cfg["legacy_isolation"]

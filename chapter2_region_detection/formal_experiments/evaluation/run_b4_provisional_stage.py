@@ -7,6 +7,9 @@ import hashlib
 import json
 from pathlib import Path
 
+from formal_experiments.data_collection.incident_response import (
+    RESPONSE_REWARD_PROTOCOL,
+)
 from formal_experiments.evaluation.run_b4_provisional_ppo import (
     DEFAULT_OUT_ROOT,
     DEFAULT_PPO_SEED,
@@ -27,7 +30,7 @@ from formal_experiments.ours.provisional_protocol import (
 from shared.formal_state import BLUE_AGENTS
 
 
-PROTOCOL_MANIFEST_FORMAT_VERSION = 1
+PROTOCOL_MANIFEST_FORMAT_VERSION = 2
 
 
 def _stable_sha256(payload: dict) -> str:
@@ -42,6 +45,7 @@ def frozen_protocol_manifest(*, model_alias: str) -> dict:
         "development_only": True,
         "formal_result_eligible": False,
         "model_alias": str(model_alias),
+        "response_reward_protocol": RESPONSE_REWARD_PROTOCOL,
         "scenario_steps": int(DEFAULT_PROVISIONAL_SCENARIO_STEPS),
         "ppo_seed": int(DEFAULT_PPO_SEED),
         "stage_targets": [int(x) for x in PROVISIONAL_STAGE_TARGETS],

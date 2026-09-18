@@ -97,7 +97,9 @@ class TestGateB4PreSmokeDesignContract(unittest.TestCase):
         self.assertIn("response_reward_predictor.pt", shared["response_reward_predictor"])
         self.assertFalse(objective["early_warning_lead_reward"])
         self.assertFalse(objective["fixed_action_cost"])
-        self.assertFalse(objective["lambda_delay"])
+        self.assertEqual(objective["reward_protocol"], "final_paper_20260917_v1")
+        self.assertEqual(objective["delay_term"], "sum_active_incident_compromise_age")
+        self.assertEqual(objective["failure_scope"], "all_tracked_host_local_work_failures")
 
 
 if __name__ == "__main__":

@@ -2,7 +2,8 @@ config:
   name: lwm_rl_gate_b_v2_1
   version: "2.3"
   status: gate_b_b4_pre_smoke_registry_driven
-  source_of_truth: docs/UG_CEM_APT_REPRODUCTION_PLAN.md
+  source_of_truth: docs/FINAL_PAPER_EXPERIMENT_ALIGNMENT.md
+  historical_plan: docs/UG_CEM_APT_REPRODUCTION_PLAN.md
   protocol_amendment: docs/gate-b-B4-pre-smoke-design-audit.md
 
 shared_contract:
@@ -18,11 +19,13 @@ shared_contract:
   world_model: outputs/world_model_v2/a4_5b/world_model_absolute.pt
   response_reward_predictor: outputs/world_model_v2/a4_5c/response_reward_predictor.pt
   response_objective:
+    reward_protocol: final_paper_20260917_v1
     lambda_time: 1.0
     lambda_failure: 1.0
+    delay_term: sum_active_incident_compromise_age
+    failure_scope: all_tracked_host_local_work_failures
     early_warning_lead_reward: false
     fixed_action_cost: false
-    lambda_delay: false
 
 llm_prior:
   mode: registry_driven_multi_model

@@ -1,5 +1,11 @@
 # APT 动态响应项目代码与实验审查报告
 
+> 2026-09-18 最终方案修正：后续实验以
+> [最终论文方案与对比实验执行基线](FINAL_PAPER_EXPERIMENT_ALIGNMENT.md)
+> 为准。20260917 最终论文的延迟项按感染年龄增长，并要求统计区域内
+> 全部 Host Work Fail；旧实现与该定义不一致。旧 provisional/B0.2
+> 只保留为历史工程证据，GPT-5.6 Sol 付费实验暂停至协议重新对齐。
+
 审查日期：2026-09-18。仓库：`yang-whu-cnn/aptdetect`，分支：`ug-cem-apt`。
 审查基线：`9a2375f873fa3a34705a97a766cb8cffe68546db`；本次通过 `git ls-remote` 确认远端分支与本地起点一致。
 
@@ -118,9 +124,9 @@ TERLA 与 LWM-RL 的论文命名对应、UAMCTS/RSMBRL 与现有 UG-CEM 的算�
 
 `formal_experiments/data_collection/incident_response.py:ResponseRewardConfig` 已实现：
 
-`r = -lambda_time × incident_active_ticks + lambda_failure × incident_host_lwf_raw_penalty`
+历史实现为 `r = -lambda_time × incident_active_ticks + lambda_failure × incident_host_lwf_raw_penalty`。最终论文协议现已改为按每个 active incident 的感染年龄求和，并统计该 Blue agent 管辖范围内全部 Host Work Fail；详见 `FINAL_PAPER_EXPERIMENT_ALIGNMENT.md`。
 
-LWF raw penalty 本身非正。Delay-Only 对应 (1,0)，Fail-Only 对应 (0,1)，Full-Reward 对应 (1,1)。底层允许零权重，不需要重写 reward 公式。
+LWF raw penalty 本身非正。Delay-Only 对应 (1,0)，Fail-Only 对应 (0,1)，Full-Reward 对应 (1,1)。底层允许零权重；最终实验必须基于新奖励口径重新采集 replay，并重训 reward predictor 与策略。
 
 但 `run_b4_provisional_ppo.py` 创建 `IncidentResponseBookkeeper` 时使用默认 reward config；现有 CLI 没有贯通三种模式。需要将权重传到采集、训练、manifest、checkpoint 与汇总，避免不同目标混用。
 
