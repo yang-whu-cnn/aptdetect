@@ -1,0 +1,633 @@
+{
+  "review_date": "2026-09-18",
+  "baseline_commit": "9a2375f873fa3a34705a97a766cb8cffe68546db",
+  "remote_verified_equal": true,
+  "scope": "Source/contract review and historical artifact inspection; no new formal experiment; no exhaustive upstream baseline algorithm audit",
+  "output_directories": [
+    {
+      "path": "outputs/cc4",
+      "files": 2,
+      "bytes": 427146,
+      "tracked_files": 2
+    },
+    {
+      "path": "outputs/cc4_probe",
+      "files": 5,
+      "bytes": 3026637,
+      "tracked_files": 0
+    },
+    {
+      "path": "outputs/docs",
+      "files": 1,
+      "bytes": 0,
+      "tracked_files": 1
+    },
+    {
+      "path": "outputs/formal_replay",
+      "files": 4,
+      "bytes": 14831821,
+      "tracked_files": 0
+    },
+    {
+      "path": "outputs/formal_replay_smoke",
+      "files": 2,
+      "bytes": 399357,
+      "tracked_files": 0
+    },
+    {
+      "path": "outputs/formal_replay_v2",
+      "files": 4,
+      "bytes": 14831821,
+      "tracked_files": 0
+    },
+    {
+      "path": "outputs/formal_replay_v2_smoke",
+      "files": 2,
+      "bytes": 399357,
+      "tracked_files": 0
+    },
+    {
+      "path": "outputs/local_online_deploy",
+      "files": 20,
+      "bytes": 49452124,
+      "tracked_files": 20
+    },
+    {
+      "path": "outputs/local_online_wm",
+      "files": 1,
+      "bytes": 100,
+      "tracked_files": 1
+    },
+    {
+      "path": "outputs/lwm_rl_v2",
+      "files": 4936,
+      "bytes": 18299051,
+      "tracked_files": 4936
+    },
+    {
+      "path": "outputs/metrics",
+      "files": 4,
+      "bytes": 748001,
+      "tracked_files": 4
+    },
+    {
+      "path": "outputs/metrics_logs",
+      "files": 5,
+      "bytes": 47573424,
+      "tracked_files": 5
+    },
+    {
+      "path": "outputs/official_eval",
+      "files": 7,
+      "bytes": 2672562,
+      "tracked_files": 7
+    },
+    {
+      "path": "outputs/ug_cem_v2",
+      "files": 5,
+      "bytes": 801306,
+      "tracked_files": 5
+    },
+    {
+      "path": "outputs/world_model",
+      "files": 6,
+      "bytes": 1261248,
+      "tracked_files": 6
+    },
+    {
+      "path": "outputs/world_model_v2",
+      "files": 7,
+      "bytes": 1277267,
+      "tracked_files": 7
+    }
+  ],
+  "source_inventory": {
+    "formal_experiments": [
+      "formal_experiments/__init__.py",
+      "formal_experiments/data_collection/__init__.py",
+      "formal_experiments/data_collection/collect_cc4_formal_replay.py",
+      "formal_experiments/data_collection/collect_ug_calibration_states.py",
+      "formal_experiments/data_collection/decision_replay.py",
+      "formal_experiments/data_collection/incident_response.py",
+      "formal_experiments/evaluation/__init__.py",
+      "formal_experiments/evaluation/audit_b0_2_all_models.py",
+      "formal_experiments/evaluation/audit_b0_2_policy_ood.py",
+      "formal_experiments/evaluation/audit_model_space_action_consistency.py",
+      "formal_experiments/evaluation/audit_world_model_final.py",
+      "formal_experiments/evaluation/build_llm_validation_state_bank.py",
+      "formal_experiments/evaluation/calibrate_ug_normalizer.py",
+      "formal_experiments/evaluation/run_b2_multi_model_preflight.py",
+      "formal_experiments/evaluation/run_b2_prior_quality.py",
+      "formal_experiments/evaluation/run_b2_repeatability.py",
+      "formal_experiments/evaluation/run_b4_provisional_ppo.py",
+      "formal_experiments/evaluation/run_b4_provisional_stage.py",
+      "formal_experiments/evaluation/run_b4_tiny_pipeline_smoke.py",
+      "formal_experiments/evaluation/run_gate_b2_model_preflight.py",
+      "formal_experiments/evaluation/run_gate_b_b2_live_prior_smoke.py",
+      "formal_experiments/evaluation/run_ug_cem_step7_smoke.py",
+      "formal_experiments/evaluation/validate_bootstrap_world_model.py",
+      "formal_experiments/evaluation/validate_response_reward_predictor.py",
+      "formal_experiments/ours/__init__.py",
+      "formal_experiments/ours/gemini_prior_client.py",
+      "formal_experiments/ours/llm_prior_v2.py",
+      "formal_experiments/ours/lwm_runtime.py",
+      "formal_experiments/ours/model_registry.py",
+      "formal_experiments/ours/ofox_prior_client.py",
+      "formal_experiments/ours/posterior_features.py",
+      "formal_experiments/ours/ppo_core.py",
+      "formal_experiments/ours/ppo_training.py",
+      "formal_experiments/ours/prior_cache.py",
+      "formal_experiments/ours/provisional_protocol.py",
+      "formal_experiments/probes/__init__.py",
+      "formal_experiments/probes/probe_cc4_action_duration.py",
+      "formal_experiments/probes/probe_cc4_four_action_contract.py",
+      "formal_experiments/probes/probe_cc4_incident_bookkeeping.py",
+      "formal_experiments/probes/probe_cc4_multi_agent_integration.py",
+      "formal_experiments/probes/probe_cc4_observable_state_contract.py",
+      "formal_experiments/training/__init__.py",
+      "formal_experiments/training/bootstrap_world_model.py",
+      "formal_experiments/training/response_reward_predictor.py"
+    ],
+    "shared": [
+      "shared/__init__.py",
+      "shared/action_contract.py",
+      "shared/cyborg_action_adapter.py",
+      "shared/cyborg_target_resolver.py",
+      "shared/formal_state.py",
+      "shared/local_action_adapter.py",
+      "shared/local_online_client.py",
+      "shared/model_space_action.py",
+      "shared/rollout_evaluator.py"
+    ],
+    "baselines": [
+      "baselines/__init__.py",
+      "baselines/ug_cem_apt/__init__.py",
+      "baselines/ug_cem_apt/categorical_cem.py",
+      "baselines/ug_cem_apt/normalizer_bundle.py",
+      "baselines/ug_cem_apt/normalizer_warmup.py",
+      "baselines/ug_cem_apt/planner.py",
+      "baselines/ug_cem_apt/uncertainty.py",
+      "baselines/ug_cem_apt/warmup.py"
+    ],
+    "configs": [
+      "configs/cc4.yaml",
+      "configs/cc4_local_online.yaml",
+      "configs/cc4_local_online_gpt.yaml",
+      "configs/cc4_local_online_qwen.yaml",
+      "configs/cc4_mock.yaml",
+      "configs/cc4_online.yaml",
+      "configs/compare_ug_cem_formal_v2_1.yaml",
+      "configs/compare_ug_cem_local_online.yaml",
+      "configs/llm_model_registry_v1.yaml",
+      "configs/lwm_rl_gate_b_v2_1.yaml",
+      "configs/lwm_rl_v2_3.yaml"
+    ],
+    "experiments": [
+      "experiments/__init__.py",
+      "experiments/collect_local_online.py",
+      "experiments/compare_deploys.py",
+      "experiments/eval_deploy_jsonl.py",
+      "experiments/export_cc4_eval_100x500.py",
+      "experiments/run_collect_random.py",
+      "experiments/run_deploy_baseline.py",
+      "experiments/run_deploy_region.py",
+      "experiments/run_end2end_collab_cc4.py",
+      "experiments/run_end2end_collab_cc4_metricsready_v6_pkgfixed_sourceref.py",
+      "experiments/run_region_official_cyborg_eval.py",
+      "experiments/run_region_official_cyborg_eval_hybrid_boost.py",
+      "experiments/run_train_posterior.py",
+      "experiments/run_train_world_model.py",
+      "experiments/train_world_model_local.py"
+    ],
+    "scripts": [
+      "scripts/__init__.py",
+      "scripts/prepare_replay_from_apt_paths.py",
+      "scripts/run_all_regions.py"
+    ]
+  },
+  "historical_reports": [
+    {
+      "path": "outputs/lwm_rl_v2/b2/live_preflight.json",
+      "sha256": "c37aadc11fa05da5879cdae5003e50453321cdffc3337c445f92b5eb6ddffd16",
+      "summary": {
+        "phase": "gate_b2_multi_model_live_preflight",
+        "network_mode": "direct_no_env_proxy",
+        "base_url": "https://api.ofox.ai/v1",
+        "primary_model_selected": false,
+        "probe_state_sha256": "2dd1353c3c10bd59def5d4e57ab11857d9d7ae55bb8814aefe2f020d23079de3",
+        "pass": true
+      }
+    },
+    {
+      "path": "outputs/lwm_rl_v2/b2/llm_h_gpt56_sol/prior_quality.json",
+      "sha256": "ab22ee28d8be0f07789c22ed73be7e698c4c05dec208959a2c746c2f28672d33",
+      "summary": {
+        "tier": "tier_h",
+        "experiment_alias": "llm_h_gpt56_sol",
+        "provider": "ofox",
+        "exact_model_id": "openai/gpt-5.6-sol",
+        "requested_temperature": 0.2,
+        "actual_temperature": 0.2,
+        "structured_output_verified_preflight": true,
+        "pass": true
+      }
+    },
+    {
+      "path": "outputs/lwm_rl_v2/b2/llm_l_gemini35_flash_lite/prior_quality.json",
+      "sha256": "4f1c7e1bfad8bcba3d5ec3aea6acb3d2288f0172e0505dd342ef28a8b4085bb9",
+      "summary": {
+        "tier": "tier_l",
+        "experiment_alias": "llm_l_gemini35_flash_lite",
+        "provider": "ofox",
+        "exact_model_id": "google/gemini-3.5-flash-lite",
+        "requested_temperature": 0.2,
+        "actual_temperature": 0.2,
+        "structured_output_verified_preflight": true,
+        "pass": true
+      }
+    },
+    {
+      "path": "outputs/lwm_rl_v2/b2/llm_m_gpt54_mini/prior_quality.json",
+      "sha256": "38111bc01d4465f2dac7139891c35c985443407be75875e644e76636c6144b83",
+      "summary": {
+        "tier": "tier_m",
+        "experiment_alias": "llm_m_gpt54_mini",
+        "provider": "ofox",
+        "exact_model_id": "openai/gpt-5.4-mini",
+        "requested_temperature": 0.2,
+        "actual_temperature": 0.2,
+        "structured_output_verified_preflight": true,
+        "pass": true
+      }
+    },
+    {
+      "path": "outputs/lwm_rl_v2/b2/prior_quality_summary.json",
+      "sha256": "b1c9d1f1771dd7ffc74926773a61caae6bf9ba542fdcaa1130bed63590e3dd5c",
+      "summary": {
+        "phase": "gate_b2_prior_quality",
+        "registry_sha256": "002a73ec959270cd656a9a4eac66cddf5b257c401a8f2855d2e5bce9ed3f256b",
+        "bank_sha256": "b42472e9a20f66b56164d846e8bd41caa2cae54f0e9a6558d7ebebff2c771e17",
+        "state_count": 240,
+        "primary_model_selected": false,
+        "pass": true
+      }
+    },
+    {
+      "path": "outputs/lwm_rl_v2/b2/repeatability/llm_h_gpt56_sol.json",
+      "sha256": "0e01f38040ffc34605201a8fcc5d99626f7a9a00ae0a0906c79cf3ed131c9817",
+      "summary": {
+        "exact_model_id": "openai/gpt-5.6-sol",
+        "experiment_alias": "llm_h_gpt56_sol",
+        "format_version": 1,
+        "pass": true,
+        "primary_model_selected": false,
+        "provider": "ofox",
+        "replicates_per_state": 3,
+        "state_count": 30,
+        "tier": "tier_h"
+      }
+    },
+    {
+      "path": "outputs/lwm_rl_v2/b2/repeatability/llm_l_gemini35_flash_lite.json",
+      "sha256": "99fb07bec3caed44ebaa4ff70af085f2d98e01999739c2f9d943bcefee9696ac",
+      "summary": {
+        "exact_model_id": "google/gemini-3.5-flash-lite",
+        "experiment_alias": "llm_l_gemini35_flash_lite",
+        "format_version": 1,
+        "pass": true,
+        "primary_model_selected": false,
+        "provider": "ofox",
+        "replicates_per_state": 3,
+        "state_count": 30,
+        "tier": "tier_l"
+      }
+    },
+    {
+      "path": "outputs/lwm_rl_v2/b2/repeatability/llm_m_gpt54_mini.json",
+      "sha256": "ee5541c064487812b431ddd52a22195b4ab9eac83545e734b97efe6dd2db4cf3",
+      "summary": {
+        "exact_model_id": "openai/gpt-5.4-mini",
+        "experiment_alias": "llm_m_gpt54_mini",
+        "format_version": 1,
+        "pass": true,
+        "primary_model_selected": false,
+        "provider": "ofox",
+        "replicates_per_state": 3,
+        "state_count": 30,
+        "tier": "tier_m"
+      }
+    },
+    {
+      "path": "outputs/lwm_rl_v2/b2/repeatability/repeatability_state_subset_summary.json",
+      "sha256": "c7203744384c80c670dc1c7ff4fa10f159d9162766f1a060edbb40a4f097cde2",
+      "summary": {
+        "format_version": 1,
+        "pass": true,
+        "record_count": 30,
+        "selection_algorithm": "position_mod_agent_seed_feature17_v1",
+        "source_bank_sha256": "b42472e9a20f66b56164d846e8bd41caa2cae54f0e9a6558d7ebebff2c771e17",
+        "subset_sha256": "be063e3de7b19eee6da7728ce3b2365b10d73806112128d9be048014ad58ae49",
+        "unique_exact_state_count": 30
+      }
+    },
+    {
+      "path": "outputs/lwm_rl_v2/b2/repeatability/repeatability_summary.json",
+      "sha256": "d4c7a0464c294fc1cf0096802d812002d736ed2bf04640f79ca910072173c334",
+      "summary": {
+        "format_version": 1,
+        "pass": true,
+        "phase": "gate_b2_repeatability",
+        "primary_model_selected": false,
+        "registry_sha256": "002a73ec959270cd656a9a4eac66cddf5b257c401a8f2855d2e5bce9ed3f256b",
+        "replicates_per_state": 3,
+        "source_bank_sha256": "b42472e9a20f66b56164d846e8bd41caa2cae54f0e9a6558d7ebebff2c771e17",
+        "state_count": 30,
+        "subset_sha256": "be063e3de7b19eee6da7728ce3b2365b10d73806112128d9be048014ad58ae49"
+      }
+    },
+    {
+      "path": "outputs/lwm_rl_v2/b2/state_bank_summary.json",
+      "sha256": "0dac914ddcb10c3b3f712563e185b7d1780f81074c8fb96fbd830507f0b0aeab",
+      "summary": {
+        "bank_format_version": 1,
+        "bank_sha256": "b42472e9a20f66b56164d846e8bd41caa2cae54f0e9a6558d7ebebff2c771e17",
+        "expected_record_count": 240,
+        "feature17_index": 17,
+        "future_state_fields": false,
+        "hidden_truth_fields": false,
+        "pass": true,
+        "record_count": 240,
+        "reward_fields": false,
+        "selection_config_sha256": "00698b76e1adeeec9bba9eb3148bea1319052584a47ae8e4771792d6f10f4117",
+        "source_replay": "outputs/formal_replay_v2/validation.jsonl",
+        "split": "validation",
+        "state_dim": 27,
+        "state_dtype": "float32_le",
+        "states_per_seed_agent_cell": 6,
+        "status": "PASS",
+        "unique_exact_state_count": 240
+      }
+    },
+    {
+      "path": "outputs/lwm_rl_v2/b2/uniform_non_llm/prior_quality.json",
+      "sha256": "c7dd4e133a1d4840b0f93a10b5f6970046ec5a02521624251a7a7a13c1b78e48",
+      "summary": {
+        "experiment_alias": "uniform_non_llm",
+        "provider": "none",
+        "prior_tied": true,
+        "pass": true
+      }
+    },
+    {
+      "path": "outputs/lwm_rl_v2/b0_2/llm_l_gemini35_flash_lite.json",
+      "sha256": "43ccf80f985b721c9d37963cd354d4eb9093ac10298e5a2203ee93d7b320d306",
+      "summary": {
+        "status": "PASS",
+        "pass": true,
+        "coverage_complete": true,
+        "probe_record_count": 1994,
+        "validation_one_step_rmse": 0.13223170196479042,
+        "recommended_next_stage": null
+      }
+    },
+    {
+      "path": "outputs/lwm_rl_v2/b4/provisional/llm_l_gemini35_flash_lite/protocol_manifest.json",
+      "sha256": "1b3d2cc95a015489cdd151d5aca356ccf8783dabbfd65b9a87f77670371c2c35",
+      "summary": {
+        "format_version": 1,
+        "phase": "gate_b4_provisional_ppo",
+        "development_only": true,
+        "formal_result_eligible": false,
+        "model_alias": "llm_l_gemini35_flash_lite",
+        "scenario_steps": 100,
+        "ppo_seed": 20260917,
+        "rollout_target": 128,
+        "train_seed_schedule": "1000..1031 round-robin",
+        "update_rule": "batch>=128 and all PPO/replay open decisions closed; final stage flush allowed",
+        "formal_reuse_forbidden": true
+      }
+    },
+    {
+      "path": "outputs/lwm_rl_v2/b4/provisional/llm_l_gemini35_flash_lite/stage_2000.json",
+      "sha256": "b6b8a2fec752d9fa14a0de5b374d06ab47a1f03caaefa0737a8ad444169ba00f",
+      "summary": {
+        "phase": "gate_b4_provisional_ppo",
+        "development_only": true,
+        "formal_result_eligible": false,
+        "model_alias": "llm_l_gemini35_flash_lite",
+        "exact_model_id": "google/gemini-3.5-flash-lite",
+        "stage_target": 2000,
+        "transition_count": 1994,
+        "stage_shortfall": 6,
+        "max_transition_cap": 20000,
+        "rollout_target": 128,
+        "ppo_seed": 20260917,
+        "episode_count": 8,
+        "policy_version": 13,
+        "registry_sha256": "002a73ec959270cd656a9a4eac66cddf5b257c401a8f2855d2e5bce9ed3f256b",
+        "world_model_sha256": "37a9dd5a9ce3ba41c48e6c2e3087dfb3641d14de8e84c2765642d3c85d700859",
+        "reward_model_sha256": "9d05930ccacf8c68d3caeb8585daf963d6ce32c18690d65bb2f6f15531848739",
+        "cache_format_version": 2,
+        "primary_model_selected_is_false": true,
+        "probe_path": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\lwm_rl_v2\\b4\\provisional\\llm_l_gemini35_flash_lite\\probe_transitions.jsonl",
+        "probe_record_count": 1994,
+        "checkpoint_path": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\lwm_rl_v2\\b4\\provisional\\llm_l_gemini35_flash_lite\\resume.pt",
+        "fallback_count_this_run": 747,
+        "action_completed_count_this_run": 1975,
+        "plan0_match_count_this_run": 1994,
+        "alignment_count_this_run": 1994,
+        "response_reward_total_this_run": -5375.0,
+        "official_reward_total_this_run": -2400.0,
+        "cache_hits_cumulative": 160,
+        "cache_misses_cumulative": 1889,
+        "live_api_calls_cumulative": 1889,
+        "estimated_cost_usd_cumulative": 2.2661253000000023,
+        "live_latency_ms_cumulative": 4571430.525699395,
+        "update_count": 13,
+        "safe_update_barriers": true,
+        "pass": true,
+        "strict_protocol_manifest_path": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\lwm_rl_v2\\b4\\provisional\\llm_l_gemini35_flash_lite\\protocol_manifest.json",
+        "strict_protocol_manifest_sha256": "734d8a8b24d33310325875bf234a5f208591935e9581f7e05f28cc98cfd2402a",
+        "strict_entrypoint": true
+      }
+    },
+    {
+      "path": "outputs/lwm_rl_v2/b4/provisional/llm_m_gpt54_mini/protocol_manifest.json",
+      "sha256": "ca6dcc9ad2d4b9621c1944085dfb2c14ee29eb8c5c453ab16b8dcb073f55edbb",
+      "summary": {
+        "format_version": 1,
+        "phase": "gate_b4_provisional_ppo",
+        "development_only": true,
+        "formal_result_eligible": false,
+        "model_alias": "llm_m_gpt54_mini",
+        "scenario_steps": 100,
+        "ppo_seed": 20260917,
+        "rollout_target": 128,
+        "train_seed_schedule": "1000..1031 round-robin",
+        "update_rule": "batch>=128 and all PPO/replay open decisions closed; final stage flush allowed",
+        "formal_reuse_forbidden": true
+      }
+    },
+    {
+      "path": "outputs/lwm_rl_v2/b4/provisional/llm_m_gpt54_mini/stage_2000.json",
+      "sha256": "c179374a031d6a4f6ef1220d29a729e5742923e0423821ee60bc271f18369d30",
+      "summary": {
+        "phase": "gate_b4_provisional_ppo",
+        "development_only": true,
+        "formal_result_eligible": false,
+        "model_alias": "llm_m_gpt54_mini",
+        "exact_model_id": "openai/gpt-5.4-mini",
+        "stage_target": 2000,
+        "transition_count": 1991,
+        "stage_shortfall": 9,
+        "max_transition_cap": 20000,
+        "rollout_target": 128,
+        "ppo_seed": 20260917,
+        "episode_count": 8,
+        "policy_version": 12,
+        "registry_sha256": "002a73ec959270cd656a9a4eac66cddf5b257c401a8f2855d2e5bce9ed3f256b",
+        "world_model_sha256": "37a9dd5a9ce3ba41c48e6c2e3087dfb3641d14de8e84c2765642d3c85d700859",
+        "reward_model_sha256": "9d05930ccacf8c68d3caeb8585daf963d6ce32c18690d65bb2f6f15531848739",
+        "cache_format_version": 2,
+        "primary_model_selected_is_false": true,
+        "probe_path": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\lwm_rl_v2\\b4\\provisional\\llm_m_gpt54_mini\\probe_transitions.jsonl",
+        "probe_record_count": 1991,
+        "checkpoint_path": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\lwm_rl_v2\\b4\\provisional\\llm_m_gpt54_mini\\resume.pt",
+        "fallback_count_this_run": 448,
+        "action_completed_count_this_run": 1979,
+        "plan0_match_count_this_run": 1991,
+        "alignment_count_this_run": 1991,
+        "response_reward_total_this_run": -5620.0,
+        "official_reward_total_this_run": -2525.0,
+        "cache_hits_cumulative": 95,
+        "cache_misses_cumulative": 1941,
+        "live_api_calls_cumulative": 1941,
+        "estimated_cost_usd_cumulative": 3.539920499999989,
+        "live_latency_ms_cumulative": 6950676.447799018,
+        "update_count": 12,
+        "safe_update_barriers": true,
+        "pass": true,
+        "strict_protocol_manifest_path": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\lwm_rl_v2\\b4\\provisional\\llm_m_gpt54_mini\\protocol_manifest.json",
+        "strict_protocol_manifest_sha256": "d95936fca2271d2e63f089f4e83321d2d1fb3f355026ab5845873159f206fc20",
+        "strict_entrypoint": true
+      }
+    },
+    {
+      "path": "outputs/lwm_rl_v2/b4/tiny_pipeline_smoke.json",
+      "sha256": "2eaf70a1955fd03eb1ae62ba9dbbb9783b7fbf5acefc9c5e0826e1a92510a912",
+      "summary": {
+        "phase": "gate_b4_tiny_pipeline_smoke",
+        "development_only": true,
+        "formal_result_eligible": false,
+        "seed": 1000,
+        "scenario_steps": 20,
+        "post_reset_env_steps": 19,
+        "controller_tick_end": 19,
+        "ppo_seed": 20260917,
+        "network_mode": "direct_no_env_proxy",
+        "model_alias": "llm_l_gemini35_flash_lite",
+        "exact_model_id": "google/gemini-3.5-flash-lite",
+        "primary_model_selected_is_false": true,
+        "registry_sha256": "002a73ec959270cd656a9a4eac66cddf5b257c401a8f2855d2e5bce9ed3f256b",
+        "world_model_sha256": "37a9dd5a9ce3ba41c48e6c2e3087dfb3641d14de8e84c2765642d3c85d700859",
+        "reward_model_sha256": "9d05930ccacf8c68d3caeb8585daf963d6ce32c18690d65bb2f6f15531848739",
+        "cache_format_version": 2,
+        "agent_aware_cache_identity": true,
+        "transition_count": 92,
+        "ppo_step_count": 92,
+        "all_agents_done": true,
+        "fallback_count": 61,
+        "plan0_match_count": 92,
+        "alignment_count": 92,
+        "response_reward_total": -10.0,
+        "official_reward_total": -30.0,
+        "candidate_context_builds": 92,
+        "cache_hits": 0,
+        "cache_misses_before_update": 92,
+        "cache_misses_after_update": 92,
+        "live_transactions_before_update": 92,
+        "live_transactions_after_update": 92,
+        "estimated_cost_usd_this_run": 0.11219200000000001,
+        "live_latency_ms_this_run": 216818.29869997455,
+        "training_batch_size": 92,
+        "policy_parameters_changed": true,
+        "pass": true
+      }
+    },
+    {
+      "path": "outputs/world_model_v2/a4_5b/a4_5b_report.json",
+      "sha256": "e83ac51be69203ce3d244db2f61aea2d2621571cea9ec0e58bd446d6b53c8aab",
+      "summary": {
+        "train_replay_count": 9041,
+        "validation_replay_count": 2336
+      }
+    },
+    {
+      "path": "outputs/world_model_v2/a4_5c/a4_5c_report.json",
+      "sha256": "3937831b3575bf323d203e88d3ce5b14f1b8c767f9cd3baf7b3244dcf6f2c329",
+      "summary": {
+        "checkpoint": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\world_model_v2\\a4_5c\\response_reward_predictor.pt"
+      }
+    },
+    {
+      "path": "outputs/world_model_v2/a4_6a/action_consistency_report.json",
+      "sha256": "e458c95467820fa5ea11420ddaf45b3679e97b39e171657933977b7bf64936e0",
+      "summary": {}
+    },
+    {
+      "path": "outputs/world_model_v2/b0_1/per_action_audit.json",
+      "sha256": "296cdf2462b4e11584892353c149074ee61ebc3b139097a9a7777f3e7d6cdb94",
+      "summary": {
+        "pass": true
+      }
+    },
+    {
+      "path": "outputs/ug_cem_v2/step6/calibration_states_summary.json",
+      "sha256": "c545c5f9f5957022ec36cda071755763b63b702acc41644ddfffe699ad88cd8c",
+      "summary": {
+        "split": "calibration",
+        "episode_steps": 100,
+        "pad_spaces": false,
+        "state_dim": 27,
+        "contains_hidden_truth": false,
+        "contains_reward_labels": false,
+        "record_count": 2301
+      }
+    },
+    {
+      "path": "outputs/ug_cem_v2/step6/ug_normalizers_online_report.json",
+      "sha256": "6ed930033c1b911383d9f719543efe99d967a9437d1d1b50275c789fa1aba3fc",
+      "summary": {
+        "status": "PASS",
+        "source_split": "calibration",
+        "planner_calls_per_agent": 100,
+        "total_planner_calls": 500,
+        "freeze_after_warmup": false,
+        "online_updates_after_warmup": true,
+        "world_model_checkpoint": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\world_model_v2\\a4_5b\\world_model_absolute.pt",
+        "reward_model_checkpoint": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\world_model_v2\\a4_5c\\response_reward_predictor.pt",
+        "pass": true
+      }
+    },
+    {
+      "path": "outputs/ug_cem_v2/step7/step7_smoke_report.json",
+      "sha256": "cb87648044147653a96f043e57c91e6e90964738564cb1aa81eaa968d4f9f25f",
+      "summary": {
+        "status": "PASS",
+        "pass": true
+      }
+    }
+  ],
+  "current_tests": {
+    "runtime": "Python 3.13.3; torch 2.14.0+cpu; numpy 2.5.0",
+    "target_venv": "Failed to launch configured Python 3.11 interpreter",
+    "discovery": {
+      "tests": 484,
+      "errors": 10,
+      "skipped": 1,
+      "passed_entries": 473
+    },
+    "standalone_tiny": "Import failed: filelock missing via CybORG/Ray; not a pass",
+    "live_provider_runs": 0
+  }
+}

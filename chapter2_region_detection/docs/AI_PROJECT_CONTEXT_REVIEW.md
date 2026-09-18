@@ -1,5 +1,12 @@
 # AI_PROJECT_CONTEXT_REVIEW
 
+> 2026-09-18 update: Read [AI_PROJECT_FINAL_REVIEW.md](AI_PROJECT_FINAL_REVIEW.md)
+> first for the verified source/artifact review. This older context note contains
+> broad progress statements and outdated top-level `ours/` / `evaluation/` paths.
+> Current implementations are under `formal_experiments/`. Only the L-model
+> B0.2 report was present at the review baseline; provisional PPO results are not
+> eligible for formal paper tables.
+
 ## Purpose
 
 This document records the current project understanding after reviewing:

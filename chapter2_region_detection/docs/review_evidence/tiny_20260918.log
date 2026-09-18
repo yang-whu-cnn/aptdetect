@@ -1,0 +1,56 @@
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+Users of this version of Gym should be able to simply replace 'import gym' with 'import gymnasium as gym' in the vast majority of cases.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+E
+======================================================================
+ERROR: test_gate_b4_tiny_pipeline_smoke (unittest.loader._FailedTest.test_gate_b4_tiny_pipeline_smoke)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_gate_b4_tiny_pipeline_smoke
+Traceback (most recent call last):
+  File "D:\software\python\python3.13.3\Lib\unittest\loader.py", line 137, in loadTestsFromName
+    module = __import__(module_name)
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\tests\test_gate_b4_tiny_pipeline_smoke.py", line 11, in <module>
+    from formal_experiments.evaluation.run_b4_tiny_pipeline_smoke import (
+    ...<9 lines>...
+    )
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\formal_experiments\evaluation\run_b4_tiny_pipeline_smoke.py", line 14, in <module>
+    from formal_experiments.data_collection.collect_cc4_formal_replay import (
+    ...<5 lines>...
+    )
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\formal_experiments\data_collection\collect_cc4_formal_replay.py", line 58, in <module>
+    from CybORG.Agents.Wrappers.BlueFixedActionWrapper import (  # type: ignore
+        BlueFixedActionWrapper,
+    )
+  File "D:\python1\cage-challenge-4\CybORG\Agents\Wrappers\__init__.py", line 6, in <module>
+    from .EnterpriseMAE import EnterpriseMAE
+  File "D:\python1\cage-challenge-4\CybORG\Agents\Wrappers\EnterpriseMAE.py", line 7, in <module>
+    from ray.rllib.env.multi_agent_env import MultiAgentEnv
+  File "D:\software\python\python3.13.3\Lib\site-packages\ray\__init__.py", line 114, in <module>
+    from ray._private.worker import (  # noqa: E402,F401
+    ...<15 lines>...
+    )
+  File "D:\software\python\python3.13.3\Lib\site-packages\ray\_private\worker.py", line 55, in <module>
+    import ray.actor
+  File "D:\software\python\python3.13.3\Lib\site-packages\ray\actor.py", line 57, in <module>
+    from ray.util.tracing.tracing_helper import (
+    ...<3 lines>...
+    )
+  File "D:\software\python\python3.13.3\Lib\site-packages\ray\util\tracing\tracing_helper.py", line 29, in <module>
+    from ray.runtime_context import get_runtime_context
+  File "D:\software\python\python3.13.3\Lib\site-packages\ray\runtime_context.py", line 10, in <module>
+    from ray.runtime_env import RuntimeEnv
+  File "D:\software\python\python3.13.3\Lib\site-packages\ray\runtime_env\__init__.py", line 1, in <module>
+    from ray.runtime_env.runtime_env import RuntimeEnv, RuntimeEnvConfig  # noqa: E402,F401
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\software\python\python3.13.3\Lib\site-packages\ray\runtime_env\runtime_env.py", line 10, in <module>
+    from ray._private.runtime_env.conda import get_uri as get_conda_uri
+  File "D:\software\python\python3.13.3\Lib\site-packages\ray\_private\runtime_env\conda.py", line 13, in <module>
+    from filelock import FileLock
+ModuleNotFoundError: No module named 'filelock'
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.000s
+
+FAILED (errors=1)

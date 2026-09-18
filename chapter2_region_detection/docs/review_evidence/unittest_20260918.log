@@ -1,0 +1,199 @@
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+Users of this version of Gym should be able to simply replace 'import gym' with 'import gymnasium as gym' in the vast majority of cases.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+.............................E........................................................E......................................................................................E................................................EEEEE.........................................................................................................................................E...............E......................s................................................................................
+======================================================================
+ERROR: test_checkpoint_round_trip (test_gate_a_bootstrap_world_model.TestGateABootstrapWorldModel.test_checkpoint_round_trip)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\tests\test_gate_a_bootstrap_world_model.py", line 674, in test_checkpoint_round_trip
+    BootstrapProbabilisticWorldModel
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    .load_checkpoint(
+    ~~~~~~~~~~~~~~~~^
+        path
+        ^^^^
+    )
+    ^
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\formal_experiments\training\bootstrap_world_model.py", line 1628, in load_checkpoint
+    payload = torch.load(
+        Path(path),
+        map_location=device,
+    )
+  File "D:\software\python\python3.13.3\Lib\site-packages\torch\serialization.py", line 1614, in load
+    raise pickle.UnpicklingError(_get_wo_message(str(e))) from None
+_pickle.UnpicklingError: Weights only load failed. This file can still be loaded, to do so you have two options, do those steps only if you trust the source of the checkpoint. 
+	(1) In PyTorch 2.6, we changed the default value of the `weights_only` argument in `torch.load` from `False` to `True`. Re-running `torch.load` with `weights_only` set to `False` will likely succeed, but it can result in arbitrary code execution. Do it only if you got the file from a trusted source.
+	(2) Alternatively, to load with `weights_only=True` please check the recommended steps in the following error message.
+	WeightsUnpickler error: Unsupported global: GLOBAL numpy._core.multiarray._reconstruct was not an allowed global by default. Please use `torch.serialization.add_safe_globals([numpy._core.multiarray._reconstruct])` or the `torch.serialization.safe_globals([numpy._core.multiarray._reconstruct])` context manager to allowlist this global if you trust this class/function.
+
+Check the documentation of torch.load to learn more about types accepted by default with weights_only https://pytorch.org/docs/stable/generated/torch.load.html.
+
+======================================================================
+ERROR: test_gate_a_final_integration (unittest.loader._FailedTest.test_gate_a_final_integration)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_gate_a_final_integration
+Traceback (most recent call last):
+  File "D:\software\python\python3.13.3\Lib\unittest\loader.py", line 396, in _find_test_path
+    module = self._get_module_from_name(name)
+  File "D:\software\python\python3.13.3\Lib\unittest\loader.py", line 339, in _get_module_from_name
+    __import__(name)
+    ~~~~~~~~~~^^^^^^
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\tests\test_gate_a_final_integration.py", line 9, in <module>
+    from formal_experiments.evaluation import audit_model_space_action_consistency as action_audit
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\formal_experiments\evaluation\audit_model_space_action_consistency.py", line 12, in <module>
+    from formal_experiments.evaluation.validate_bootstrap_world_model import (
+    ...<5 lines>...
+    )
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\formal_experiments\evaluation\validate_bootstrap_world_model.py", line 13, in <module>
+    from formal_experiments.data_collection.collect_cc4_formal_replay import (
+        DEFAULT_SPLIT_SEEDS,
+    )
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\formal_experiments\data_collection\collect_cc4_formal_replay.py", line 58, in <module>
+    from CybORG.Agents.Wrappers.BlueFixedActionWrapper import (  # type: ignore
+        BlueFixedActionWrapper,
+    )
+  File "D:\python1\cage-challenge-4\CybORG\Agents\Wrappers\__init__.py", line 6, in <module>
+    from .EnterpriseMAE import EnterpriseMAE
+  File "D:\python1\cage-challenge-4\CybORG\Agents\Wrappers\EnterpriseMAE.py", line 7, in <module>
+    from ray.rllib.env.multi_agent_env import MultiAgentEnv
+  File "D:\software\python\python3.13.3\Lib\site-packages\ray\__init__.py", line 114, in <module>
+    from ray._private.worker import (  # noqa: E402,F401
+    ...<15 lines>...
+    )
+  File "D:\software\python\python3.13.3\Lib\site-packages\ray\_private\worker.py", line 55, in <module>
+    import ray.actor
+  File "D:\software\python\python3.13.3\Lib\site-packages\ray\actor.py", line 57, in <module>
+    from ray.util.tracing.tracing_helper import (
+    ...<3 lines>...
+    )
+  File "D:\software\python\python3.13.3\Lib\site-packages\ray\util\tracing\tracing_helper.py", line 29, in <module>
+    from ray.runtime_context import get_runtime_context
+  File "D:\software\python\python3.13.3\Lib\site-packages\ray\runtime_context.py", line 10, in <module>
+    from ray.runtime_env import RuntimeEnv
+  File "D:\software\python\python3.13.3\Lib\site-packages\ray\runtime_env\__init__.py", line 1, in <module>
+    from ray.runtime_env.runtime_env import RuntimeEnv, RuntimeEnvConfig  # noqa: E402,F401
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\software\python\python3.13.3\Lib\site-packages\ray\runtime_env\runtime_env.py", line 10, in <module>
+    from ray._private.runtime_env.conda import get_uri as get_conda_uri
+  File "D:\software\python\python3.13.3\Lib\site-packages\ray\_private\runtime_env\conda.py", line 13, in <module>
+    from filelock import FileLock
+ModuleNotFoundError: No module named 'filelock'
+
+
+======================================================================
+ERROR: test_checkpoint_round_trip (test_gate_a_response_reward_predictor.TestGateAResponseRewardPredictor.test_checkpoint_round_trip)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\tests\test_gate_a_response_reward_predictor.py", line 492, in test_checkpoint_round_trip
+    ResponseRewardPredictor
+    ~~~~~~~~~~~~~~~~~~~~~~~
+    .load_checkpoint(
+    ~~~~~~~~~~~~~~~~^
+        path
+        ^^^^
+    )
+    ^
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\formal_experiments\training\response_reward_predictor.py", line 1145, in load_checkpoint
+    payload = torch.load(
+        Path(path),
+        map_location=device,
+    )
+  File "D:\software\python\python3.13.3\Lib\site-packages\torch\serialization.py", line 1614, in load
+    raise pickle.UnpicklingError(_get_wo_message(str(e))) from None
+_pickle.UnpicklingError: Weights only load failed. This file can still be loaded, to do so you have two options, do those steps only if you trust the source of the checkpoint. 
+	(1) In PyTorch 2.6, we changed the default value of the `weights_only` argument in `torch.load` from `False` to `True`. Re-running `torch.load` with `weights_only` set to `False` will likely succeed, but it can result in arbitrary code execution. Do it only if you got the file from a trusted source.
+	(2) Alternatively, to load with `weights_only=True` please check the recommended steps in the following error message.
+	WeightsUnpickler error: Unsupported global: GLOBAL numpy._core.multiarray._reconstruct was not an allowed global by default. Please use `torch.serialization.add_safe_globals([numpy._core.multiarray._reconstruct])` or the `torch.serialization.safe_globals([numpy._core.multiarray._reconstruct])` context manager to allowlist this global if you trust this class/function.
+
+Check the documentation of torch.load to learn more about types accepted by default with weights_only https://pytorch.org/docs/stable/generated/torch.load.html.
+
+======================================================================
+ERROR: test_gate_accepts_predeclared_passing_case (test_gate_b0_world_model_final_audit.TestGateB0WorldModelFinalAudit.test_gate_accepts_predeclared_passing_case)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\tests\test_gate_b0_world_model_final_audit.py", line 29, in test_gate_accepts_predeclared_passing_case
+    result = b0_1_gate(
+        validation_per_action=self._passing_actions(),
+        aggregate=dict(FROZEN_REFERENCE),
+    )
+TypeError: b0_1_gate() missing 1 required keyword-only argument: 'first_action_h4'
+
+======================================================================
+ERROR: test_gate_rejects_catastrophic_action_ratio (test_gate_b0_world_model_final_audit.TestGateB0WorldModelFinalAudit.test_gate_rejects_catastrophic_action_ratio)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\tests\test_gate_b0_world_model_final_audit.py", line 50, in test_gate_rejects_catastrophic_action_ratio
+    result = b0_1_gate(
+        validation_per_action=actions,
+        aggregate=dict(FROZEN_REFERENCE),
+    )
+TypeError: b0_1_gate() missing 1 required keyword-only argument: 'first_action_h4'
+
+======================================================================
+ERROR: test_gate_rejects_frozen_metric_drift (test_gate_b0_world_model_final_audit.TestGateB0WorldModelFinalAudit.test_gate_rejects_frozen_metric_drift)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\tests\test_gate_b0_world_model_final_audit.py", line 70, in test_gate_rejects_frozen_metric_drift
+    result = b0_1_gate(
+        validation_per_action=self._passing_actions(),
+        aggregate=aggregate,
+    )
+TypeError: b0_1_gate() missing 1 required keyword-only argument: 'first_action_h4'
+
+======================================================================
+ERROR: test_gate_rejects_low_validation_action_coverage (test_gate_b0_world_model_final_audit.TestGateB0WorldModelFinalAudit.test_gate_rejects_low_validation_action_coverage)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\tests\test_gate_b0_world_model_final_audit.py", line 40, in test_gate_rejects_low_validation_action_coverage
+    result = b0_1_gate(
+        validation_per_action=actions,
+        aggregate=dict(FROZEN_REFERENCE),
+    )
+TypeError: b0_1_gate() missing 1 required keyword-only argument: 'first_action_h4'
+
+======================================================================
+ERROR: test_gate_requires_three_of_four_actions_to_beat_persistence (test_gate_b0_world_model_final_audit.TestGateB0WorldModelFinalAudit.test_gate_requires_three_of_four_actions_to_beat_persistence)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\tests\test_gate_b0_world_model_final_audit.py", line 60, in test_gate_requires_three_of_four_actions_to_beat_persistence
+    result = b0_1_gate(
+        validation_per_action=actions,
+        aggregate=dict(FROZEN_REFERENCE),
+    )
+TypeError: b0_1_gate() missing 1 required keyword-only argument: 'first_action_h4'
+
+======================================================================
+ERROR: test_explicit_network_modes_construct_httpx_clients (test_gate_b_b2_live_prior.TestGateBB2LivePrior.test_explicit_network_modes_construct_httpx_clients)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\formal_experiments\ours\ofox_prior_client.py", line 77, in build_openai_http_client
+    import httpx
+ModuleNotFoundError: No module named 'httpx'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\tests\test_gate_b_b2_live_prior.py", line 83, in test_explicit_network_modes_construct_httpx_clients
+    direct=build_openai_http_client({"OFOX_DISABLE_ENV_PROXY":"1"})
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\formal_experiments\ours\ofox_prior_client.py", line 79, in build_openai_http_client
+    raise RuntimeError("httpx is required for explicit OFOX network mode") from exc
+RuntimeError: httpx is required for explicit OFOX network mode
+
+======================================================================
+ERROR: test_formal_action_k_h_and_model_contract (test_gate_b_llm_prior_posterior_contract.TestGateBLLMPriorPosteriorContract.test_formal_action_k_h_and_model_contract)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\paper\github-me\aptdetect\chapter2_region_detection\tests\test_gate_b_llm_prior_posterior_contract.py", line 58, in test_formal_action_k_h_and_model_contract
+    self.assertEqual(llm["provider"],"ofox_openai_compatible")
+                     ~~~^^^^^^^^^^^^
+KeyError: 'provider'
+
+----------------------------------------------------------------------
+Ran 484 tests in 2.712s
+
+FAILED (errors=10, skipped=1)
+[REPEATABILITY] llm_h_gpt56_sol state=01/1 live_calls_this_run=0
+[REPEATABILITY] llm_h_gpt56_sol state=01/1 live_calls_this_run=3
+[REPEATABILITY] llm_h_gpt56_sol state=01/1 live_calls_this_run=0
