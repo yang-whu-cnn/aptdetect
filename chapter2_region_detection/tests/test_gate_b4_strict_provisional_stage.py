@@ -54,8 +54,16 @@ class TestGateB4StrictProvisionalStage(unittest.TestCase):
         self.assertEqual(manifest["rollout_target"], 128)
         self.assertEqual(manifest["ppo_training_config"]["update_epochs"], 5)
         self.assertEqual(manifest["ppo_training_config"]["minibatch_size"], 64)
-        self.assertEqual(manifest["format_version"], 2)
+        self.assertEqual(manifest["format_version"], 3)
         self.assertEqual(manifest["response_reward_protocol"], "final_paper_20260917_v1")
+        self.assertEqual(
+            manifest["world_model_sha256"],
+            "3b86593aa8adda3e0e173bfb700c543bd88641d23cf3e73ddc3992284c8f900f",
+        )
+        self.assertEqual(
+            manifest["reward_model_sha256"],
+            "f333330510b5de8e78fb9e2dc4287dd87fee29695fe38cbec5e60700ee615624",
+        )
         self.assertTrue(manifest["formal_reuse_forbidden"])
 
     def test_manifest_resume_requires_exact_match(self):

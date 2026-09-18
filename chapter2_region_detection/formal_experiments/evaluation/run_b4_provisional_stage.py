@@ -11,7 +11,6 @@ from formal_experiments.data_collection.incident_response import (
     RESPONSE_REWARD_PROTOCOL,
 )
 from formal_experiments.evaluation.run_b4_provisional_ppo import (
-    DEFAULT_OUT_ROOT,
     DEFAULT_PPO_SEED,
     report_path_for_display,
     resolve_project_path,
@@ -30,7 +29,11 @@ from formal_experiments.ours.provisional_protocol import (
 from shared.formal_state import BLUE_AGENTS
 
 
-PROTOCOL_MANIFEST_FORMAT_VERSION = 2
+PROTOCOL_MANIFEST_FORMAT_VERSION = 3
+DEFAULT_FINAL_WORLD_MODEL = "outputs/world_model_final_20260917/a4_5b/world_model_absolute.pt"
+DEFAULT_FINAL_REWARD_MODEL = "outputs/world_model_final_20260917/a4_5c/response_reward_predictor.pt"
+DEFAULT_FINAL_CACHE_ROOT = "outputs/lwm_rl_final_20260917/prior_cache"
+DEFAULT_FINAL_OUT_ROOT = "outputs/lwm_rl_final_20260917/b4/provisional"
 
 
 def _stable_sha256(payload: dict) -> str:
@@ -38,7 +41,17 @@ def _stable_sha256(payload: dict) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
-def frozen_protocol_manifest(*, model_alias: str) -> dict:
+def _file_sha256(path: str | Path) -> str:
+    return hashlib.sha256(resolve_project_path(path).read_bytes()).hexdigest()
+
+
+def frozen_protocol_manifest(
+    *,
+    model_alias: str,
+    world_model_path: str | Path = DEFAULT_FINAL_WORLD_MODEL,
+    reward_model_path: str | Path = DEFAULT_FINAL_REWARD_MODEL,
+    cache_root: str | Path = DEFAULT_FINAL_CACHE_ROOT,
+) -> dict:
     return {
         "format_version": PROTOCOL_MANIFEST_FORMAT_VERSION,
         "phase": "gate_b4_provisional_ppo",
@@ -46,6 +59,9 @@ def frozen_protocol_manifest(*, model_alias: str) -> dict:
         "formal_result_eligible": False,
         "model_alias": str(model_alias),
         "response_reward_protocol": RESPONSE_REWARD_PROTOCOL,
+        "world_model_sha256": _file_sha256(world_model_path),
+        "reward_model_sha256": _file_sha256(reward_model_path),
+        "cache_namespace": str(cache_root),
         "scenario_steps": int(DEFAULT_PROVISIONAL_SCENARIO_STEPS),
         "ppo_seed": int(DEFAULT_PPO_SEED),
         "stage_targets": [int(x) for x in PROVISIONAL_STAGE_TARGETS],
@@ -76,9 +92,17 @@ def write_or_validate_manifest(
     out_root: str | Path,
     model_alias: str,
     resume: bool,
+    world_model_path: str | Path = DEFAULT_FINAL_WORLD_MODEL,
+    reward_model_path: str | Path = DEFAULT_FINAL_REWARD_MODEL,
+    cache_root: str | Path = DEFAULT_FINAL_CACHE_ROOT,
 ) -> tuple[Path, dict, str]:
     path = _manifest_path(out_root=out_root, model_alias=model_alias)
-    expected = frozen_protocol_manifest(model_alias=model_alias)
+    expected = frozen_protocol_manifest(
+        model_alias=model_alias,
+        world_model_path=world_model_path,
+        reward_model_path=reward_model_path,
+        cache_root=cache_root,
+    )
     expected_sha = _stable_sha256(expected)
 
     if resume:
@@ -170,7 +194,10 @@ def run_strict_stage(
     stage_target: int = DEFAULT_PROVISIONAL_STAGE_TARGET,
     device: str = "cpu",
     resume: bool = False,
-    out_root: str | Path = DEFAULT_OUT_ROOT,
+    world_model_path: str | Path = DEFAULT_FINAL_WORLD_MODEL,
+    reward_model_path: str | Path = DEFAULT_FINAL_REWARD_MODEL,
+    cache_root: str | Path = DEFAULT_FINAL_CACHE_ROOT,
+    out_root: str | Path = DEFAULT_FINAL_OUT_ROOT,
 ) -> dict:
     target = validate_stage_target(stage_target)
     if target != DEFAULT_PROVISIONAL_STAGE_TARGET and not resume:
@@ -180,6 +207,9 @@ def run_strict_stage(
         out_root=out_root,
         model_alias=model_alias,
         resume=resume,
+        world_model_path=world_model_path,
+        reward_model_path=reward_model_path,
+        cache_root=cache_root,
     )
 
     report = run_provisional_stage(
@@ -187,6 +217,9 @@ def run_strict_stage(
         stage_target=target,
         scenario_steps=DEFAULT_PROVISIONAL_SCENARIO_STEPS,
         ppo_seed=DEFAULT_PPO_SEED,
+        world_model_path=world_model_path,
+        reward_model_path=reward_model_path,
+        cache_root=cache_root,
         out_root=out_root,
         device=device,
         resume=resume,
@@ -219,6 +252,10 @@ def main() -> None:
     parser.add_argument("--model-alias", required=True)
     parser.add_argument("--stage-target", type=int, default=DEFAULT_PROVISIONAL_STAGE_TARGET)
     parser.add_argument("--device", default="cpu")
+    parser.add_argument("--world-model", default=DEFAULT_FINAL_WORLD_MODEL)
+    parser.add_argument("--reward-model", default=DEFAULT_FINAL_REWARD_MODEL)
+    parser.add_argument("--cache-root", default=DEFAULT_FINAL_CACHE_ROOT)
+    parser.add_argument("--out-root", default=DEFAULT_FINAL_OUT_ROOT)
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
 
@@ -227,6 +264,10 @@ def main() -> None:
         stage_target=args.stage_target,
         device=args.device,
         resume=args.resume,
+        world_model_path=args.world_model,
+        reward_model_path=args.reward_model,
+        cache_root=args.cache_root,
+        out_root=args.out_root,
     )
 
     cumulative = report["cumulative_probe_summary"]
@@ -245,7 +286,7 @@ def main() -> None:
     print("safe update barriers:", report["safe_update_barriers"])
     print("primary_model_selected:", not report["primary_model_selected_is_false"])
     print("pass:", report["pass"])
-    print("[OK] report:", report_path_for_display(report, DEFAULT_OUT_ROOT))
+    print("[OK] report:", report_path_for_display(report, args.out_root))
     if not report["pass"]:
         raise SystemExit(1)
 

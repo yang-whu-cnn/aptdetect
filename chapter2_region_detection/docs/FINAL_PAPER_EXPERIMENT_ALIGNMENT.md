@@ -90,3 +90,5 @@ Recovery Precision 按论文 `TP / (TP + FP)`，需要在实现前冻结 TP/FP �
 随后已完成 final-reward replay 重采集：train 为 32 seeds × 500 timesteps、43,297 transitions，validation 为 8 seeds × 500 timesteps、10,796 transitions。两组均无新字段缺失，逐条复算 reward 公式均为零不一致；文件哈希、源码哈希、seed 和覆盖统计见 `FINAL_REWARD_REPLAY_MANIFEST.json`。原始 JSONL 共约 85 MB，保存在本地忽略目录，不提交 Git；manifest 提交 Git 用于追溯和校验。新 delay 标签最大值超过 20,000，明显改变旧 reward 尺度，训练 reward predictor 前必须检查其标签标准化和数值稳定性。
 
 基于新 replay 已重新训练 absolute/delta WM 和 final-reward predictor。A4.5b 仍选择 absolute：H4 RMSE 0.130383，优于 persistence 0.156583，质量门通过。reward predictor 的 WM-H4 RMSE 为 2313.807，优于常数基线 4919.828，Spearman 为 0.7022，8/8 validation episodes 为正，质量门通过。action consistency 与重新绑定本次 A4.5b 报告的 B0.1 均通过。旧 B0.1 脚本原先只允许复现旧 checkpoint 的硬编码指标，现保留历史默认值，并支持通过 `--reference-report` 审计同一新协议 checkpoint。模型和报告哈希见 `FINAL_REWARD_MODEL_MANIFEST.json`。
+
+final-reward provisional strict manifest 已升级为 v3，强制绑定新 WM/reward predictor 哈希，并使用 `outputs/lwm_rl_final_20260917` 的独立输出与 cache namespace。L 档 2,000-transition 阶段已尝试启动，但在第一次 API 调用前因运行环境未配置 `OFOX_API_KEY` 停止；live API calls、cache records、probe transitions 和费用均为 0。配置密钥后应在相同独立目录重新 fresh 启动，无需 `--resume`。
