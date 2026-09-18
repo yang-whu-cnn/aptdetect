@@ -1145,6 +1145,10 @@ class ResponseRewardPredictor:
         payload = torch.load(
             Path(path),
             map_location=device,
+            # Project checkpoints include NumPy normalizer state as well as
+            # tensor weights. PyTorch 2.6 changed the default to
+            # weights_only=True, which rejects that trusted local metadata.
+            weights_only=False,
         )
 
         if (

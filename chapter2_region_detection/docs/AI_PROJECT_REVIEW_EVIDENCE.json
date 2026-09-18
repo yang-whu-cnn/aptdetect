@@ -620,14 +620,27 @@
   ],
   "current_tests": {
     "runtime": "Python 3.13.3; torch 2.14.0+cpu; numpy 2.5.0",
-    "target_venv": "Failed to launch configured Python 3.11 interpreter",
+    "target_venv": "Python 3.11.9; torch 2.14.0+cpu; numpy 2.4.6; verified outside the restricted sandbox",
     "discovery": {
       "tests": 484,
       "errors": 10,
       "skipped": 1,
       "passed_entries": 473
     },
-    "standalone_tiny": "Import failed: filelock missing via CybORG/Ray; not a pass",
+    "standalone_tiny": "PASS: 10 tests in the target Python 3.11 environment",
+    "checkpoint_round_trip": "PASS: world model and response reward predictor after explicit trusted-checkpoint loading",
     "live_provider_runs": 0
+  },
+  "follow_up_2026_09_18": {
+    "result": "GPT-5.4 Mini B0.2 PASS",
+    "report_path": "outputs/lwm_rl_v2/b0_2/llm_m_gpt54_mini.json",
+    "report_sha256": "6a0b45c7689037ff6f1fe0eb9a6219c7f740f985b051c444dc2dd138c876e722",
+    "report_bytes": 2903,
+    "probe_record_count": 1991,
+    "coverage_complete": true,
+    "probe_to_validation_rmse_ratio": 1.085529973135015,
+    "ood_fraction": 0.04470115519839277,
+    "recommended_next_stage": null,
+    "live_provider_calls": 0
   }
 }

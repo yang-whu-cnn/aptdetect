@@ -1,0 +1,97 @@
+{
+  "status": "PASS",
+  "pass": true,
+  "coverage_complete": true,
+  "probe_record_count": 1991,
+  "validation_one_step_rmse": 0.13223170178581117,
+  "one_step": {
+    "completed_count": 1979,
+    "incomplete_count": 12,
+    "rmse": 0.14354147568714892,
+    "mae": 0.05121153374887305,
+    "uncertainty_error_spearman": 0.7608578041522016,
+    "bottom_uncertainty_quartile_mean_error": 0.040036103750707576,
+    "top_uncertainty_quartile_mean_error": 0.19155423414675468,
+    "per_action": {
+      "no_op": {
+        "count": 1135,
+        "rmse": 0.14603456041693239,
+        "mae": 0.04381169226054493
+      },
+      "analyse": {
+        "count": 740,
+        "rmse": 0.1385538856786377,
+        "mae": 0.06097526386466862
+      },
+      "remove": {
+        "count": 65,
+        "rmse": 0.13370313888767854,
+        "mae": 0.056344665971750585
+      },
+      "restore": {
+        "count": 39,
+        "rmse": 0.17560304980857064,
+        "mae": 0.07275015449442793
+      }
+    },
+    "canonical_action_counts": {
+      "0": 1135,
+      "1": 740,
+      "2": 65,
+      "3": 39
+    }
+  },
+  "h4_diagnostic": {
+    "window_count": 1859,
+    "rmse": 0.17825192700401132,
+    "mae": 0.0848554416035664,
+    "uncertainty_error_spearman": 0.6836688922370547
+  },
+  "ood": {
+    "knn_k": 5,
+    "threshold": 4.085569750152434,
+    "fraction_above_threshold": 0.04470115519839277,
+    "knn_mean": 0.9841487736978618,
+    "knn_p95": 3.971748445555253,
+    "normalized_z_rms_mean": 1.06032142156091,
+    "normalized_z_rms_p95": 2.4680133385955787
+  },
+  "gate_checks": {
+    "probe_to_validation_rmse_ratio": 1.085529973135015,
+    "rmse_ratio_ok": true,
+    "uncertainty_error_spearman": 0.7608578041522016,
+    "uncertainty_spearman_positive": true,
+    "bottom_uncertainty_quartile_mean_error": 0.040036103750707576,
+    "top_uncertainty_quartile_mean_error": 0.19155423414675468,
+    "uncertainty_quartile_order_ok": true,
+    "ood_fraction": 0.04470115519839277,
+    "ood_fraction_ok": true,
+    "finite_ok": true
+  },
+  "contract": {
+    "phase": "gate_b0_2_policy_induced_ood",
+    "train_only_probe": true,
+    "knn_k": 5,
+    "validation_percentile": 99.0,
+    "max_ood_fraction": 0.1,
+    "max_probe_validation_rmse_ratio": 1.25,
+    "world_model_target": "absolute",
+    "ensemble_size": 5
+  },
+  "sources": [
+    {
+      "path": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\lwm_rl_v2\\b4\\provisional\\llm_m_gpt54_mini\\probe_transitions.jsonl",
+      "records": 1991
+    }
+  ],
+  "reference": {
+    "train_state_count": 9041,
+    "validation_state_count": 2336,
+    "knn_k": 5,
+    "validation_percentile": 99.0,
+    "threshold": 4.085569750152434,
+    "validation_knn_mean": 0.5412790106285251,
+    "validation_knn_p95": 2.130301064948454
+  },
+  "recommended_next_stage": null
+}

@@ -71,7 +71,8 @@ provisional stage 为 2000→5000→10000→20000 条真实 decision transitions
 - `outputs/lwm_rl_v2/b4/provisional/llm_m_gpt54_mini/`：1991 transitions，8 episodes，12 updates，stage pass=true；formal_result_eligible=false。记录成本约 3.5399 USD。
 - 两者 probe JSONL 行数与 stage 一致，episode seeds 均为 1000–1007；报告中的 WM、reward predictor 和 registry SHA256 与当前文件相符。
 - `outputs/lwm_rl_v2/b0_2/llm_l_gemini35_flash_lite.json`：已有 PASS、coverage_complete=true，1994 条 probe；probe/validation RMSE 比约 1.0466，OOD fraction 约 2.357%。这是历史报告，本次未重新计算其数值。
-- 未发现 M 模型 B0.2 报告、H 模型 B4 provisional 结果或 all_models B0.2 汇总。因此“所有模型 B0.2 完成”不成立。
+- `outputs/lwm_rl_v2/b0_2/llm_m_gpt54_mini.json`：2026-09-18 离线审计 PASS、coverage_complete=true，1991 条 probe；probe/validation RMSE 比约 1.0855，OOD fraction 约 4.470%。不需要扩到 5000，也没有重新调用 LLM。
+- 未发现 H 模型 B4 provisional 结果或 all_models B0.2 汇总。因此“所有模型 B0.2 完成”仍不成立。
 - `outputs/world_model_v2/a4_5b/`：训练/验证 replay 计数 9041/2336，包含 absolute checkpoint；`a4_5c/` 包含 reward predictor；`a4_6a/` 为动作一致性报告；`b0_1/per_action_audit.json` 保存 pass=true。可作模型/契约证据。
 - `outputs/ug_cem_v2/step6/`：2301 个 calibration states、500 次 planner calls 的 normalizer 报告通过；`step7/step7_smoke_report.json` 通过。仅证明适配基础和 smoke，不是多 seed 正式 baseline 结果。
 
@@ -136,13 +137,15 @@ LWF raw penalty 本身非正。Delay-Only 对应 (1,0)，Fail-Only 对应 (0,1)�
 
 ## 8. 本次复现检查与发现
 
-本次仅写审查文档和日志，以下问题未修复：
+首次审查及随后恢复验证得到以下结论：
 
-- `.venv_cc4/pyvenv.cfg` 指向 Python 3.11.9；启动其 `Scripts/python.exe` 报 Unable to create process。不能由历史“环境恢复成功”推断本会话可运行，也不能据此断言虚拟环境再次被 Git 删除。
+- `.venv_cc4/pyvenv.cfg` 指向 Python 3.11.9。首次在受限沙箱中启动失败；2026-09-18 在允许执行用户目录解释器后确认 Python 3.11.9、torch 2.14.0+cpu、numpy 2.4.6 均可用。因此这是执行权限限制，不是 venv 再次丢失或损坏。
+- 使用目标环境独立运行 `tests/test_gate_b4_tiny_pipeline_smoke.py`：10 tests 全部通过。
+- PyTorch 2.6+ 默认 `torch.load(weights_only=True)`，与本项目包含 NumPy normalizer 状态的 checkpoint 不兼容。`bootstrap_world_model.py` 和 `response_reward_predictor.py` 已对本项目可信 checkpoint 显式使用 `weights_only=False`；两个 checkpoint round-trip 测试通过，随后 M 模型 B0.2 通过。
 - 可用替代解释器为 Python 3.13.3，torch 2.14.0+cpu，numpy 2.5.0；它不同于冻结环境。
 - 使用替代解释器执行 `python -m unittest discover -s tests -p 'test_*.py'`：484 个测试条目，10 errors，1 skipped。不能报告整套通过。
 - 5 个 errors 来自 `test_gate_b0_world_model_final_audit.py` 未传新版 `b0_1_gate()` 必需的 `first_action_h4`；1 个来自 `test_gate_b_llm_prior_posterior_contract.py` 仍要求已被 registry-driven 配置替代的 `llm_prior.provider`。这是源码/测试契约不一致的明确证据，应更新测试而非倒退新设计。
-- 2 个 checkpoint round-trip errors 来自当前环境 `torch.load` weights-only 反序列化对 numpy 对象的拒绝；需要修复安全序列化兼容性或明确可信 checkpoint 加载策略，不能据此断言历史 checkpoint 损坏。
+- 替代解释器全量测试中的 2 个 checkpoint round-trip errors 已由上述可信 checkpoint 显式加载修复并在目标环境定向验证；其余错误仍未处理。
 - 另外 2 个 errors 分别为 CybORG→Ray 导入缺 filelock，以及 OFOX HTTP client 缺 httpx。
 - 独立运行 tiny 单元测试也在 CybORG→Ray→filelock 导入阶段失败；本次没有重现原用户环境中的 tiny 通过。全量测试受加载顺序/其他测试替身影响，不能代替独立入口验证。
 
@@ -152,9 +155,9 @@ LWF raw penalty 本身非正。Delay-Only 对应 (1,0)，Fail-Only 对应 (0,1)�
 
 ## 9. 下一步执行顺序
 
-1. 恢复独立可运行的目标 Python 环境，核实 CC4 版本和 import；修复上述测试/加载兼容问题，独立 tiny 测试通过。保留现有环境和实验结果，不执行清理删除。
-2. 对已经保存的 M 模型 probe 运行离线 B0.2。它不需要重新调用 LLM，但依赖可用 replay、WM 和运行环境。
-3. H 模型从严格 provisional 2000 阶段开始，再单模型 B0.2；只有覆盖不足且协议允许时逐级扩量。L 已有 PASS 不应无理由重跑付费阶段。
+1. 已确认目标 Python 3.11 环境可用，修复 checkpoint 加载兼容问题，并通过独立 tiny 和两个 checkpoint round-trip 测试。保留现有环境和实验结果，不执行清理删除。
+2. 已使用保存的 1991 条 M 模型 probe 完成离线 B0.2，结果 PASS；没有重新调用 LLM。
+3. H 模型从严格 provisional 2000 阶段开始，再单模型 B0.2；只有覆盖不足且协议允许时逐级扩量。该阶段会调用付费 API，执行前应确认预算。L、M 已有 PASS，不应无理由重跑付费阶段。
 4. 汇总 all_models Gate；全部模型通过后才把共享 WM 冻结到正式比较。若 FAIL，按既有协议修复，不能靠 pooled 平均掩盖。
 5. 先补正式 Ours runner、validation checkpoint selection、五 training seeds 与指标落盘；随后实现 Table 2 和 Table 3 的已声明变体。每个 LLM 必须独立 PPO，不共用一个 checkpoint。
 6. 适配 Table 1 baseline；优先利用已有 UG/CEM 检查共享 harness，再处理论文原表方法。外部代码定位后再判断复用量。
@@ -176,9 +179,9 @@ python -m formal_experiments.evaluation.audit_b0_2_all_models --device cpu
 - 四种模块消融：已有可复用组件，尚不能直接配置切换运行。
 - 三种 reward：底层系数支持，训练/预测目标/manifest 尚未打通。
 - outputs：已清点归属；现有 B4 不能作为正式论文结果。
-- B0.2：L 有历史 PASS；M 缺报告；H 缺 provisional 和报告；全模型闭环未完成。
+- B0.2：L、M 均有 PASS；H 缺 provisional 和报告；全模型闭环未完成。
 - baseline：UG/CEM 有本仓库适配与 smoke；其他论文方法及用户仓库外代码仍待适配核查。
-- 环境：freeze 已提交，但本次目标 venv 未能启动；替代解释器测试未全通过。
+- 环境：freeze 已提交，目标 Python 3.11 venv 已确认可运行，tiny 与 checkpoint 定向测试通过；替代解释器全量测试仍有旧测试契约和依赖错误。
 - 论文表格：原表要求与仓库计划存在明确差异，本文已给出保留原表的实现路线，没有擅自替换方法行或填入未经验证的数据。
 
 后续会话应先读本报告和证据 JSON，再读 `UG_CEM_APT_REPRODUCTION_PLAN.md`。不要把“源码已就绪”“历史 Gate 通过”“所有模型通过”“正式论文结果完成”混为同一进度。
