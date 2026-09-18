@@ -62,11 +62,11 @@ class TestGateAFormalComparisonConfig(unittest.TestCase):
 
     def test_formal_artifacts_are_v2(self):
         artifacts = self.config["artifacts"]
-        self.assertEqual(artifacts["train_replay"], "outputs/formal_replay_v2/train.jsonl")
-        self.assertEqual(artifacts["validation_replay"], "outputs/formal_replay_v2/validation.jsonl")
-        self.assertEqual(artifacts["selected_world_model"], "outputs/world_model_v2/a4_5b/world_model_absolute.pt")
-        self.assertEqual(artifacts["response_reward_predictor"], "outputs/world_model_v2/a4_5c/response_reward_predictor.pt")
-        self.assertEqual(artifacts["action_consistency_report"], "outputs/world_model_v2/a4_6a/action_consistency_report.json")
+        self.assertEqual(artifacts["train_replay"], "outputs/formal_replay_final_20260917/train.jsonl")
+        self.assertEqual(artifacts["validation_replay"], "outputs/formal_replay_final_20260917/validation.jsonl")
+        self.assertEqual(artifacts["selected_world_model"], "outputs/world_model_final_20260917/a4_5b/world_model_absolute.pt")
+        self.assertEqual(artifacts["response_reward_predictor"], "outputs/world_model_final_20260917/a4_5c/response_reward_predictor.pt")
+        self.assertEqual(artifacts["action_consistency_report"], "outputs/world_model_final_20260917/a4_6a/action_consistency_report.json")
 
     def test_world_model_and_reward_contract(self):
         wm = self.config["world_model"]

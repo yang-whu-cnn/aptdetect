@@ -4,7 +4,7 @@ import argparse
 import json
 from collections import Counter
 from pathlib import Path
-from typing import Sequence
+from typing import Mapping, Sequence
 
 import numpy as np
 import torch
@@ -64,6 +64,27 @@ def _finite(value: float) -> float:
     if not np.isfinite(value):
         raise ValueError("audit metric must be finite")
     return value
+
+
+def reference_from_a4_5b_report(path: str | Path) -> dict[str, float]:
+    source = resolve_path(path)
+    report = json.loads(source.read_text(encoding="utf-8"))
+    selected = report.get("selection", {}).get("selected_target_mode")
+    if selected != "absolute":
+        raise ValueError("B0.1 reference report must select absolute target mode")
+    metrics = report.get("modes", {}).get("absolute", {})
+    one = metrics.get("one_step", {})
+    h4 = metrics.get("rollout_h4", {})
+    reference = {
+        "one_step_rmse": one.get("rmse"),
+        "one_step_persistence_rmse": one.get("persistence_rmse"),
+        "h4_rmse": h4.get("rmse"),
+        "h4_persistence_rmse": h4.get("persistence_rmse"),
+        "h4_uncertainty_error_spearman": h4.get("epistemic_error_spearman"),
+    }
+    if set(reference) != set(FROZEN_REFERENCE):
+        raise ValueError("B0.1 reference metric keys changed")
+    return {name: _finite(value) for name, value in reference.items()}
 
 
 def _uncertainty_from_prediction(result: dict[str, np.ndarray]) -> np.ndarray:
@@ -285,11 +306,15 @@ def b0_1_gate(
     validation_per_action: dict[str, dict[str, object]],
     first_action_h4: dict[str, dict[str, object]],
     aggregate: dict[str, float],
+    reference: Mapping[str, float] | None = None,
     min_validation_count: int = MIN_VALIDATION_COUNT_PER_ACTION,
     max_ratio: float = MAX_ACTION_RMSE_PERSISTENCE_RATIO,
     min_beating: int = MIN_ACTIONS_BEATING_PERSISTENCE,
     frozen_tolerance: float = FROZEN_METRIC_ABS_TOLERANCE,
 ) -> dict[str, object]:
+    expected_reference = dict(FROZEN_REFERENCE if reference is None else reference)
+    if set(expected_reference) != set(FROZEN_REFERENCE):
+        raise ValueError("B0.1 reference metric keys changed")
     action_checks: dict[str, dict[str, object]] = {}
     beating = 0
     all_count = True
@@ -314,7 +339,7 @@ def b0_1_gate(
         }
 
     reproduction = {}
-    for key, expected in FROZEN_REFERENCE.items():
+    for key, expected in expected_reference.items():
         actual = float(aggregate[key])
         delta = abs(actual - float(expected))
         reproduction[key] = {
@@ -360,6 +385,7 @@ def run_audit(
     train_replay: str | Path,
     validation_replay: str | Path,
     checkpoint: str | Path,
+    reference_report: str | Path | None = None,
     device: str = "cpu",
 ) -> dict[str, object]:
     train = load_replay_jsonl(resolve_path(train_replay))
@@ -382,10 +408,16 @@ def run_audit(
     per_action = action_one_step_audit(model, validation)
     h4_first_action = first_action_h4_audit(model, validation)
     aggregate = aggregate_reproduction(model, validation)
+    reference = (
+        dict(FROZEN_REFERENCE)
+        if reference_report is None
+        else reference_from_a4_5b_report(reference_report)
+    )
     gate = b0_1_gate(
         validation_per_action=per_action,
         first_action_h4=h4_first_action,
         aggregate=aggregate,
+        reference=reference,
     )
 
     return {
@@ -405,6 +437,9 @@ def run_audit(
             "train_replay": str(resolve_path(train_replay)),
             "validation_replay": str(resolve_path(validation_replay)),
             "world_model": str(resolve_path(checkpoint)),
+            "reference_report": (
+                None if reference_report is None else str(resolve_path(reference_report))
+            ),
         },
         "train_completed_action_counts": train_counts,
         "validation_completed_action_counts": validation_counts,
@@ -424,6 +459,11 @@ def main() -> None:
     parser.add_argument("--train-replay", default=DEFAULT_TRAIN_REPLAY)
     parser.add_argument("--validation-replay", default=DEFAULT_VALIDATION_REPLAY)
     parser.add_argument("--checkpoint", default=DEFAULT_WORLD_MODEL)
+    parser.add_argument(
+        "--reference-report",
+        default=None,
+        help="A4.5b report from the same trained checkpoint; omit only for historical frozen-reference reproduction.",
+    )
     parser.add_argument("--out", default=DEFAULT_OUT)
     parser.add_argument("--device", default="cpu")
     args = parser.parse_args()
@@ -432,6 +472,7 @@ def main() -> None:
         train_replay=args.train_replay,
         validation_replay=args.validation_replay,
         checkpoint=args.checkpoint,
+        reference_report=args.reference_report,
         device=args.device,
     )
 

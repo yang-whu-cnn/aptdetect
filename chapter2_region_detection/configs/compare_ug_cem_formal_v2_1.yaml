@@ -61,11 +61,13 @@ planning_contract:
   duration_aware_discount: true
 
 artifacts:
-  train_replay: outputs/formal_replay_v2/train.jsonl
-  validation_replay: outputs/formal_replay_v2/validation.jsonl
-  selected_world_model: outputs/world_model_v2/a4_5b/world_model_absolute.pt
-  response_reward_predictor: outputs/world_model_v2/a4_5c/response_reward_predictor.pt
-  action_consistency_report: outputs/world_model_v2/a4_6a/action_consistency_report.json
+  train_replay: outputs/formal_replay_final_20260917/train.jsonl
+  validation_replay: outputs/formal_replay_final_20260917/validation.jsonl
+  selected_world_model: outputs/world_model_final_20260917/a4_5b/world_model_absolute.pt
+  response_reward_predictor: outputs/world_model_final_20260917/a4_5c/response_reward_predictor.pt
+  action_consistency_report: outputs/world_model_final_20260917/a4_6a/action_consistency_report.json
+  b0_1_report: outputs/world_model_final_20260917/b0_1/per_action_audit.json
+  artifact_manifest: docs/FINAL_REWARD_MODEL_MANIFEST.json
 
 world_model:
   state_dim: 27

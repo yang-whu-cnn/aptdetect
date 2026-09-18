@@ -14,8 +14,8 @@ shared_contract:
   candidate_count_main: 6
   gamma_tick: 0.99
   actions: [no_op, analyse, remove, restore]
-  world_model: outputs/world_model_v2/a4_5b/world_model_absolute.pt
-  response_reward_predictor: outputs/world_model_v2/a4_5c/response_reward_predictor.pt
+  world_model: outputs/world_model_final_20260917/a4_5b/world_model_absolute.pt
+  response_reward_predictor: outputs/world_model_final_20260917/a4_5c/response_reward_predictor.pt
   response_objective:
     reward_protocol: final_paper_20260917_v1
     source: real_cc4_decision_interval_accumulated_response_reward

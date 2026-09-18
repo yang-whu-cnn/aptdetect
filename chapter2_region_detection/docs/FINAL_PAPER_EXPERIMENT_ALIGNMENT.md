@@ -86,3 +86,7 @@ Recovery Precision 按论文 `TP / (TP + FP)`，需要在实现前冻结 TP/FP �
 任何付费 LLM 正式运行都必须记录模型 ID、prompt/version、cache namespace、token、费用和结果协议版本，避免把旧 reward 缓存或权重混入最终实验。
 
 截至 2026-09-18，本清单第 1 步和第 2 步的核心代码已完成：配置写入 `final_paper_20260917_v1`，replay 新增 `incident_delay_penalty`，provisional manifest 升级为 v2 并绑定新 reward 协议。关键契约测试 86 项通过。另用 seed 1000 运行了 10 ticks 的无付费 CC4 采集 smoke，生成 45 条 decision transitions，45 条均含新字段；该短轨迹未发生 incident，因此它只验证真实采集链路与 schema，不能验证真实攻击下的数值分布。第 3 步的结论是必须重采集；在新 replay 和新模型产物生成前，不运行 H 付费扩展和最终表格实验。
+
+随后已完成 final-reward replay 重采集：train 为 32 seeds × 500 timesteps、43,297 transitions，validation 为 8 seeds × 500 timesteps、10,796 transitions。两组均无新字段缺失，逐条复算 reward 公式均为零不一致；文件哈希、源码哈希、seed 和覆盖统计见 `FINAL_REWARD_REPLAY_MANIFEST.json`。原始 JSONL 共约 85 MB，保存在本地忽略目录，不提交 Git；manifest 提交 Git 用于追溯和校验。新 delay 标签最大值超过 20,000，明显改变旧 reward 尺度，训练 reward predictor 前必须检查其标签标准化和数值稳定性。
+
+基于新 replay 已重新训练 absolute/delta WM 和 final-reward predictor。A4.5b 仍选择 absolute：H4 RMSE 0.130383，优于 persistence 0.156583，质量门通过。reward predictor 的 WM-H4 RMSE 为 2313.807，优于常数基线 4919.828，Spearman 为 0.7022，8/8 validation episodes 为正，质量门通过。action consistency 与重新绑定本次 A4.5b 报告的 B0.1 均通过。旧 B0.1 脚本原先只允许复现旧 checkpoint 的硬编码指标，现保留历史默认值，并支持通过 `--reference-report` 审计同一新协议 checkpoint。模型和报告哈希见 `FINAL_REWARD_MODEL_MANIFEST.json`。

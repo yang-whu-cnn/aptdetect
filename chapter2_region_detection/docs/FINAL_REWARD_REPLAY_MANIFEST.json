@@ -1,0 +1,52 @@
+{
+  "manifest_version": 1,
+  "created_at": "2026-09-18T13:51:36+08:00",
+  "reward_protocol": "final_paper_20260917_v1",
+  "source_commit": "9e3370580fb84eb91740dcbb8ab66df6385af2c1",
+  "environment": "cyborg_cc4",
+  "timesteps_per_episode": 500,
+  "output_directory": "outputs/formal_replay_final_20260917",
+  "source_files": {
+    "formal_experiments/data_collection/incident_response.py": "f717ecf5eb118255858749dc095f385edb14c5229d77d47b315a0fdea80621ad",
+    "formal_experiments/data_collection/decision_replay.py": "f886fbf95e3161819cf26c5211770f2ad980d36408c0118c09496a9c9e2f8e39",
+    "configs/compare_ug_cem_formal_v2_1.yaml": "91a8c420db74e281ad1da56a435ea0b9c5965a4cf04c7dcfc13f2edf6cce6cec"
+  },
+  "splits": {
+    "train": {
+      "seeds": [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031],
+      "transition_count": 43297,
+      "jsonl_bytes": 68292714,
+      "jsonl_sha256": "ba608ed7bd63d6a6c28a259738ca35e6122bc2f0a6cf7f427df1f2b3252c8cee",
+      "summary_sha256": "0635cfed52c6fca42e7a6b608dc2485cf7967b13cee675608bf83629713fc091",
+      "missing_incident_delay_penalty": 0,
+      "reward_formula_mismatch": 0,
+      "nonzero_delay_rows": 31837,
+      "lwf_rows": 1767,
+      "delay_sum": 22990340.0,
+      "delay_max": 21980.0,
+      "lwf_raw_penalty_sum": -3365.0,
+      "response_reward_sum": -22993705.0
+    },
+    "validation": {
+      "seeds": [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007],
+      "transition_count": 10796,
+      "jsonl_bytes": 16756934,
+      "jsonl_sha256": "7e23294678167078704c9603932b014d893fbd35e06b5a145259aef16c23588d",
+      "summary_sha256": "42b5cd2b55a8f497faf15afdcaa29e66e8e71c9a4c6de1568364aeebdf2e85c4",
+      "missing_incident_delay_penalty": 0,
+      "reward_formula_mismatch": 0,
+      "nonzero_delay_rows": 7009,
+      "lwf_rows": 399,
+      "delay_sum": 5743089.0,
+      "delay_max": 23135.0,
+      "lwf_raw_penalty_sum": -677.0,
+      "response_reward_sum": -5743766.0
+    }
+  },
+  "eligibility": {
+    "old_reward_artifacts_reused": false,
+    "paid_llm_calls_used": false,
+    "ready_for_reward_predictor_retraining": true,
+    "ready_for_final_table_results": false
+  }
+}

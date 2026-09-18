@@ -22,12 +22,19 @@ class TestGateB0WorldModelFinalAudit(unittest.TestCase):
             "restore": {"count": 248, "rmse_over_persistence": 1.10, "beats_persistence": False},
         }
 
+    def _passing_h4(self):
+        return {
+            name: {"count": 200, "rmse_over_persistence": 1.0}
+            for name in ACTION_NAMES
+        }
+
     def test_action_names_are_exact_a4_contract(self):
         self.assertEqual(ACTION_NAMES, ("no_op", "analyse", "remove", "restore"))
 
     def test_gate_accepts_predeclared_passing_case(self):
         result = b0_1_gate(
             validation_per_action=self._passing_actions(),
+            first_action_h4=self._passing_h4(),
             aggregate=dict(FROZEN_REFERENCE),
         )
         self.assertTrue(result["pass"])
@@ -39,6 +46,7 @@ class TestGateB0WorldModelFinalAudit(unittest.TestCase):
         actions["restore"] = dict(actions["restore"], count=149)
         result = b0_1_gate(
             validation_per_action=actions,
+            first_action_h4=self._passing_h4(),
             aggregate=dict(FROZEN_REFERENCE),
         )
         self.assertFalse(result["pass"])
@@ -49,6 +57,7 @@ class TestGateB0WorldModelFinalAudit(unittest.TestCase):
         actions["restore"] = dict(actions["restore"], rmse_over_persistence=1.251)
         result = b0_1_gate(
             validation_per_action=actions,
+            first_action_h4=self._passing_h4(),
             aggregate=dict(FROZEN_REFERENCE),
         )
         self.assertFalse(result["pass"])
@@ -59,6 +68,7 @@ class TestGateB0WorldModelFinalAudit(unittest.TestCase):
         actions["remove"] = dict(actions["remove"], beats_persistence=False)
         result = b0_1_gate(
             validation_per_action=actions,
+            first_action_h4=self._passing_h4(),
             aggregate=dict(FROZEN_REFERENCE),
         )
         self.assertFalse(result["pass"])
@@ -69,6 +79,7 @@ class TestGateB0WorldModelFinalAudit(unittest.TestCase):
         aggregate["h4_rmse"] += 0.001
         result = b0_1_gate(
             validation_per_action=self._passing_actions(),
+            first_action_h4=self._passing_h4(),
             aggregate=aggregate,
         )
         self.assertFalse(result["pass"])

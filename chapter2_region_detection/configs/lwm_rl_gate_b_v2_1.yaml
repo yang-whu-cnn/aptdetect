@@ -16,8 +16,8 @@ shared_contract:
     - analyse
     - remove
     - restore
-  world_model: outputs/world_model_v2/a4_5b/world_model_absolute.pt
-  response_reward_predictor: outputs/world_model_v2/a4_5c/response_reward_predictor.pt
+  world_model: outputs/world_model_final_20260917/a4_5b/world_model_absolute.pt
+  response_reward_predictor: outputs/world_model_final_20260917/a4_5c/response_reward_predictor.pt
   response_objective:
     reward_protocol: final_paper_20260917_v1
     lambda_time: 1.0

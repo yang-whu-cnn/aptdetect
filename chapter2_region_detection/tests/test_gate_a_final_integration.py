@@ -114,10 +114,13 @@ class TestGateAFinalIntegration(unittest.TestCase):
         self.assertTrue(planning["replan_each_decision_epoch"])
         self.assertTrue(planning["duration_aware_discount"])
 
-    def test_formal_artifacts_are_v2_and_train_validation_only(self):
+    def test_formal_artifacts_are_versioned_and_train_validation_only(self):
         artifacts = self.config["artifacts"]
         for key, path in artifacts.items():
-            self.assertIn("_v2", path, key)
+            self.assertTrue(
+                "_v2" in path or "final" in path.lower(),
+                key,
+            )
             self.assertNotIn("outputs/formal_replay/", path, key)
             self.assertNotIn("outputs/world_model/", path, key)
             self.assertNotIn("calibration", path.lower(), key)
