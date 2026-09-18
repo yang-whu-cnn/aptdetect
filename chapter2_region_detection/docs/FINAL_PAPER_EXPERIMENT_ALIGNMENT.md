@@ -2,6 +2,8 @@
 
 记录日期：2026-09-18。
 
+后续 ChatGPT/Codex 接手时，先读 `CHATGPT_HANDOFF_FINAL_EXPERIMENTS.md`；该文件汇总当前提交、有效产物、阻塞、精确续跑命令与完整后续路线。
+
 ## 1. 文档优先级
 
 本项目后续实现与实验以桌面文件《融合LLM+WM+RL的APT动态响应小论文-20260917.docx》为最终方案来源。
