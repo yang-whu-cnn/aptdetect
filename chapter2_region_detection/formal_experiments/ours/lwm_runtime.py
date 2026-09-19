@@ -79,6 +79,7 @@ class LWMDecisionRuntime:
         prior_cache: PriorCache,
         policy: CandidateActorCritic,
         live_prior_generator: LivePriorGenerator,
+        offline_only: bool = False,
         split: str,
     ) -> None:
         if bool(registry.primary_model_selected):
@@ -105,6 +106,7 @@ class LWMDecisionRuntime:
         self.prior_cache = prior_cache
         self.policy = policy
         self.live_prior_generator = live_prior_generator
+        self.offline_only = bool(offline_only)
         self.split = str(split)
 
         self.cache_hits = 0
@@ -152,9 +154,19 @@ class LWMDecisionRuntime:
             state=state_array,
         )
 
+        def offline_miss():
+            raise RuntimeError(
+                "offline-only mode cache miss: "
+                f"cache_key={identity.cache_key}"
+            )
+
         lookup = self.prior_cache.get_or_generate(
             identity,
-            lambda: self.live_prior_generator(state_array.copy(), agent),
+            offline_miss if self.offline_only
+            else lambda: self.live_prior_generator(
+                state_array.copy(),
+                agent,
+            ),
         )
         if lookup.cache_hit:
             self.cache_hits += 1

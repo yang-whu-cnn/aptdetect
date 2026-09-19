@@ -698,6 +698,11 @@ def main() -> None:
     parser.add_argument("--cache-root", default=DEFAULT_CACHE_ROOT)
     parser.add_argument("--out-root", default=DEFAULT_OUT_ROOT)
     parser.add_argument("--device", default="cpu")
+    parser.add_argument(
+        "--offline-only",
+        action="store_true",
+        help="Evaluate existing prior cache only. Disable all LLM API calls."
+    )
     args = parser.parse_args()
 
     summary = run_prior_quality(
