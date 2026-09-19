@@ -1,0 +1,24 @@
+method: TERLA-A4
+status: formal_runtime_ready_training_required
+device: cpu
+observation: blue_visible_heterogeneous_graph
+hidden_truth_policy_input: false
+shared_policy_across_agents: true
+per_agent_context_isolated: true
+actions: [Sleep, Analyse, Remove, Restore]
+checkpoint_pattern: outputs/formal_v3/training/terla_a4/policy_{policy_seed}.pt
+reward: original_terla_cyber_reward_training_only
+evaluation: unified_cc4_v3_metrics
+formal: {repeats: 5, episodes_per_repeat: 100, ticks_per_episode: 500}
+formal_training:
+  runner: baselines.terla_a4.formal_training
+  device: cpu
+  train_episode_seeds: {start: 1000, stop_inclusive: 1031}
+  validation_episode_seeds: {start: 2000, stop_inclusive: 2007}
+  forbidden_test_episode_seeds: {start: 4000, stop_inclusive: 4099}
+  policy_seeds: [51001, 51002, 51003, 51004, 51005]
+  ticks_per_episode: 500
+  checkpoint_interval_episodes: 8
+  selection_metric: original_terla_validation_reward_mean
+  selection_tie_break: earliest_training_checkpoint
+  resumable: true

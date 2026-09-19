@@ -18,13 +18,18 @@ from formal_experiments.evaluation.validate_formal_run import validate_run_direc
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 METHOD_NAMES = {"dca_cc4": "DCA-CC4 (adapted)", "rsmbrl_cc4": "RSMBRL-CC4",
-                "uamcts_cc4": "UAMCTS-CC4 (adapted)"}
+                "uamcts_cc4": "UAMCTS-CC4 (adapted)", "terla_a4": "TERLA-A4",
+                "carl_cc4": "CARL-CC4 (adapted)", "priorrl_ppo_cc4": "PriorRL-PPO-CC4"}
 PAPER_FILES = {"dca_cc4": "DCA.pdf", "rsmbrl_cc4": "RSMBRL.pdf",
-               "uamcts_cc4": "UAMCTS.pdf"}
+               "uamcts_cc4": "UAMCTS.pdf", "terla_a4": "TERLA.pdf", "carl_cc4": "CARL.pdf",
+               "priorrl_ppo_cc4": "PriorRL.pdf"}
 EXPECTED_PAPER_HASHES = {
     "dca_cc4": "173fa04a1675e98ce636c2a8b2eda9eae5e3c9e2347f5f19cb4aafe6708e3cb1",
     "rsmbrl_cc4": "df594e5b3d2bd36e06d94d96e3cde0c549fa1894a9fe5d26ecd6c4552c91d4d7",
     "uamcts_cc4": "5dffdc568bf6e7fa04a430c44dcac9d293b588c4a2b5211cc5f14324f10af145",
+    "terla_a4": "e2c53cc19c3647029870d9bd9438f9c20d50ab79e728374b8461852e729800ea",
+    "carl_cc4": "42e8ef7d912007a2454002300852a54d1dfffad2d9b1099958f7c8d6a84cfae1",
+    "priorrl_ppo_cc4": "40ab37985422db1a439a22757f30a368b04363b8a9a9b3d59dec3488085e1c71",
 }
 RSMBRL_UPSTREAM_COMMIT = "9f97859594f2b0547e01193a8758936090b0b2ec"
 
@@ -79,6 +84,7 @@ def artifact_provenance(method: str, output: Path) -> tuple[dict[str, Any], str]
             "reward_model_sha256": base / "world_model_final_20260917/a4_5c/response_reward_predictor.pt",
             "progress_model_sha256": base / "uamcts_cc4/progress/progress_ensemble_train_only.pt",
             "prototype_prior_sha256": base / "priorrl_cc4/prototypes/frozen_prototypes.json",
+            "prior_entropy_sha256": base / "uamcts_cc4/calibration/validation_prior_entropy.json",
             "normalizer_sha256": base / "uamcts_cc4/calibration/uamcts_uncertainty_normalizers_frozen.pt",
         }
         missing = [str(path) for path in paths.values() if not path.is_file()]
@@ -87,13 +93,48 @@ def artifact_provenance(method: str, output: Path) -> tuple[dict[str, Any], str]
         artifacts = {"policy_spec_sha256": policy_sha,
                      **{key: sha256_file(path) for key, path in paths.items()}}
         return artifacts, artifacts["world_model_sha256"]
+    if method == "priorrl_ppo_cc4":
+        policy_seed = int(json.loads((output / "policy_spec.json").read_text(encoding="utf-8"))["policy_seed"])
+        repeat_index = POLICY_SEEDS.index(policy_seed) + 1
+        training = (REPO_ROOT / "chapter2_region_detection/outputs/formal_v3/training/priorrl_ppo_cc4"
+                    / f"repeat_{repeat_index:02d}")
+        paths = {"checkpoint_sha256": training / "checkpoint.pt",
+                 "training_manifest_sha256": training / "training_manifest.json",
+                 "alpha_selection_sha256": training / "alpha_selection.json",
+                 "prototype_prior_sha256": REPO_ROOT / "chapter2_region_detection/outputs/priorrl_cc4/prototypes/frozen_prototypes.json",
+                 "prototype_coverage_sha256": REPO_ROOT / "chapter2_region_detection/outputs/priorrl_cc4/prototypes/frozen_prototype_coverage.json",
+                 "prototype_provenance_sha256": REPO_ROOT / "chapter2_region_detection/outputs/priorrl_cc4/prototypes/frozen_prototype_provenance.json"}
+        missing = [str(path) for path in paths.values() if not path.is_file()]
+        if missing:
+            raise RuntimeError(f"PriorRL frozen artifact gate failed: missing {missing}")
+        artifacts = {"policy_spec_sha256": policy_sha,
+                     **{key: sha256_file(path) for key, path in paths.items()}}
+        return artifacts, artifacts["checkpoint_sha256"]
+    if method in ("terla_a4", "carl_cc4"):
+        checkpoint = output / "checkpoint.pt"
+        if not checkpoint.is_file():
+            raise RuntimeError(f"missing copied frozen training checkpoint: {checkpoint}")
+        checkpoint_sha = sha256_file(checkpoint)
+        support_name = "training_manifest.json" if method == "terla_a4" else "validation_selection.json"
+        support_key = ("training_manifest_sha256" if method == "terla_a4"
+                       else "validation_selection_sha256")
+        support = output / support_name
+        if not support.is_file():
+            raise RuntimeError(f"missing copied frozen training provenance: {support}")
+        return {"policy_spec_sha256": policy_sha, "checkpoint_sha256": checkpoint_sha,
+                support_key: sha256_file(support)}, checkpoint_sha
     from baselines.rsmbrl_cc4.artifact_preflight import (
-        DEFAULT_NORMALIZER, DEFAULT_REWARD_MODEL, DEFAULT_WORLD_MODEL, resolve,
+        DEFAULT_NORMALIZER, DEFAULT_NORMALIZER_SIDECAR, DEFAULT_REWARD_MODEL,
+        DEFAULT_WORLD_MODEL, resolve,
     )
+    sidecar = resolve(DEFAULT_NORMALIZER_SIDECAR)
+    if not sidecar.is_file():
+        raise RuntimeError(f"RSMBRL frozen artifact gate failed: missing {sidecar}")
     artifacts = {"policy_spec_sha256": policy_sha,
                  "world_model_sha256": sha256_file(resolve(DEFAULT_WORLD_MODEL)),
                  "reward_model_sha256": sha256_file(resolve(DEFAULT_REWARD_MODEL)),
-                 "normalizer_sha256": sha256_file(resolve(DEFAULT_NORMALIZER))}
+                 "normalizer_sha256": sha256_file(resolve(DEFAULT_NORMALIZER)),
+                 "normalizer_sidecar_sha256": sha256_file(sidecar)}
     return artifacts, artifacts["world_model_sha256"]
 
 
@@ -186,7 +227,37 @@ def run_repeat(*, method: str, run_mode: str, repeat_index: int, policy_seed: in
     _write_json(output / "metrics.json", metrics)
     config_payload = json.dumps(identity, indent=2, sort_keys=True) + "\n"
     (output / "config.resolved.yaml").write_text(config_payload, encoding="utf-8")
-    _write_json(output / "policy_spec.json", {"method": method, "policy_seed": policy_seed})
+    policy_spec = {"method": method, "policy_seed": policy_seed}
+    if method in ("terla_a4", "carl_cc4", "priorrl_ppo_cc4"):
+        if method == "priorrl_ppo_cc4":
+            source_checkpoint = (REPO_ROOT / "chapter2_region_detection" / "outputs" /
+                "formal_v3" / "training" / method / f"repeat_{repeat_index:02d}" / "checkpoint.pt")
+        else:
+            source_checkpoint = (REPO_ROOT / "chapter2_region_detection" / "outputs" /
+                                 "formal_v3" / "training" / method / f"policy_{policy_seed}.pt")
+        if not source_checkpoint.is_file():
+            raise RuntimeError(f"missing frozen training checkpoint: {source_checkpoint}")
+        checkpoint_bytes = source_checkpoint.read_bytes()
+        (output / "checkpoint.pt").write_bytes(checkpoint_bytes)
+        policy_spec["checkpoint_sha256"] = hashlib.sha256(checkpoint_bytes).hexdigest()
+        if method == "terla_a4":
+            source_support = source_checkpoint.with_name(f"policy_{policy_seed}.training.json")
+            target_support = output / "training_manifest.json"
+            support_label = "training_manifest_sha256"
+        elif method == "carl_cc4":
+            source_support = source_checkpoint.with_suffix(".selection.json")
+            target_support = output / "validation_selection.json"
+            support_label = "validation_selection_sha256"
+        else:
+            source_support = target_support = None
+            support_label = None
+        if source_support is not None:
+            if not source_support.is_file():
+                raise RuntimeError(f"missing frozen training provenance: {source_support}")
+            support_bytes = source_support.read_bytes()
+            target_support.write_bytes(support_bytes)
+            policy_spec[support_label] = hashlib.sha256(support_bytes).hexdigest()
+    _write_json(output / "policy_spec.json", policy_spec)
     (output / "stdout.log").touch()
     dependencies, hardware = dependency_and_hardware(device)
     method_artifacts, model_sha = artifact_provenance(method, output)
@@ -211,9 +282,12 @@ def run_repeat(*, method: str, run_mode: str, repeat_index: int, policy_seed: in
         "run_mode": run_mode, "formal_result_eligible": run_mode == "formal",
         "table_id": "table1", "row_id": method,
         "component_variant": method,
-        "reward_mode": "full_reward" if method in ("rsmbrl_cc4", "uamcts_cc4") else "not_applicable",
-        "reward_semantics": ("cc4_v3_full_reward" if method in ("rsmbrl_cc4", "uamcts_cc4")
-                             else "fixed_response_mapping_no_learning_reward"),
+        "reward_mode": ({"terla_a4": "terla_cyber_reward", "carl_cc4": "caics_reward"}.get(
+            method, "full_reward" if method in ("rsmbrl_cc4", "uamcts_cc4", "priorrl_ppo_cc4") else "not_applicable")),
+        "reward_semantics": ({"terla_a4": "negative_red_sessions_plus_service_unreliability_ot",
+                              "carl_cc4": "standard_caics_cc4_mapping"}.get(
+            method, "cc4_v3_full_reward" if method in ("rsmbrl_cc4", "uamcts_cc4", "priorrl_ppo_cc4")
+            else "fixed_response_mapping_no_learning_reward")),
         # eligibility_report.json is deliberately excluded: it is the signed-by-
         # validation verdict over these inputs, and including itself would create
         # a recursive hash dependency.
@@ -223,6 +297,12 @@ def run_repeat(*, method: str, run_mode: str, repeat_index: int, policy_seed: in
             "episodes.jsonl": sha256_file(episodes_path),
             "decisions.jsonl": sha256_file(decisions_path),
             "metrics.json": sha256_file(output / "metrics.json"),
+            **({"checkpoint.pt": sha256_file(output / "checkpoint.pt")}
+               if method in ("terla_a4", "carl_cc4", "priorrl_ppo_cc4") else {}),
+            **({"training_manifest.json": sha256_file(output / "training_manifest.json")}
+               if method == "terla_a4" else {}),
+            **({"validation_selection.json": sha256_file(output / "validation_selection.json")}
+               if method == "carl_cc4" else {}),
         },
     }
     _write_json(output / "manifest.json", manifest)

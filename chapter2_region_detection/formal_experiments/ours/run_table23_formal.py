@@ -15,8 +15,11 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+from formal_experiments.common.prior_provenance import validate_frozen_prior_provenance
 from formal_experiments.common.run_manifest import POLICY_SEEDS
 from formal_experiments.ours.reward_ablation import RewardMode
+from formal_experiments.ours.reward_artifact_contract import validate_frozen_reward_artifact
+from formal_experiments.ours.reward_provenance import validate_fail_only_provenance
 from formal_experiments.ours.table2_variants import Table2Variant
 
 TRAIN_SEEDS = tuple(range(1000, 1032))
@@ -25,6 +28,11 @@ TEST_SEEDS = tuple(range(4000, 4100))
 FORMAL_EPISODE_TICKS = 500
 ORCHESTRATOR_VERSION = "table23_formal_runner_v2"
 FULL_REWARD_SEMANTICS = "cc4_v3_full_reward"
+TRAINING_CURVE_SCHEMA = "cc4_v3_training_curve_v1"
+FROZEN_PROTOTYPE_PROVENANCE_SHA256 = "ddbc74065fd2340ab9826dddee43a7a1dafb06c7ba8ecfc64d646862461d6358"
+OFOX_ENTRY_SET_SHA256 = "7941f6f11d47989265955bdc6caff950de97a9f5b9562afa8f7cb5e0209a7e10"
+OFOX_SUPPLEMENT_MANIFEST_SHA256 = "35eea8a2a8ddb977ac139e25d7fb94142b3b93286d948464d6bf01071ca0f3cd"
+OFOX_LOGICAL_MANIFEST_SHA256 = "b981a125f162e8d59bd3c9c5b0f4d53871f0b3d9938305f2e5a6a60c2d2fe0e0"
 
 
 @dataclass(frozen=True)
@@ -82,6 +90,33 @@ def physical_jobs() -> tuple[RowSpec, ...]:
     return tuple(selected.values())
 
 
+def formal_batch_plan() -> tuple[dict[str, Any], ...]:
+    """Return the frozen 30-run plan (six physical jobs x five repeats)."""
+    plan = tuple(
+        {"canonical_id": spec.canonical_id, "table_id": spec.table_id,
+         "row_id": spec.row_id, "repeat_index": repeat_index,
+         "training_seed": POLICY_SEEDS[repeat_index - 1]}
+        for spec in physical_jobs() for repeat_index in range(1, 6)
+    )
+    validate_formal_batch_plan(plan)
+    return plan
+
+
+def validate_formal_batch_plan(plan: Iterable[Mapping[str, Any]]) -> None:
+    """Fail closed on missing/duplicate physical jobs or logical alias runs."""
+    records = [dict(record) for record in plan]
+    expected_ids = {spec.canonical_id for spec in physical_jobs()}
+    expected = {(canonical_id, repeat_index)
+                for canonical_id in expected_ids for repeat_index in range(1, 6)}
+    actual = [(str(record.get("canonical_id")), record.get("repeat_index"))
+              for record in records]
+    if len(records) != 30 or len(set(actual)) != len(actual) or set(actual) != expected:
+        raise ValueError("formal batch plan must contain each of six physical jobs at repeats 1..5 exactly once")
+    if any(record.get("table_id") == "table3" and record.get("row_id") == "full_reward"
+           for record in records):
+        raise ValueError("Table3 full_reward is a logical alias and must not be a physical job")
+
+
 def job_dependencies(spec: RowSpec) -> dict[str, bool]:
     """Declare only the frozen inputs consumed by one physical job."""
     return {
@@ -96,6 +131,53 @@ def sha256_file(path: Path) -> str:
     with Path(path).open("rb") as handle:
         for block in iter(lambda: handle.read(1 << 20), b""): digest.update(block)
     return digest.hexdigest()
+
+
+def verify_training_curve_bindings(run_dir: Path, manifest: Mapping[str, Any],
+                                   eligibility_report: Mapping[str, Any]) -> str:
+    """Return the curve digest only when all three integrity bindings agree."""
+    curve_path = Path(run_dir) / "training_curve.jsonl"
+    if not curve_path.is_file(): raise RuntimeError("missing training_curve.jsonl")
+    digest = sha256_file(curve_path)
+    figure = manifest.get("figure_artifacts", {}).get("training_curve", {})
+    declared = (figure.get("sha256"),
+                manifest.get("artifact_sha256", {}).get("training_curve.jsonl"),
+                eligibility_report.get("input_sha256", {}).get("training_curve.jsonl"))
+    if figure.get("schema") != TRAINING_CURVE_SCHEMA or figure.get("path") != "training_curve.jsonl":
+        raise RuntimeError("invalid training curve figure declaration")
+    record_count = len(curve_path.read_text(encoding="utf-8").splitlines())
+    if (figure.get("split"), figure.get("x_field"), figure.get("y_field"), figure.get("record_count")) != (
+            "train", "environment_steps", "training_objective_reward", record_count):
+        raise RuntimeError("invalid training curve figure semantics")
+    if any(item != digest for item in declared):
+        raise RuntimeError("training curve SHA256 triple binding mismatch")
+    return digest
+
+
+def _training_curve_figure_artifact(curve_path: Path) -> dict[str, Any]:
+    curve_path = Path(curve_path)
+    records = [line for line in curve_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    if not records: raise RuntimeError("training curve must contain at least one record")
+    return {"schema": TRAINING_CURVE_SCHEMA, "path": "training_curve.jsonl",
+            "sha256": sha256_file(curve_path), "split": "train",
+            "x_field": "environment_steps", "y_field": "training_objective_reward",
+            "record_count": len(records)}
+
+
+def _load_verified_ofox_cache_audit(artifact_path: Path) -> dict[str, Any]:
+    """Verify the final frozen prototype provenance and derive its public audit."""
+    audit = validate_frozen_prior_provenance(
+        Path(artifact_path),
+        expected_provenance_sha256=FROZEN_PROTOTYPE_PROVENANCE_SHA256,
+        expected_entry_set_sha256=OFOX_ENTRY_SET_SHA256,
+        expected_supplement_manifest_sha256=OFOX_SUPPLEMENT_MANIFEST_SHA256,
+        expected_logical_manifest_sha256=OFOX_LOGICAL_MANIFEST_SHA256,
+    )
+    audit["provenance_sha256"] = audit.pop("prototype_provenance_sha256")
+    for private in ("prototype_sha256", "prototype_file_sha256",
+                    "prototype_coverage_sha256", "supplement_manifest_sha256"):
+        audit.pop(private)
+    return audit
 
 
 def select_validation_checkpoint(records: Iterable[Mapping[str, Any]]) -> Mapping[str, Any]:
@@ -121,20 +203,51 @@ def assert_immutable(before: Mapping[str, str], after: Mapping[str, str]) -> Non
 
 def _load_gate(path: Path, mode: RewardMode) -> dict[str, Any]:
     if mode == RewardMode.FULL_REWARD: return {"pass": True, "source": "frozen_full_reward_preflight"}
-    if not path.is_file(): raise RuntimeError(f"BLOCKED: missing {mode.value} frozen_manifest.json")
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    gate_pass = bool(payload.get("quality_gate", {}).get("pass"))
-    if payload.get("mode") != mode.value or not payload.get("frozen") or not gate_pass:
-        raise RuntimeError(f"BLOCKED: {mode.value} frozen reward gate is FAIL")
-    checkpoint = Path(payload.get("checkpoint", ""))
-    if not checkpoint.is_absolute(): checkpoint = Path(__file__).resolve().parents[2] / checkpoint
-    if not checkpoint.is_file() or sha256_file(checkpoint) != payload.get("checkpoint_sha256"):
-        raise RuntimeError(f"BLOCKED: {mode.value} reward checkpoint integrity failure")
-    return {"pass": True, "manifest_sha256": sha256_file(path), "checkpoint_sha256": payload["checkpoint_sha256"]}
+    project_root = Path(__file__).resolve().parents[2]
+    provenance_sha256 = None
+    if mode == RewardMode.FAIL_ONLY:
+        provenance_path = path.with_name("provenance_sidecar.json")
+        provenance = validate_fail_only_provenance(provenance_path, project_root=project_root)
+        provenance_sha256 = sha256_file(provenance_path)
+    _, _, audit = validate_frozen_reward_artifact(
+        path, mode=mode, project_root=project_root
+    )
+    if provenance_sha256 is not None:
+        reward_binding = provenance.get("reward_artifact", {})
+        if (reward_binding.get("manifest_sha256") != audit.get("manifest_sha256")
+                or reward_binding.get("checkpoint_sha256") != audit.get("checkpoint_sha256")):
+            raise RuntimeError("BLOCKED: Fail-Only provenance/reward artifact binding mismatch")
+        audit = {**audit, "provenance_sidecar_sha256": provenance_sha256}
+    return audit
+
+
+def _derive_fail_only_training_contract(project_root: Path) -> dict[str, Any]:
+    """Derive the paper-facing contract from the helper-verified frozen artifact."""
+    path = (Path(project_root) / "outputs/formal_v3/table3_reward_models/fail_only/frozen_manifest.json")
+    provenance_path = path.with_name("provenance_sidecar.json")
+    provenance = validate_fail_only_provenance(provenance_path, project_root=Path(project_root))
+    payload, _, audit = validate_frozen_reward_artifact(
+        path, mode=RewardMode.FAIL_ONLY, project_root=Path(project_root))
+    reward_binding = provenance.get("reward_artifact", {})
+    if (reward_binding.get("manifest_sha256") != audit.get("manifest_sha256")
+            or reward_binding.get("checkpoint_sha256") != audit.get("checkpoint_sha256")):
+        raise RuntimeError("BLOCKED: Fail-Only provenance/reward artifact binding mismatch")
+    loss = payload["training_loss"]
+    return {"loss_name": loss["name"], "beta": float(loss["beta"]),
+            "legacy_mse": ("diagnostic_only" if not payload["diagnostic_hurdle_used_for_formal_artifact"]
+                           else "used_for_formal_artifact"),
+            "gate_pass": bool(payload["quality_gate"]["pass"]),
+            "train_seed_count": len(TRAIN_SEEDS), "validation_seed_count": len(VALIDATION_SEEDS),
+            "train_validation_overlap": len(set(TRAIN_SEEDS) & set(VALIDATION_SEEDS)),
+            "test_leak_count": 0 if payload["test_seeds_used"] is False else len(TEST_SEEDS),
+            "checkpoint_sha256": reward_binding["checkpoint_sha256"],
+            "manifest_sha256": reward_binding["manifest_sha256"],
+            "provenance_sidecar_sha256": sha256_file(provenance_path)}
 
 
 def _job_preflight(*, project_root: Path, spec: RowSpec,
-                   offline_prior_artifact: Path | None) -> dict[str, Any]:
+                   offline_prior_artifact: Path | None,
+                   device: str = "cpu") -> dict[str, Any]:
     dependencies = job_dependencies(spec)
     gates: dict[str, Any] = {}
     errors: list[str] = []
@@ -159,26 +272,42 @@ def _job_preflight(*, project_root: Path, spec: RowSpec,
                 try:
                     from baselines.priorrl_cc4.prototype_retrieval import FrozenPrototypePriorAdapter
                     FrozenPrototypePriorAdapter.load_artifact(path)
-                    gates["offline_prior"] = {"pass": True, "sha256": sha256_file(path), "path": str(path)}
+                    audit = _load_verified_ofox_cache_audit(path)
+                    gates["offline_prior"] = {"pass": True, "sha256": sha256_file(path),
+                                               "path": str(path), "ofox_cache_audit": audit}
                 except Exception as exc:
                     errors.append(f"BLOCKED: invalid frozen K6/H4 offline prior artifact: {exc}")
     else:
         gates["offline_prior"] = {"pass": True, "required": False}
+    if dependencies["world_model"]:
+        try:
+            from baselines.rsmbrl_cc4.artifact_preflight import run_preflight as run_wm_preflight
+            wm_gate = run_wm_preflight(device=device)
+            if not wm_gate.get("eligible"):
+                raise RuntimeError("; ".join(wm_gate.get("errors", ())))
+            gates["world_model"] = wm_gate
+        except Exception as exc:
+            errors.append(f"BLOCKED: frozen WM/Full-Reward preflight failed: {exc}")
+    else:
+        gates["world_model"] = {"pass": True, "required": False}
     return {"canonical_id": spec.canonical_id, "table_id": spec.table_id, "row_id": spec.row_id,
             "dependencies": dependencies, "status": "PASS" if not errors else "FAIL",
             "errors": errors, "gates": gates}
 
 
 def preflight(*, project_root: Path, profile: RunProfile, selected_spec: RowSpec | None = None,
-              offline_prior_artifact: Path | None = None) -> dict[str, Any]:
+              offline_prior_artifact: Path | None = None,
+              device: str = "cpu") -> dict[str, Any]:
     """Preflight either one physical job or the complete six-job plan.
 
     A selected job is never blocked by an unrelated row.  With no selection,
     the report remains a conservative whole-plan readiness summary.
     """
+    scoped_specs = (selected_spec,) if selected_spec is not None else physical_jobs()
     jobs = (_job_preflight(project_root=project_root, spec=spec,
-                           offline_prior_artifact=offline_prior_artifact)
-            for spec in physical_jobs())
+                           offline_prior_artifact=offline_prior_artifact,
+                           device=device)
+            for spec in scoped_specs)
     job_reports = {item["canonical_id"]: item for item in jobs}
     active = job_reports[selected_spec.canonical_id] if selected_spec is not None else None
     errors = list(active["errors"]) if active is not None else [
@@ -192,7 +321,7 @@ def preflight(*, project_root: Path, profile: RunProfile, selected_spec: RowSpec
             "profile": {**asdict(profile), "train_seeds": list(profile.train_seeds),
                         "validation_seeds": list(profile.validation_seeds), "test_seeds": list(profile.test_seeds)},
             "policy_seeds": list(POLICY_SEEDS), "physical_job_count": len(physical_jobs()),
-            "logical_row_count": len(row_specs())}
+            "logical_row_count": len(row_specs()), "formal_batch_plan": list(formal_batch_plan())}
 
 
 class ResumeJournal:
@@ -258,8 +387,10 @@ class FormalStageRunner:
 class RealCC4ProductionCallbacks:
     """Production implementation backed by the audited CC4 policy loop."""
     def __init__(self, *, spec: RowSpec, repeat_index: int, profile: RunProfile,
-                 run_dir: Path, device: str, offline_prior_artifact: Path | None,
-                 checkpoint_stride: int = 8):
+                  run_dir: Path, device: str, offline_prior_artifact: Path | None,
+                  project_root: Path | None = None,
+                  startup_preflight_report: Mapping[str, Any] | None = None,
+                  checkpoint_stride: int = 8):
         import torch
         from formal_experiments.ours.run_table2_real_smoke import build_runtime
         self.torch = torch; self.spec = spec; self.repeat_index = repeat_index; self.profile = profile
@@ -270,13 +401,28 @@ class RealCC4ProductionCallbacks:
         self.runtime, self.frozen_artifacts = build_runtime(
             self.variant, seed=POLICY_SEEDS[repeat_index - 1], device=device,
             reward_mode=self.reward_mode, offline_prior_artifact=offline_prior_artifact)
+        self.offline_prior_artifact = Path(offline_prior_artifact) if offline_prior_artifact is not None else None
+        self.project_root = (Path(project_root) if project_root is not None
+                             else Path(__file__).resolve().parents[2])
+        self.startup_preflight_report = (dict(startup_preflight_report)
+                                         if startup_preflight_report is not None else None)
         self.device, self.checkpoint_stride = device, int(checkpoint_stride)
         if self.checkpoint_stride <= 0: raise ValueError("checkpoint_stride must be positive")
         self.candidates: list[Path] = sorted((self.run_dir / "training_checkpoints").glob("checkpoint_*.pt"))
         self.validation_records: list[dict[str, Any]] = []
         self.episodes: list[dict[str, Any]] = []; self.decisions: list[dict[str, Any]] = []
 
-    def preflight(self): return {"status": "PASS", "frozen_artifacts": self.frozen_artifacts}
+    def preflight(self):
+        report = self.startup_preflight_report
+        if report is None:
+            report = _job_preflight(
+                project_root=self.project_root, spec=self.spec,
+                offline_prior_artifact=self.offline_prior_artifact, device=self.device,
+            )
+        selected = report.get("selected_job") if isinstance(report, Mapping) else None
+        if selected is not None and selected.get("canonical_id") != self.spec.canonical_id:
+            raise RuntimeError("formal preflight report does not match the selected physical job")
+        return {**dict(report), "frozen_artifacts": self.frozen_artifacts}
     def _save(self, index: int) -> Path:
         path = self.run_dir / "training_checkpoints" / f"checkpoint_{index:04d}.pt"
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -285,12 +431,29 @@ class RealCC4ProductionCallbacks:
         from formal_experiments.ours.run_table2_real_smoke import run_episode
         from formal_experiments.ours.variant_training import ppo_update
         updates = []
+        curve_path = self.run_dir / "training_curve.jsonl"
+        # A train stage is one transaction in ResumeJournal. Refuse to blend a
+        # stale curve from an interrupted/unrelated invocation into this run.
+        if curve_path.exists() and curve_path.stat().st_size:
+            raise RuntimeError("training_curve.jsonl already exists before train stage")
         for index, seed in enumerate(seeds, 1):
             self.runtime.split = "train"
             buffer, _ = run_episode(self.runtime, episode_seed=seed, steps=self.profile.episode_ticks,
                                     split="train", train=True, reward_mode=self.reward_mode)
-            updates.append(ppo_update(self.runtime, buffer))
-            if index % self.checkpoint_stride == 0 or index == len(seeds): self._save(index)
+            update = ppo_update(self.runtime, buffer); updates.append(update)
+            checkpoint = None
+            if index % self.checkpoint_stride == 0 or index == len(seeds): checkpoint = self._save(index)
+            record = {"schema": TRAINING_CURVE_SCHEMA,
+                      "environment_steps": index * self.profile.episode_ticks,
+                      "training_objective_reward": float(sum(item.reward for item in buffer.transitions)),
+                      "episode_seed": int(seed), "repeat_index": self.repeat_index,
+                      "policy_seed": POLICY_SEEDS[self.repeat_index - 1],
+                      "ppo_update": update}
+            if checkpoint is not None:
+                record["checkpoint"] = {"path": str(checkpoint.relative_to(self.run_dir)),
+                                        "sha256": sha256_file(checkpoint)}
+            with curve_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(record, sort_keys=True) + "\n")
         return {"episodes": len(seeds), "updates": len(updates),
                 "candidate_checkpoints": [str(path) for path in self.candidates]}
     def validation(self, seeds):
@@ -358,7 +521,8 @@ class RealCC4ProductionCallbacks:
                                   encoding="utf-8", errors="replace", check=True).stdout.strip()
         dirty = bool(git("status", "--porcelain")); diff = git("diff", "--binary")
         paper = project.parent / "CC4_V3_0917_FINAL_EXPERIMENT_TASKBOOK.md"
-        bound_names = ("config.resolved.yaml", "checkpoint.pt", "episodes.jsonl", "decisions.jsonl", "metrics.json")
+        bound_names = ("config.resolved.yaml", "checkpoint.pt", "episodes.jsonl", "decisions.jsonl",
+                       "metrics.json", "training_curve.jsonl")
         import CybORG
         cyborg_source = Path(CybORG.__file__)
         manifest = {"schema_version": 1, "protocol_version": "cc4_v3_20260917",
@@ -376,8 +540,18 @@ class RealCC4ProductionCallbacks:
                     "formal_result_eligible": self.profile.formal_result_eligible, "git_dirty": dirty,
                     "git_diff_sha256": hashlib.sha256(diff.encode()).hexdigest(), "method_artifacts": self.frozen_artifacts,
                     "artifact_sha256": {name: sha256_file(self.run_dir/name) for name in bound_names}, **config}
+        manifest["figure_artifacts"] = {
+            "training_curve": _training_curve_figure_artifact(self.run_dir / "training_curve.jsonl")}
+        if self.offline_prior_artifact is not None:
+            manifest["ofox_cache_audit"] = _load_verified_ofox_cache_audit(self.offline_prior_artifact)
+        if self.reward_mode == RewardMode.FAIL_ONLY:
+            manifest["fail_only_training_contract"] = _derive_fail_only_training_contract(project)
         (self.run_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-        return validate_run_directory(self.run_dir, formal=self.profile.formal_result_eligible)
+        result = validate_run_directory(self.run_dir, formal=self.profile.formal_result_eligible)
+        if result.get("passed"):
+            eligibility = json.loads((self.run_dir / "eligibility_report.json").read_text(encoding="utf-8"))
+            verify_training_curve_bindings(self.run_dir, manifest, eligibility)
+        return result
 
     def mapping(self):
         return {"preflight": self.preflight, "train": self.train, "validation": self.validation,
@@ -420,7 +594,7 @@ def main() -> int:
     if args.offline_prior_artifact is not None and not args.offline_prior_artifact.is_absolute():
         args.offline_prior_artifact = args.project_root / args.offline_prior_artifact
     report = preflight(project_root=args.project_root, profile=profile, selected_spec=selected_spec,
-                       offline_prior_artifact=args.offline_prior_artifact)
+                       offline_prior_artifact=args.offline_prior_artifact, device=args.device)
     report["operation"] = "execute" if args.execute else "dry_run_preflight_only"
     if args.execute:
         if not args.table_id or not args.row_id or not args.out:
@@ -434,7 +608,9 @@ def main() -> int:
             print(json.dumps(report, indent=2)); return 2
         callbacks = RealCC4ProductionCallbacks(spec=selected_spec, repeat_index=args.repeat_index,
                                                profile=profile, run_dir=args.out, device=args.device,
-                                               offline_prior_artifact=args.offline_prior_artifact)
+                                               offline_prior_artifact=args.offline_prior_artifact,
+                                               project_root=args.project_root,
+                                               startup_preflight_report=report)
         state = FormalStageRunner(spec=selected_spec, repeat_index=args.repeat_index, profile=profile,
                                   run_dir=args.out, callbacks=callbacks.mapping()).run()
         report["resume_state"] = state

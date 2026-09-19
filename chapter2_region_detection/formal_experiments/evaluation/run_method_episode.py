@@ -14,16 +14,105 @@ from typing import Any
 
 from baselines.dca_cc4 import DCAConfig
 from baselines.dca_cc4.runtime import DCAAgentRuntime
-from formal_experiments.common.run_manifest import PROTOCOL_VERSION
+from formal_experiments.common.run_manifest import FINAL_TEST_SEEDS, PROTOCOL_VERSION
 from formal_experiments.evaluation.metrics_v3 import compute_episode_metrics
 from formal_experiments.evaluation.run_formal_suite import failure_owner_from_inventories
 from shared.cyborg_action_adapter import CybORGActionAdapter
 from shared.formal_state import BLUE_AGENTS, FormalStateEncoder, ObservableHostEvidenceTracker
 
 
-METHODS = ("dca_cc4", "rsmbrl_cc4", "uamcts_cc4")
+METHODS = ("dca_cc4", "rsmbrl_cc4", "uamcts_cc4", "terla_a4", "carl_cc4", "priorrl_ppo_cc4")
 POLICY_SEEDS = (51001, 51002, 51003, 51004, 51005)
+TRAIN_SEEDS = tuple(range(1000, 1032))
+VALIDATION_SEEDS = tuple(range(2000, 2008))
 FAMILY_TO_A4 = {"Sleep": 0, "Analyse": 1, "Remove": 2, "Restore": 3}
+
+
+def _is_hex(value: Any, length: int) -> bool:
+    text = str(value)
+    return len(text) == length and set(text) <= set("0123456789abcdef")
+
+
+def validate_formal_learned_checkpoint(
+    *, method: str, payload: dict[str, Any], policy_seed: int,
+    checkpoint_sha256: str, training_manifest: dict[str, Any] | None = None,
+    validation_selection: dict[str, Any] | None = None,
+    current_world_model_sha256: str | None = None,
+) -> None:
+    """Fail closed on the frozen training provenance for learned baselines."""
+    if method not in ("terla_a4", "carl_cc4"):
+        raise ValueError("learned checkpoint validator only supports TERLA/CARL")
+    if payload.get("method") != method or int(payload.get("policy_seed", -1)) != policy_seed:
+        raise ValueError("training checkpoint identity mismatch")
+    if (payload.get("formal_training_complete") is not True
+            or payload.get("training_split") != "train"
+            or tuple(payload.get("training_episode_seeds", ())) != TRAIN_SEEDS
+            or tuple(payload.get("validation_episode_seeds", ())) != VALIDATION_SEEDS
+            or payload.get("test_seeds_used") is not False
+            or payload.get("ticks_per_episode") != 500):
+        raise ValueError("training checkpoint violates the frozen split/tick protocol")
+    if (payload.get("git_dirty") is not False
+            or not _is_hex(payload.get("code_commit"), 40)
+            or not _is_hex(payload.get("git_diff_sha256"), 64)):
+        raise ValueError("training checkpoint is missing clean Git provenance")
+    if not _is_hex(checkpoint_sha256, 64):
+        raise ValueError("training checkpoint file SHA256 is invalid")
+
+    if method == "terla_a4":
+        if (payload.get("schema") != "terla_a4_formal_checkpoint_v1"
+                or payload.get("shared_policy_across_agents") is not True
+                or payload.get("per_agent_history_isolated") is not True
+                or payload.get("hidden_truth_policy_input") is not False
+                or payload.get("reward") != "original_terla_cyber_reward"
+                or payload.get("selected_training_episodes") not in (8, 16, 24, 32)
+                or not _is_hex(payload.get("selected_checkpoint_sha256"), 64)):
+            raise ValueError("TERLA checkpoint metadata is incomplete")
+        if not isinstance(training_manifest, dict):
+            raise ValueError("TERLA training manifest is required")
+        if (training_manifest.get("method") != method
+                or training_manifest.get("policy_seed") != policy_seed
+                or training_manifest.get("checkpoint_sha256") != checkpoint_sha256
+                or tuple(training_manifest.get("training_episode_seeds", ())) != TRAIN_SEEDS
+                or tuple(training_manifest.get("validation_episode_seeds", ())) != VALIDATION_SEEDS
+                or training_manifest.get("test_seeds_used") is not False
+                or training_manifest.get("code_commit") != payload.get("code_commit")
+                or training_manifest.get("git_dirty") is not False
+                or training_manifest.get("git_diff_sha256") != payload.get("git_diff_sha256")):
+            raise ValueError("TERLA training manifest does not bind the checkpoint")
+        return
+
+    if (payload.get("schema") != "carl_cc4_formal_checkpoint_v1"
+            or payload.get("world_model_frozen") is not True
+            or not _is_hex(payload.get("world_model_sha256"), 64)
+            or payload.get("synthetic_rollouts_per_real_rollout") != 8
+            or payload.get("requested_imagination_horizon") != 256
+            or payload.get("hidden_truth_policy_input") is not False
+            or payload.get("decision_time_model_use") is not False
+            or not _is_hex(payload.get("validation_selection_sha256"), 64)):
+        raise ValueError("CARL checkpoint metadata is incomplete")
+    status = payload.get("imagination_gate_status")
+    effective = payload.get("effective_imagination_horizon")
+    if not ((status == "SUPPORTED" and effective == 256)
+            or (status == "ADAPTED_TRUNCATED" and effective == 4
+                and bool(str(payload.get("imagination_disclosure", "")).strip()))):
+        raise ValueError("CARL imagination horizon is neither supported nor explicitly adapted")
+    if current_world_model_sha256 != payload.get("world_model_sha256"):
+        raise ValueError("CARL frozen world-model SHA256 mismatch")
+    if not isinstance(validation_selection, dict):
+        raise ValueError("CARL validation-selection artifact is required")
+    selection_bytes = json.dumps(validation_selection, indent=2, sort_keys=True) + "\n"
+    selection_sha = hashlib.sha256(selection_bytes.encode("utf-8")).hexdigest()
+    if (selection_sha != payload.get("validation_selection_sha256")
+            or validation_selection.get("schema") != "carl_cc4_validation_selection_v1"
+            or validation_selection.get("method") != method
+            or tuple(validation_selection.get("training_episode_seeds", ())) != TRAIN_SEEDS
+            or tuple(validation_selection.get("validation_episode_seeds", ())) != VALIDATION_SEEDS
+            or validation_selection.get("test_seeds_used") is not False
+            or validation_selection.get("world_model_sha256") != current_world_model_sha256
+            or validation_selection.get("code_commit") != payload.get("code_commit")
+            or validation_selection.get("git_dirty") is not False
+            or validation_selection.get("git_diff_sha256") != payload.get("git_diff_sha256")):
+        raise ValueError("CARL validation selection does not bind the checkpoint")
 
 
 def root_action_mask_from_availability(availability: dict[str, bool]) -> list[bool]:
@@ -66,6 +155,8 @@ def run_method_episode(
     validate_episode_request(run_mode=run_mode, ticks=ticks)
     if run_mode == "formal" and policy_seed not in POLICY_SEEDS:
         raise ValueError("formal episode requires one frozen policy_seed")
+    if run_mode == "formal" and seed not in FINAL_TEST_SEEDS:
+        raise ValueError("formal episode requires one frozen test seed in 4000..4099")
     if policy_seed is None:
         policy_seed = 0
     if method not in METHODS:
@@ -91,6 +182,9 @@ def run_method_episode(
 
     planners = None
     uamcts_priors = None
+    learned_policy = None
+    priorrl_retriever = None
+    terla_states: dict[str, Any] = {}
     if method == "rsmbrl_cc4":
         from baselines.rsmbrl_cc4.runtime import build_runtime
         planner_seed = derive_runtime_seed(
@@ -113,6 +207,110 @@ def run_method_episode(
             normalizers_path=root / "outputs/uamcts_cc4/calibration/uamcts_uncertainty_normalizers_frozen.pt",
             device=device, planner_seed=planner_seed,
         )
+    elif method == "priorrl_ppo_cc4":
+        import torch
+        from baselines.priorrl_cc4.formal_training import (
+            POLICY_SEEDS as PRIORRL_POLICY_SEEDS,
+            validate_alpha_selection,
+            validate_checkpoint_metadata,
+            validate_prototype_provenance,
+            validate_training_manifest,
+        )
+        from baselines.priorrl_cc4.policy import PriorRLActorCritic
+        from baselines.priorrl_cc4.prototype_retrieval import FrozenPrototypeRetriever
+        root = Path(__file__).resolve().parents[2]
+        repeat_index = PRIORRL_POLICY_SEEDS.index(policy_seed) + 1
+        training_dir = root / "outputs/formal_v3/training/priorrl_ppo_cc4" / f"repeat_{repeat_index:02d}"
+        checkpoint = training_dir / "checkpoint.pt"
+        manifest_path = training_dir / "training_manifest.json"
+        selection_path = training_dir / "alpha_selection.json"
+        prototype = root / "outputs/priorrl_cc4/prototypes/frozen_prototypes.json"
+        if (not checkpoint.is_file() or not manifest_path.is_file()
+                or not selection_path.is_file() or not prototype.is_file()):
+            raise RuntimeError("missing frozen PriorRL training/prototype artifact")
+        priorrl_retriever = FrozenPrototypeRetriever.load(prototype)
+        checkpoint_file_sha = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+        selection_file_sha = hashlib.sha256(selection_path.read_bytes()).hexdigest()
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        try:
+            prior_provenance = validate_prototype_provenance(prototype)
+            alpha = validate_training_manifest(
+                manifest, repeat_index=repeat_index,
+                prototype_sha256=prior_provenance["prototype_sha256"],
+                prototype_file_sha256=prior_provenance["prototype_file_sha256"],
+                prototype_coverage_sha256=prior_provenance["prototype_coverage_sha256"],
+                prototype_provenance_sha256=prior_provenance["prototype_provenance_sha256"],
+                checkpoint_file_sha256=checkpoint_file_sha,
+                selection_file_sha256=selection_file_sha,
+            )
+            selection = json.loads(selection_path.read_text(encoding="utf-8"))
+            selected_alpha = validate_alpha_selection(
+                selection, **{key: prior_provenance[key] for key in (
+                    "prototype_sha256", "prototype_file_sha256",
+                    "prototype_coverage_sha256", "prototype_provenance_sha256")})
+            if priorrl_retriever.payload["prototype_sha256"] != prior_provenance["prototype_sha256"]:
+                raise ValueError("PriorRL runtime prototype identity mismatch")
+            if selected_alpha != alpha:
+                raise ValueError("PriorRL alpha-selection and training manifest mismatch")
+            if selection.get("code_commit") != manifest.get("code_commit"):
+                raise ValueError("PriorRL alpha-selection and training commit mismatch")
+            saved = torch.load(checkpoint, map_location=device, weights_only=False)
+            validate_checkpoint_metadata(
+                saved.get("metadata", {}), policy_seed=policy_seed, alpha_kl=alpha,
+                code_commit=manifest["code_commit"])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise RuntimeError(f"PriorRL frozen artifact gate failed: {exc}") from exc
+        learned_policy = PriorRLActorCritic().to(device)
+        learned_policy.load_state_dict(saved["policy_state_dict"], strict=True); learned_policy.eval()
+    elif method in ("terla_a4", "carl_cc4"):
+        import torch
+        root = Path(__file__).resolve().parents[2]
+        checkpoint = root / "outputs" / "formal_v3" / "training" / method / f"policy_{policy_seed}.pt"
+        if run_mode == "formal" and not checkpoint.is_file():
+            raise RuntimeError(f"missing frozen formal training checkpoint: {checkpoint}")
+        if method == "terla_a4":
+            from baselines.terla_a4 import TERLAPolicy
+            learned_policy = TERLAPolicy().to(device)
+        else:
+            from baselines.carl_cc4 import CARLActorCritic
+            learned_policy = CARLActorCritic().to(device)
+        if checkpoint.is_file():
+            payload = torch.load(checkpoint, map_location=device, weights_only=True)
+            if not isinstance(payload, dict) or payload.get("method") != method:
+                raise RuntimeError("training checkpoint identity mismatch")
+            if int(payload.get("policy_seed", -1)) != int(policy_seed):
+                raise RuntimeError("training checkpoint seed mismatch")
+            if run_mode == "formal":
+                checkpoint_sha = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+                try:
+                    if method == "terla_a4":
+                        manifest_path = checkpoint.with_name(f"policy_{policy_seed}.training.json")
+                        if not manifest_path.is_file():
+                            raise ValueError("TERLA training manifest is missing")
+                        training_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                        validate_formal_learned_checkpoint(
+                            method=method, payload=payload, policy_seed=policy_seed,
+                            checkpoint_sha256=checkpoint_sha,
+                            training_manifest=training_manifest,
+                        )
+                    else:
+                        selection_path = checkpoint.with_suffix(".selection.json")
+                        world_model = (root / "outputs/world_model_final_20260917/a4_5b"
+                                       / "world_model_absolute.pt")
+                        if not selection_path.is_file() or not world_model.is_file():
+                            raise ValueError("CARL selection or frozen world model is missing")
+                        selection = json.loads(selection_path.read_text(encoding="utf-8"))
+                        validate_formal_learned_checkpoint(
+                            method=method, payload=payload, policy_seed=policy_seed,
+                            checkpoint_sha256=checkpoint_sha,
+                            validation_selection=selection,
+                            current_world_model_sha256=hashlib.sha256(
+                                world_model.read_bytes()).hexdigest(),
+                        )
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise RuntimeError(f"{method} frozen training gate failed: {exc}") from exc
+            learned_policy.load_state_dict(payload["state_dict"], strict=True)
+        learned_policy.eval()
 
     for index, agent in enumerate(BLUE_AGENTS):
         tracker = ObservableHostEvidenceTracker(agent)
@@ -127,8 +325,15 @@ def run_method_episode(
             policy.observe(observations[agent], tick=0)
             policies[agent] = policy
             runtime_seeds[agent] = runtime_seed
-        else:
+        elif method in ("rsmbrl_cc4", "uamcts_cc4"):
             runtime_seeds[agent] = planner_seed + index
+        else:
+            runtime_seeds[agent] = derive_runtime_seed(
+                policy_seed=policy_seed, episode_seed=seed, agent_name=agent
+            )
+        if method == "terla_a4":
+            from baselines.terla_a4.runtime import ObservableTERLAState
+            terla_states[agent] = ObservableTERLAState(tracker)
 
     jurisdiction_hosts = sorted({host for hosts in inventories.values() for host in hosts})
     previous = {host: ground_truth_red_presence(controller, host) for host in jurisdiction_hosts}
@@ -173,7 +378,7 @@ def run_method_episode(
                 resolver_scores = host_scores
                 diagnostics = {"best_score": float(plan.best_score),
                                "uncertainty": float(plan.uncertainty)}
-            else:
+            elif method == "uamcts_cc4":
                 from shared.action_contract import ACTION_CONTRACTS
                 from shared.d27_projection import D27ProjectionContext
                 root_action_mask = root_action_mask_from_availability(family_availability)
@@ -190,6 +395,37 @@ def run_method_episode(
                 resolver_scores = host_scores
                 diagnostics = {"root_visits": list(plan.root_visits), "root_q": list(plan.root_q),
                                "simulations": int(plan.simulations)}
+            elif method == "priorrl_ppo_cc4":
+                import torch
+                root_action_mask = root_action_mask_from_availability(family_availability)
+                prior = priorrl_retriever.lookup(state, agent_name=agent)
+                with torch.no_grad():
+                    action_id, _, value = learned_policy.act(
+                        state, deterministic=True,
+                        action_mask=torch.as_tensor(root_action_mask, dtype=torch.bool, device=device),
+                    )
+                requested = int(action_id.cpu())
+                resolver_scores = host_scores
+                diagnostics = {"value": float(value.cpu()), "prior": prior.tolist()}
+            elif method == "terla_a4":
+                import torch
+                graph = terla_states[agent].graph(tick=tick, episode_ticks=ticks)
+                root_action_mask = root_action_mask_from_availability(family_availability)
+                with torch.inference_mode():
+                    logits, value = learned_policy(graph.to(device))
+                    mask = torch.tensor(root_action_mask, dtype=torch.bool, device=logits.device)
+                    requested = int(logits.masked_fill(~mask, torch.finfo(logits.dtype).min).argmax())
+                resolver_scores = host_scores
+                diagnostics = {"value": float(value), "checkpoint_frozen": True}
+            else:
+                import torch
+                root_action_mask = root_action_mask_from_availability(family_availability)
+                with torch.inference_mode():
+                    logits, value = learned_policy(state)
+                    mask = torch.tensor(root_action_mask, dtype=torch.bool, device=logits.device)
+                    requested = int(logits.masked_fill(~mask, torch.finfo(logits.dtype).min).argmax())
+                resolver_scores = host_scores
+                diagnostics = {"value": float(value), "checkpoint_frozen": True}
             if method == "dca_cc4":
                 root_action_mask = root_action_mask_from_availability(family_availability)
             resolution = adapter.resolve(env=env, agent_name=agent, action_id=requested,
@@ -265,6 +501,12 @@ def run_method_episode(
                 completed_target_host=meta["target"] if completed else None,
                 completed_action_success=success if completed else None,
             )
+            if method == "terla_a4":
+                terla_states[agent].update(
+                    next_obs[agent],
+                    restored_target=(meta["target"] if completed and success
+                                     and meta["family"] == "Restore" else None),
+                )
             if method == "dca_cc4":
                 policies[agent].observe(
                     next_obs[agent], tick=tick_end,

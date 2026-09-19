@@ -51,3 +51,22 @@ but discloses PPO/D27/A4/prototype retrieval as CC4 adaptations.
 
 Source paper SHA256: `40ab37985422db1a439a22757f30a368b04363b8a9a9b3d59dec3488085e1c71`.
 Upstream: `yanxue7/RL-LLM-Prior`, commit `13b99c9bba5462b9c84c2a433b4a5ddec046177e`; the public snapshot is value-based, so this PPO path is a disclosed adaptation.
+
+## Formal training and evaluation gate
+
+`formal_training.py` implements the frozen two-stage protocol.  A single tuning
+initialization trains each declared alpha on train seeds 1000--1031 and ranks it
+only on validation seeds 2000--2007 (mean Full-Reward, smallest-alpha tie
+break).  The selected alpha is snapshotted into each of five independently
+trained repeat directories.  Every training episode is 500 ticks; checkpoints
+include optimizer state and can resume only with the same protocol identity.
+The training manifests explicitly attest that test seeds were unused, online
+LLM calls were zero, and no world model was used.
+
+The shared Table-1 runner loads only a checkpoint, its training manifest, the
+snapshotted alpha-selection artifact, and the frozen prototype artifact whose
+hashes agree.  Evaluation is deterministic and read-only.  Missing or
+mismatched artifacts and prototype misses fail closed.  This implementation
+does not make the method formal-eligible by itself: alpha selection, five
+complete checkpoints, a clean frozen code snapshot, and 5 x 100 x 500 validated
+test outputs must all exist before aggregation.

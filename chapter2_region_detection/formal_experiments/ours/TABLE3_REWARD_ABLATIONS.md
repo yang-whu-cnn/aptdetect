@@ -9,11 +9,15 @@ absolute five-member world model. The ablation is applied in both reward paths:
   same reward mode.
 
 Delay-Only and Fail-Only predictors are derived only from the frozen train and
-validation replays. They use the same network/configuration and fixed 50-epoch
-training policy as the existing Full-Reward artifact. The existing Full-Reward
-pipeline does not perform early checkpoint selection; the ablations deliberately
-match it rather than introducing validation-driven checkpoint selection. Test
-episodes are not used for training, stopping, or gate tuning.
+validation replays. They use the same single-MLP architecture, inputs,
+normalizers, optimizer, learning rate, batch size, fixed 50-epoch policy, model
+seed, and split as the existing Full-Reward artifact. Delay-Only retains MSE.
+The approved minimal Fail-Only change uses unweighted SmoothL1/Huber loss with
+`beta=1.0` on standardized reward labels. Class weighting and positive-example
+resampling are forbidden. The original Fail-Only MSE result is diagnostic-only.
+The existing Full-Reward pipeline does not perform early checkpoint selection;
+the ablations match it rather than introducing validation-driven checkpoint
+selection. Test episodes are not used for training, stopping, or gate tuning.
 
 Training command (repeat for `Fail-Only`):
 
@@ -29,8 +33,7 @@ The real CC4 smoke refuses to load an ablation unless this gate passes and the
 SHA matches. A development smoke is not a performance result.
 
 Fail-Only is strongly zero-inflated. A two-part hurdle predictor is retained in
-code for train-only diagnostics, but it is forbidden from the formal artifact:
-Section 5.3 requires the exact single-MLP Full-Reward architecture and training
-rule. Weighted loss, resampling, alternate seeds selected by validation, and a
-relaxed gate are likewise not used. If the locked single predictor fails the
+code for train-only diagnostics, but it is forbidden from the formal artifact.
+Weighted loss, resampling, alternate seeds selected by validation, and a relaxed
+gate are likewise forbidden. If the approved locked single predictor fails the
 unchanged gate, Fail-Only remains `BLOCKED`.

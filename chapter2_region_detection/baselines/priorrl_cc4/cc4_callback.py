@@ -40,11 +40,23 @@ def run_cc4_episode(*, episode_seed: int, policy_seed: int, policy: PriorRLActor
                     rollout_threshold: int = 32, ppo_config: A4PPOConfig | None = None,
                     trainer: A4PPOTrainer | None = None,
                     buffer: A4RolloutBuffer | None = None,
-                    flush_final: bool = True) -> dict:
-    if episode_seed not in (range(1000, 1032) if training else range(3200, 3210)):
-        raise ValueError("episode seed violates development split")
-    if policy_seed not in (61001, 61002):
-        raise ValueError("policy seed violates development split")
+                    flush_final: bool = True, protocol: str = "development") -> dict:
+    allowed = {
+        "development": ((range(1000, 1032) if training else range(3200, 3210)), (61001, 61002), 100),
+        "alpha_validation": ((range(1000, 1032) if training else range(2000, 2008)), (50999,), 500),
+        "formal_train": (range(1000, 1032), (51001, 51002, 51003, 51004, 51005), 500),
+    }
+    if protocol not in allowed:
+        raise ValueError("unknown PriorRL collection protocol")
+    seeds, policy_seeds, required_ticks = allowed[protocol]
+    if episode_seed not in seeds:
+        raise ValueError(f"episode seed violates {protocol} split")
+    if policy_seed not in policy_seeds:
+        raise ValueError(f"policy seed violates {protocol} split")
+    if protocol != "development" and episode_ticks != required_ticks:
+        raise ValueError(f"{protocol} requires {required_ticks} ticks")
+    if protocol == "formal_train" and not training:
+        raise ValueError("formal_train protocol cannot evaluate test episodes")
     if rollout_threshold < 1:
         raise ValueError("rollout_threshold must be positive")
     if not training and (trainer is not None or buffer is not None):

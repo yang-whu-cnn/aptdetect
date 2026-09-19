@@ -96,6 +96,39 @@ class TestFormalManifest(unittest.TestCase):
         errors = validate_manifest(value)
         self.assertTrue(any("repeat 2" in error and "51002" in error for error in errors))
 
+    def test_uamcts_manifest_requires_complete_frozen_provenance_chain(self):
+        value = manifest()
+        value.update({"method": "UAMCTS-CC4 (adapted)", "method_slug": "uamcts_cc4"})
+        fields = ("policy_spec_sha256", "world_model_sha256", "reward_model_sha256",
+                  "progress_model_sha256", "prototype_prior_sha256",
+                  "prior_entropy_sha256", "normalizer_sha256")
+        value["method_artifacts"] = {field: "d" * 64 for field in fields}
+        self.assertEqual(validate_manifest(value), [])
+        del value["method_artifacts"]["prior_entropy_sha256"]
+        self.assertTrue(any("prior_entropy_sha256" in error
+                            for error in validate_manifest(value)))
+
+    def test_learned_baseline_manifests_require_training_provenance_files(self):
+        cases = (
+            ("terla_a4", "TERLA-A4", "training_manifest_sha256", "training_manifest.json"),
+            ("carl_cc4", "CARL-CC4 (adapted)", "validation_selection_sha256",
+             "validation_selection.json"),
+        )
+        for slug, name, provenance_field, bound_name in cases:
+            with self.subTest(method=slug):
+                value = manifest()
+                value.update({"method": name, "method_slug": slug})
+                value["method_artifacts"] = {
+                    "policy_spec_sha256": "d" * 64,
+                    "checkpoint_sha256": "e" * 64,
+                    provenance_field: "f" * 64,
+                }
+                value["artifact_sha256"]["checkpoint.pt"] = "e" * 64
+                value["artifact_sha256"][bound_name] = "f" * 64
+                self.assertEqual(validate_manifest(value), [])
+                del value["artifact_sha256"][bound_name]
+                self.assertTrue(any(bound_name in error for error in validate_manifest(value)))
+
     def test_failure_event_requires_auditable_blue_scope(self):
         value = episode(4000)
         value["operation_failure_events"] = [{"raw_penalty": -1.0}]

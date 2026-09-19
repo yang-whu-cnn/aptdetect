@@ -55,7 +55,9 @@ def validate_manifest(manifest: Mapping[str, Any], *, formal: bool = True) -> li
     if not str(manifest["method"]).strip():
         errors.append("method must be non-empty")
     method_slug = manifest["method_slug"]
-    formal_names = {"dca_cc4": "DCA-CC4 (adapted)", "rsmbrl_cc4": "RSMBRL-CC4"}
+    formal_names = {"dca_cc4": "DCA-CC4 (adapted)", "rsmbrl_cc4": "RSMBRL-CC4",
+                    "uamcts_cc4": "UAMCTS-CC4 (adapted)", "terla_a4": "TERLA-A4",
+                    "carl_cc4": "CARL-CC4 (adapted)", "priorrl_ppo_cc4": "PriorRL-PPO-CC4"}
     if method_slug in formal_names and manifest["method"] != formal_names[method_slug]:
         errors.append("method does not match formal method_slug name")
     repeat_index = manifest["repeat_index"]
@@ -135,7 +137,28 @@ def validate_manifest(manifest: Mapping[str, Any], *, formal: bool = True) -> li
     elif method_slug == "rsmbrl_cc4":
         if manifest["upstream_commit"] != "9f97859594f2b0547e01193a8758936090b0b2ec":
             errors.append("RSMBRL upstream_commit mismatch")
-        for field in ("world_model_sha256", "reward_model_sha256", "normalizer_sha256"):
+        for field in ("world_model_sha256", "reward_model_sha256", "normalizer_sha256",
+                      "normalizer_sidecar_sha256"):
+            if not SHA256_RE.fullmatch(str(artifacts.get(field, ""))):
+                errors.append(f"method_artifacts.{field} must be a lowercase SHA256")
+    elif method_slug == "uamcts_cc4":
+        for field in ("policy_spec_sha256", "world_model_sha256", "reward_model_sha256",
+                      "progress_model_sha256", "prototype_prior_sha256",
+                      "prior_entropy_sha256", "normalizer_sha256"):
+            if not SHA256_RE.fullmatch(str(artifacts.get(field, ""))):
+                errors.append(f"method_artifacts.{field} must be a lowercase SHA256")
+    elif method_slug == "terla_a4":
+        for field in ("policy_spec_sha256", "checkpoint_sha256", "training_manifest_sha256"):
+            if not SHA256_RE.fullmatch(str(artifacts.get(field, ""))):
+                errors.append(f"method_artifacts.{field} must be a lowercase SHA256")
+    elif method_slug == "carl_cc4":
+        for field in ("policy_spec_sha256", "checkpoint_sha256", "validation_selection_sha256"):
+            if not SHA256_RE.fullmatch(str(artifacts.get(field, ""))):
+                errors.append(f"method_artifacts.{field} must be a lowercase SHA256")
+    elif method_slug == "priorrl_ppo_cc4":
+        for field in ("policy_spec_sha256", "checkpoint_sha256", "training_manifest_sha256",
+                      "alpha_selection_sha256", "prototype_prior_sha256",
+                      "prototype_coverage_sha256", "prototype_provenance_sha256"):
             if not SHA256_RE.fullmatch(str(artifacts.get(field, ""))):
                 errors.append(f"method_artifacts.{field} must be a lowercase SHA256")
     bound_artifacts = manifest["artifact_sha256"]
@@ -156,6 +179,10 @@ def validate_manifest(manifest: Mapping[str, Any], *, formal: bool = True) -> li
                 errors.append("artifact_sha256 needs decisions.jsonl or decisions.jsonl.zst")
             if not ({"policy_spec.json", "checkpoint.pt"} & set(bound_artifacts)):
                 errors.append("artifact_sha256 needs policy_spec.json or checkpoint.pt")
+            if method_slug == "terla_a4" and "training_manifest.json" not in bound_artifacts:
+                errors.append("artifact_sha256 needs TERLA training_manifest.json")
+            if method_slug == "carl_cc4" and "validation_selection.json" not in bound_artifacts:
+                errors.append("artifact_sha256 needs CARL validation_selection.json")
         config_digest = bound_artifacts.get("config.resolved.yaml")
         if config_digest is not None and config_digest != manifest["config_sha256"]:
             errors.append("config_sha256 must match artifact_sha256 for config.resolved.yaml")

@@ -275,7 +275,7 @@ Table 1 列固定为：
 
 ### 5.3 Table 3 实现细节
 
-从现有 train/validation replay 分别派生 delay/fail 标签，训练两个新 predictor；模型架构、split、epoch/early-stop 规则与 Full-Reward predictor 相同。先做 H1/H4 RMSE、rank correlation 和 constant/persistence baseline 门禁，再允许进入 PPO。
+从现有 train/validation replay 分别派生 delay/fail 标签，训练两个新 predictor；模型架构、输入、标准化器、optimizer、学习率、batch size、固定 50 epochs、模型随机种子和 split 与 Full-Reward predictor 相同。Delay-Only 保持标准化奖励标签上的 MSE；Fail-Only 经正式批准仅将逐样本损失替换为标准化奖励标签上的未加权 SmoothL1/Huber（`beta=1.0`），禁止类别加权与正例重采样，原 MSE 仅保留为 diagnostic-only。两者均不做 validation checkpoint selection。先做 H1/H4 RMSE、rank correlation 和 constant/persistence baseline 门禁，再允许进入 PPO。
 
 ## 6. 代码落地结构与公共接口
 
@@ -428,11 +428,17 @@ close() -> None
 - `manifest.json`
 - `checkpoint.pt` 或不可训练方法的 `policy_spec.json`
 - `episodes.jsonl`：100 行 episode summary
-- `decisions.jsonl.zst`：逐 decision 审计
+- `decisions.jsonl`：逐 decision 审计；允许以内容等价的 `decisions.jsonl.zst` 替代
 - `metrics.json`
 - `stdout.log`
 
 聚合器输出：`table1.csv`、`table2.csv`、`table3.csv`、`tables.md`、`eligibility_report.json`。只有 `eligibility_report.passed=true` 的结果可以写入论文。
+
+冻结的结果身份补充：Table 1 的 PriorRL 行使用 canonical slug `priorrl_ppo_cc4` 和显示名 `PriorRL-PPO-CC4`；`baselines/priorrl_cc4/` 只是实现/冻结原型目录名。Table 3 的 `full_reward` 不重复训练或复制 manifest，而是只读复用 Table 2 `lwm_rl`（`canonical_run_id=lwm_full`）完全相同的 5 个物理 repeats；若出现独立 `table3/full_reward` 结果，聚合与制图必须 fail closed，防止挑选结果。
+
+Table 2 每个 repeat 的 `manifest.figure_artifacts.training_curve` 必须声明 `cc4_v3_training_curve_v1`、train split、横轴 `environment_steps`、纵轴 `training_objective_reward`、记录数、相对路径与 SHA256；同一 SHA 必须同时绑定在 `manifest.artifact_sha256` 和 validator 生成的 `eligibility_report.input_sha256` 中。曲线步数须为严格递增的非负整数，五个 repeats 与四种组件变体使用完全相同的 step grid。三张表未全部 PASS 或五类图中任一类失败时，不保留部分 CSV/Markdown/SVG/PNG，只输出 `PARTIAL`/`BLOCKED` 审计报告。
+
+Table 3 `fail_only` 只接受已批准的 SmoothL1/Huber（`beta=1.0`）冻结模型；旧 MSE 仅为 `diagnostic_only`。每个正式 manifest 必须绑定冻结 checkpoint/manifest SHA、32 train 与 8 validation 无交集且 test leak 为 0 的 PASS 证据，并记录 OFOX 缓存审计：恰好 6 次调用、6 条生成/验证成功、0 失败、6 条精确 train-only D27、coverage PASS、测试期禁止在线调用，以及冻结 entry-set/logical-manifest SHA。任一字段漂移或出现额外调用即拒绝该正式行。
 
 ## 11. 超参、公平性与算力控制
 

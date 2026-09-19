@@ -16,6 +16,14 @@ seeds 3000..3007. The historical `outputs/ug_cem_v2/step6/` online bundle is
 not eligible because it was bound to old model paths and enables evaluation-time
 EMA updates. The required RSMBRL artifact path is
 `outputs/rsmbrl_cc4/calibration/rsmbrl_normalizers_frozen.pt`.
+- Formal runtime also requires the immutable
+  `rsmbrl_normalizers_frozen.sidecar.json`. It binds the normalizer, shared
+  world/reward checkpoints, exact train (1000..1031) and validation
+  (2000..2007) replay files and hashes, bundle schema, and a clean Git state.
+  The replay files are audited for exact seed coverage, so any test-seed row,
+  missing sidecar, missing field, or SHA mismatch fails closed. The sidecar's
+  `formal_result_eligible=false` describes the calibration artifact itself;
+  only the separately validated repeat output may become a formal result.
 - The frozen normalizer bundle is format v2 and is cryptographically bound to
   the shared D27 semantic projection version/SHA. Pre-projection format-v1
   bundles fail closed. Calibration rollouts use root tick and immutable root

@@ -19,12 +19,24 @@ from formal_experiments.training.response_reward_predictor import (
 
 GAMMA_TICK = 0.99
 HORIZON = 4
+FAIL_ONLY_FORMAL_LOSS = "smooth_l1"
+FAIL_ONLY_FORMAL_BETA = 1.0
 
 
 class RewardMode(str, Enum):
     DELAY_ONLY = "Delay-Only"
     FAIL_ONLY = "Fail-Only"
     FULL_REWARD = "Full-Reward"
+
+
+def formal_predictor_config(mode: RewardMode) -> ResponseRewardPredictorConfig:
+    """Return the frozen optimization contract for one Table-3 predictor."""
+    if mode == RewardMode.FAIL_ONLY:
+        return ResponseRewardPredictorConfig(
+            loss=FAIL_ONLY_FORMAL_LOSS,
+            smooth_l1_beta=FAIL_ONLY_FORMAL_BETA,
+        )
+    return ResponseRewardPredictorConfig()
 
 
 class HurdleFailurePredictor:
@@ -154,9 +166,11 @@ def train_mode(*, mode: RewardMode, train, validation, out_dir: Path, device="cp
     train_m = derive(train, mode); validation_m = derive(validation, mode)
     train_dataset = build_response_reward_dataset(train_m)
     # Section 5.3 freezes architecture and optimization to the Full-Reward
-    # predictor. Hurdle/weighted/resampled alternatives are diagnostic only and
-    # must never enter this formal path.
-    predictor = ResponseRewardPredictor(ResponseRewardPredictorConfig(), device=device)
+    # predictor except for the approved Fail-Only loss substitution. Hurdle,
+    # weighting, and resampling alternatives are diagnostic only and must never
+    # enter this formal path.
+    predictor_config = formal_predictor_config(mode)
+    predictor = ResponseRewardPredictor(predictor_config, device=device)
     summary = predictor.fit(train_dataset); training_report = vars(summary)
     training_report["zero_label_count"] = int(np.count_nonzero(train_dataset.rewards == 0))
     training_report["nonzero_label_count"] = int(np.count_nonzero(train_dataset.rewards != 0))
@@ -191,13 +205,28 @@ def train_mode(*, mode: RewardMode, train, validation, out_dir: Path, device="cp
     checkpoint = out_dir / "response_reward_predictor.pt"
     predictor.save_checkpoint(checkpoint)
     checkpoint_sha = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
-    manifest = {"format": "table3_reward_ablation_v1", "mode": mode.value,
+    loss_contract = {
+        "name": predictor_config.loss,
+        "target_space": "standardized_reward_label",
+        "reduction": "mean",
+        "sample_weighting": "none",
+        "resampling": "none",
+    }
+    if predictor_config.loss == "smooth_l1":
+        loss_contract["beta"] = predictor_config.smooth_l1_beta
+    manifest = {"format": "table3_reward_ablation_v2", "mode": mode.value,
                 "reward_model_eligible_for_policy_training": bool(gate["pass"]),
                 "formal_result_eligible": False, "test_seeds_used": False,
-                "architecture": {"description": architecture, "component_config": vars(ResponseRewardPredictorConfig())},
+                "architecture": {"description": architecture, "component_config": vars(predictor_config)},
                 "formal_contract_architecture_match": True,
+                "formal_contract_training_match": True,
                 "diagnostic_hurdle_used_for_formal_artifact": False,
-                "training_policy": "matches frozen Full-Reward: 50 fixed epochs; no validation checkpoint selection",
+                "training_loss": loss_contract,
+                "training_policy": ("approved Fail-Only minimum change: unweighted SmoothL1(beta=1.0) on "
+                                    "standardized labels; otherwise matches frozen Full-Reward: 50 fixed epochs; "
+                                    "no validation checkpoint selection" if mode == RewardMode.FAIL_ONLY else
+                                    "matches frozen Full-Reward: MSE on standardized labels; 50 fixed epochs; "
+                                    "no validation checkpoint selection"),
                 "training": training_report, "h1": h1, "h1_baselines": baselines,
                 "h4_oracle_state": h4, "h4_imagined_world_model": wm_h4,
                 "world_model_sha256": hashlib.sha256(world_model_path.read_bytes()).hexdigest(),

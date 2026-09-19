@@ -1,5 +1,5 @@
 method: PriorRL-PPO-CC4
-status: pilot
+status: formal_training_pending_frozen_cache
 state: {encoder: shared.formal_state.FormalStateEncoder, dim: 27}
 action: {space: A4, durations: [1, 2, 3, 5]}
 policy: {algorithm: PPO, hidden_dim: 128, duration_aware_gae: true, gamma_tick: 0.99}
@@ -9,4 +9,12 @@ world_model: forbidden
 online_llm: forbidden
 reward: final_paper_20260917_v1
 policy_seeds: [51001, 51002, 51003, 51004, 51005]
+formal_training:
+  train_seeds: [1000, 1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030, 1031]
+  validation_seeds: [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007]
+  test_seed_range: {start: 4000, end: 4099, count: 100}
+  ticks_per_episode: 500
+  alpha_tuning_seed: 50999
+  checkpoint_dir: outputs/formal_v3/training/priorrl_ppo_cc4
+  evaluator: formal_experiments.evaluation.run_method_repeat
 pilot: {training_repeats: 2, episodes_per_repeat: 5, ticks_per_episode: 100}

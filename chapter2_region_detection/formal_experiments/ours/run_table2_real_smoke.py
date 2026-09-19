@@ -11,6 +11,7 @@ from baselines.rsmbrl_cc4.artifact_preflight import (
 )
 from formal_experiments.ours.table2_variants import Table2DecisionRuntime, Table2Variant
 from formal_experiments.ours.reward_ablation import RewardMode, tick_reward
+from formal_experiments.ours.reward_artifact_contract import validate_frozen_reward_artifact
 from formal_experiments.ours.variant_training import VariantPPOBuffer, VariantTransition, ppo_update
 from formal_experiments.training.bootstrap_world_model import BootstrapProbabilisticWorldModel
 from formal_experiments.training.response_reward_predictor import ResponseRewardPredictor
@@ -25,15 +26,12 @@ def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 def _ablation_reward_artifact(mode: RewardMode, *, device: str):
     slug = mode.value.lower().replace("-", "_")
-    directory = Path("outputs/formal_v3/table3_reward_models") / slug
+    project_root = Path(__file__).resolve().parents[2]
+    directory = project_root / "outputs/formal_v3/table3_reward_models" / slug
     manifest_path = directory / "frozen_manifest.json"
-    if not manifest_path.is_file(): raise RuntimeError(f"BLOCKED: missing frozen {mode.value} manifest")
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    checkpoint = Path(manifest["checkpoint"])
-    if not manifest.get("frozen") or not manifest.get("quality_gate", {}).get("pass"):
-        raise RuntimeError(f"BLOCKED: {mode.value} reward predictor did not pass its frozen gate")
-    if not checkpoint.is_file() or sha(checkpoint) != manifest.get("checkpoint_sha256"):
-        raise RuntimeError(f"BLOCKED: {mode.value} reward artifact SHA mismatch")
+    manifest, checkpoint, _ = validate_frozen_reward_artifact(
+        manifest_path, mode=mode, project_root=project_root
+    )
     predictor = ResponseRewardPredictor.load_checkpoint(checkpoint, device=device)
     return predictor, manifest
 

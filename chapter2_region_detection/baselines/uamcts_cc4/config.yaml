@@ -12,12 +12,17 @@ search:
   phi: 1.0
 uncertainty:
   weights: [1.0, 1.0, 1.0]
-  normalizer: blocked_until_calibration_artifact
+  normalizer: outputs/uamcts_cc4/calibration/uamcts_uncertainty_normalizers_frozen.pt
 artifacts:
-  frozen_world_model: required
-  frozen_full_reward: required
-  train_only_progress_ensemble: blocked
-  frozen_progress_calibration: blocked
-  offline_prior_preflight: blocked
+  frozen_world_model: outputs/world_model_final_20260917/a4_5b/world_model_absolute.pt
+  frozen_full_reward: outputs/world_model_final_20260917/a4_5c/response_reward_predictor.pt
+  train_only_progress_ensemble: outputs/uamcts_cc4/progress/progress_ensemble_train_only.pt
+  frozen_uncertainty_normalizers: outputs/uamcts_cc4/calibration/uamcts_uncertainty_normalizers_frozen.pt
+  offline_prior_prototypes: outputs/priorrl_cc4/prototypes/frozen_prototypes.json
+  validation_prior_entropy: outputs/uamcts_cc4/calibration/validation_prior_entropy.json
+gate:
+  schema: uamcts_real_gate_v2
+  require_complete_validation_prior_coverage: true
+  require_cross_artifact_sha256_provenance: true
 online_llm_allowed: false
 online_model_updates_allowed: false

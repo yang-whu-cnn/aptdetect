@@ -7,6 +7,7 @@ from formal_experiments.training.response_reward_predictor import ResponseReward
 from shared.formal_state import BLUE_AGENTS
 from .artifacts import FrozenProgressEnsemble, FrozenUncertaintyNormalizers, UAMCTSPrototypeRetriever
 from .planner import UAMCTSPlanner, UAMCTSConfig
+from .preflight import DEFAULT_PRIOR_ENTROPY, run_preflight
 
 class WMAdapter:
     def __init__(self,model): self.model=model
@@ -24,7 +25,13 @@ class AgentPrior:
         selected=full[np.asarray(actions,dtype=int)]; return selected/selected.sum()
 
 def build_runtime(*,world_path,reward_path,progress_path,prototype_path,normalizers_path,
+                  prior_entropy_path=DEFAULT_PRIOR_ENTROPY,
                   device="cpu",simulations=64,planner_seed=73001):
+    gate=run_preflight(world_model=world_path,reward_model=reward_path,progress=progress_path,
+        normalizers=normalizers_path,prototype_artifact=prototype_path,
+        prior_entropy_artifact=prior_entropy_path)
+    if not gate["eligible"]:
+        raise RuntimeError("UAMCTS artifact preflight failed: " + "; ".join(gate["errors"]))
     wm=WMAdapter(BootstrapProbabilisticWorldModel.load_checkpoint(world_path,device=device))
     reward=RewardAdapter(ResponseRewardPredictor.load_checkpoint(reward_path,device=device))
     progress=FrozenProgressEnsemble(progress_path,device=device); retriever=UAMCTSPrototypeRetriever(prototype_path)

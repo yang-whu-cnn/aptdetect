@@ -31,7 +31,7 @@ results.
 - The multimodal online prior becomes a read-only offline prior cache. Cache
   miss fails closed; there is no online LLM fallback.
 
-## Development gate (currently blocked)
+## Runtime and formal gate
 
 The injectable MCTS core and fake-model tests are runnable. A real CC4 pilot or
 formal result is **blocked** until all of the following exist and pass preflight:
@@ -39,7 +39,14 @@ formal result is **blocked** until all of the following exist and pass preflight
 1. frozen shared WM and frozen Full-Reward artifacts;
 2. a train-replay-only D27 progress ensemble with documented target/split;
 3. progress and all three uncertainty normalizers frozen from calibration;
-4. an offline prior cache/retrieval identity with runtime coverage preflight.
+4. an offline prototype prior plus its validation-only entropy/coverage artifact.
+
+`python -m baselines.uamcts_cc4.preflight` uses the same default artifacts as
+the runtime. It validates the complete provenance chain: prototype file ->
+validation entropy/coverage -> frozen three-source normalizers, in addition to
+the progress and shared WM hashes. `build_runtime()` calls this gate before
+loading a planner, so the common `run_method_episode` / `run_method_repeat`
+formal evaluator cannot bypass it.
 
 `ProductionGate.require_ready()` enforces this status. No placeholder progress
 scores, future truth, test returns, online LLM calls, or test-time model/scaler
@@ -49,17 +56,21 @@ calibration/validation; simulation budget candidates are 64 and 128.
 Source paper SHA256:
 `5dffdc568bf6e7fa04a430c44dcac9d293b588c4a2b5211cc5f14324f10af145`.
 
-## Current development artifact evidence
+## Current development evidence and blocker
 
 The train-only five-member D27 progress ensemble is now frozen from seeds
 `1000..1031`; its label is duration-aware normalized future response return and
 its artifact SHA256 is recorded by the preflight. Validation seeds `2000..2007`
 have been used to measure progress variance and frozen-WM disagreement only.
-The validation offline-prior entropy artifact now covers all 10,515 unique
-validation states and the three-source normalizer bundle is frozen. Artifact
-preflight passes. The real 1x20 smoke nevertheless remains `BLOCKED`: the first
-real root lookup hits, but an imagined world-model child is distance
-`222.932761`, above the frozen validation radius `2.560749706662155`. The
-fail-closed prototype contract therefore stops MCTS before tick 1. This must not
-be widened with test or smoke states. Test seeds are never accepted by either
-fitter.
+The saved validation prior-entropy evidence covers all 10,515 unique validation
+states and the three-source normalizer bundle is frozen. A CPU 1x20 smoke and a
+CPU 1x5 repeat subsequently completed with zero prior misses; both are
+development-only (`formal_result_eligible=false`) and are not formal evidence.
+
+The current standalone gate correctly remains blocked because the prototype
+file has changed since the saved validation entropy artifact was produced. Its
+file SHA256 therefore no longer matches the entropy artifact's recorded
+`prototype_artifact_sha256`. The safe remedy is to regenerate validation
+entropy and the normalizer bundle from the already frozen train/validation
+inputs, then rerun preflight. Do not widen the radius using dev/test states and
+do not treat either smoke as a formal row.

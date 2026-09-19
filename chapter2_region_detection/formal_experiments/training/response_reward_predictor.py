@@ -449,6 +449,13 @@ class ResponseRewardPredictorConfig:
 
     model_seed: int = 20260917
 
+    # MSE remains the backwards-compatible default used by the frozen
+    # Full-Reward and Delay-Only predictors.  Fail-Only explicitly opts into
+    # SmoothL1 in its formal training entrypoint because its standardized
+    # labels are strongly zero-inflated with rare large-magnitude penalties.
+    loss: str = "mse"
+    smooth_l1_beta: float = 1.0
+
     def __post_init__(
         self,
     ) -> None:
@@ -467,6 +474,19 @@ class ResponseRewardPredictorConfig:
         ):
             raise ValueError(
                 "n_actions contract changed"
+            )
+
+        if self.loss not in {"mse", "smooth_l1"}:
+            raise ValueError(
+                "reward loss must be mse or smooth_l1"
+            )
+
+        if (
+            not np.isfinite(self.smooth_l1_beta)
+            or self.smooth_l1_beta <= 0
+        ):
+            raise ValueError(
+                "smooth_l1_beta must be finite and positive"
             )
 
         for name in (
@@ -847,10 +867,19 @@ class ResponseRewardPredictor:
                     index_t
                 ]
 
-                loss = F.mse_loss(
-                    predicted,
-                    target,
-                )
+                if self.config.loss == "smooth_l1":
+                    loss = F.smooth_l1_loss(
+                        predicted,
+                        target,
+                        beta=float(
+                            self.config.smooth_l1_beta
+                        ),
+                    )
+                else:
+                    loss = F.mse_loss(
+                        predicted,
+                        target,
+                    )
 
                 if not torch.isfinite(
                     loss

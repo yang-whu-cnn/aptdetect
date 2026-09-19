@@ -3,13 +3,19 @@ import inspect
 from types import SimpleNamespace
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 import numpy as np
+import torch
 
 from formal_experiments.ours.reward_ablation import (
-    RewardMode, tick_reward, train_hurdle_failure, transition_reward,
+    FAIL_ONLY_FORMAL_BETA, FAIL_ONLY_FORMAL_LOSS, RewardMode,
+    formal_predictor_config, tick_reward, train_hurdle_failure,
+    transition_reward,
 )
-from formal_experiments.training.response_reward_predictor import ResponseRewardDataset
+from formal_experiments.training.response_reward_predictor import (
+    ResponseRewardDataset, ResponseRewardPredictor, ResponseRewardPredictorConfig,
+)
 
 
 class TestRewardAblation(unittest.TestCase):
@@ -63,7 +69,82 @@ class TestRewardAblation(unittest.TestCase):
         from formal_experiments.ours.reward_ablation import train_mode
         source = inspect.getsource(train_mode)
         self.assertNotIn("train_hurdle_failure(", source)
-        self.assertIn("ResponseRewardPredictor(ResponseRewardPredictorConfig()", source)
+        self.assertIn("ResponseRewardPredictor(predictor_config", source)
+
+    def test_fail_only_loss_is_the_only_formal_optimizer_change(self):
+        baseline = formal_predictor_config(RewardMode.DELAY_ONLY)
+        fail_only = formal_predictor_config(RewardMode.FAIL_ONLY)
+        self.assertEqual(baseline.loss, "mse")
+        self.assertEqual(fail_only.loss, FAIL_ONLY_FORMAL_LOSS)
+        self.assertEqual(fail_only.smooth_l1_beta, FAIL_ONLY_FORMAL_BETA)
+        baseline_fields = vars(baseline).copy(); fail_fields = vars(fail_only).copy()
+        baseline_fields.pop("loss"); fail_fields.pop("loss")
+        self.assertEqual(baseline_fields, fail_fields)
+
+    def test_smooth_l1_config_round_trips_checkpoint(self):
+        rng = np.random.default_rng(7); n = 16
+        dataset = ResponseRewardDataset(
+            states=rng.normal(size=(n, 27)).astype(np.float32),
+            actions=np.arange(n) % 4,
+            next_states=rng.normal(size=(n, 27)).astype(np.float32),
+            rewards=np.asarray([0] * 12 + [-1, -2, -3, -4], dtype=np.float32),
+        )
+        config = ResponseRewardPredictorConfig(
+            hidden_dim=16, batch_size=8, epochs=1,
+            loss="smooth_l1", smooth_l1_beta=1.0,
+        )
+        predictor = ResponseRewardPredictor(config); predictor.fit(dataset)
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "reward.pt"; predictor.save_checkpoint(path)
+            loaded = ResponseRewardPredictor.load_checkpoint(path)
+        self.assertEqual(loaded.config.loss, "smooth_l1")
+        self.assertEqual(loaded.config.smooth_l1_beta, 1.0)
+
+    def test_formal_fail_only_loss_sees_each_standardized_label_once(self):
+        rng = np.random.default_rng(9); n = 17
+        dataset = ResponseRewardDataset(
+            states=rng.normal(size=(n, 27)).astype(np.float32),
+            actions=np.arange(n) % 4,
+            next_states=rng.normal(size=(n, 27)).astype(np.float32),
+            rewards=np.asarray([0] * 13 + [-1, -2, -3, -4], dtype=np.float32),
+        )
+        config = ResponseRewardPredictorConfig(
+            hidden_dim=16, batch_size=8, epochs=1,
+            loss="smooth_l1", smooth_l1_beta=1.0,
+        )
+        predictor = ResponseRewardPredictor(config)
+        target = "formal_experiments.training.response_reward_predictor.F.smooth_l1_loss"
+        with patch(target, wraps=torch.nn.functional.smooth_l1_loss) as loss_spy:
+            predictor.fit(dataset)
+        observed = np.concatenate([
+            call.args[1].detach().cpu().numpy() for call in loss_spy.call_args_list
+        ])
+        expected = predictor.reward_normalizer.normalize_np(dataset.rewards)
+        np.testing.assert_allclose(np.sort(observed), np.sort(expected), rtol=0, atol=0)
+        self.assertEqual(observed.size, n)
+        for call in loss_spy.call_args_list:
+            self.assertEqual(call.kwargs, {"beta": 1.0})
+
+    def test_legacy_v1_checkpoint_without_loss_fields_defaults_to_mse(self):
+        rng = np.random.default_rng(11); n = 12
+        dataset = ResponseRewardDataset(
+            states=rng.normal(size=(n, 27)).astype(np.float32),
+            actions=np.arange(n) % 4,
+            next_states=rng.normal(size=(n, 27)).astype(np.float32),
+            rewards=rng.normal(size=n).astype(np.float32),
+        )
+        predictor = ResponseRewardPredictor(ResponseRewardPredictorConfig(
+            hidden_dim=16, batch_size=6, epochs=1,
+        )); predictor.fit(dataset)
+        with TemporaryDirectory() as directory:
+            current = Path(directory) / "current.pt"; legacy = Path(directory) / "legacy.pt"
+            predictor.save_checkpoint(current)
+            payload = torch.load(current, map_location="cpu", weights_only=False)
+            payload["config"].pop("loss"); payload["config"].pop("smooth_l1_beta")
+            torch.save(payload, legacy)
+            loaded = ResponseRewardPredictor.load_checkpoint(legacy)
+        self.assertEqual(loaded.config.loss, "mse")
+        self.assertEqual(loaded.config.smooth_l1_beta, 1.0)
 
 
 if __name__ == "__main__": unittest.main()

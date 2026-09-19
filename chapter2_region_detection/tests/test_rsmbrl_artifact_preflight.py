@@ -1,12 +1,17 @@
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 import json
 
 import torch
 
-from baselines.rsmbrl_cc4.artifact_preflight import validate_frozen_normalizer
+from baselines.rsmbrl_cc4.artifact_preflight import (
+    SIDECAR_SCHEMA, sha256_file, validate_frozen_normalizer,
+    validate_normalizer_sidecar,
+)
 from baselines.rsmbrl_cc4.calibrate_normalizers import audit_calibration_states
+from baselines.rsmbrl_cc4 import calibrate_normalizers as rebuild
 from baselines.rsmbrl_cc4.run_pilot import _episode_passed
 from shared.formal_state import BLUE_AGENTS
 from shared.d27_projection import PROJECTION_SHA256, PROJECTION_VERSION
@@ -31,7 +36,153 @@ def valid_bundle():
     }
 
 
+def valid_sidecar(root: Path, normalizer_sha="a" * 64, world_sha="b" * 64,
+                  reward_sha="c" * 64):
+    train = root / "train.jsonl"
+    validation = root / "validation.jsonl"
+    train.write_text("".join(json.dumps({"episode_seed": seed}) + "\n"
+                             for seed in range(1000, 1032)), encoding="utf-8")
+    validation.write_text("".join(json.dumps({"episode_seed": seed}) + "\n"
+                                  for seed in range(2000, 2008)), encoding="utf-8")
+    return {
+        "schema": SIDECAR_SCHEMA,
+        "method": "RSMBRL-CC4",
+        "normalizer_sha256": normalizer_sha,
+        "world_model_sha256": world_sha,
+        "reward_model_sha256": reward_sha,
+        "formal_result_eligible": False,
+        "normalizer_schema": {"format_version": 2, "source_split": "calibration",
+                              "state_dim": 27, "horizon": 4},
+        "test_seeds_used": False,
+        "train": {"split": "train", "seeds": list(range(1000, 1032)),
+                  "replay_path": str(train), "replay_sha256": sha256_file(train)},
+        "validation": {"split": "validation", "seeds": list(range(2000, 2008)),
+                       "replay_path": str(validation),
+                       "replay_sha256": sha256_file(validation)},
+        "git": {"code_commit": "d" * 40, "git_dirty": False,
+                "git_diff_sha256":
+                    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    }
+
+
 class TestRSMBRLArtifactPreflight(unittest.TestCase):
+    def test_rebuild_dirty_tree_fails_before_generation(self):
+        with mock.patch.object(rebuild, "inspect_clean_git",
+                               side_effect=RuntimeError("clean Git snapshot")), \
+                mock.patch.object(rebuild, "_calibrate_to_path") as generate:
+            with self.assertRaisesRegex(RuntimeError, "clean Git snapshot"):
+                rebuild.calibrate()
+            generate.assert_not_called()
+
+    def test_replay_audit_rejects_test_seed_before_generation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            replay, summary = root / "train.jsonl", root / "train_summary.json"
+            row = {key: None for key in rebuild.REPLAY_FIELDS}
+            row.update(episode_seed=4000, state=[0.0] * 27, next_state=[0.0] * 27)
+            replay.write_text(json.dumps(row) + "\n", encoding="utf-8")
+            summary.write_text(json.dumps({"split": "train", "seeds": list(range(1000, 1032)),
+                                           "state_dim": 27, "n_actions": 4,
+                                           "episode_steps": 500,
+                                           "transition_count": 1}), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "seed coverage mismatch"):
+                rebuild._audit_replay("train", replay, summary, tuple(range(1000, 1032)))
+
+    def test_transactional_rebuild_promotes_only_after_preflight(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            output, sidecar = root / "normalizer.pt", root / "normalizer.sidecar.json"
+            audited = {
+                "git": {"code_commit": "d" * 40, "git_dirty": False,
+                        "git_diff_sha256":
+                            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+                "train": {"split": "train", "seeds": list(range(1000, 1032)),
+                          "replay_path": "train.jsonl", "replay_sha256": "1" * 64},
+                "validation": {"split": "validation", "seeds": list(range(2000, 2008)),
+                               "replay_path": "validation.jsonl", "replay_sha256": "2" * 64},
+                "calibration": {"states_sha256": "3" * 64},
+                "replay_manifest_sha256": "4" * 64,
+                "model_manifest_sha256": "5" * 64,
+            }
+            def fake_generate(**kwargs):
+                destination = Path(kwargs["output_path"])
+                destination.write_bytes(b"new-normalizer")
+                return {"status": "PASS", "output": str(destination),
+                        "output_sha256": rebuild.sha256_file(destination),
+                        "world_model_sha256": "6" * 64,
+                        "reward_model_sha256": "7" * 64,
+                        "provenance": {}, "coverage": {}}
+            with mock.patch.object(rebuild, "audit_rebuild_inputs", return_value=audited), \
+                    mock.patch.object(rebuild, "_calibrate_to_path", side_effect=fake_generate), \
+                    mock.patch.object(rebuild, "run_preflight",
+                                      return_value={"eligible": True, "errors": []}):
+                report = rebuild.calibrate(output_path=output, sidecar_path=sidecar)
+            self.assertEqual(output.read_bytes(), b"new-normalizer")
+            self.assertTrue(sidecar.is_file())
+            self.assertEqual(report["sidecar_sha256"], rebuild.sha256_file(sidecar))
+
+    def test_failed_temporary_preflight_preserves_existing_pair(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            output, sidecar = root / "normalizer.pt", root / "normalizer.sidecar.json"
+            output.write_bytes(b"old-normalizer")
+            sidecar.write_text("old-sidecar", encoding="utf-8")
+            audited = {"git": {}, "train": {}, "validation": {}, "calibration": {},
+                       "replay_manifest_sha256": "4" * 64,
+                       "model_manifest_sha256": "5" * 64}
+            def fake_generate(**kwargs):
+                destination = Path(kwargs["output_path"])
+                destination.write_bytes(b"new-normalizer")
+                return {"output_sha256": rebuild.sha256_file(destination),
+                        "world_model_sha256": "6" * 64, "reward_model_sha256": "7" * 64}
+            with mock.patch.object(rebuild, "audit_rebuild_inputs", return_value=audited), \
+                    mock.patch.object(rebuild, "_calibrate_to_path", side_effect=fake_generate), \
+                    mock.patch.object(rebuild, "run_preflight",
+                                      return_value={"eligible": False, "errors": ["bad SHA"]}):
+                with self.assertRaisesRegex(RuntimeError, "bad SHA"):
+                    rebuild.calibrate(output_path=output, sidecar_path=sidecar)
+            self.assertEqual(output.read_bytes(), b"old-normalizer")
+            self.assertEqual(sidecar.read_text(encoding="utf-8"), "old-sidecar")
+
+    def test_sidecar_missing_fails_closed(self):
+        payload, errors = validate_normalizer_sidecar(
+            Path("does-not-exist.sidecar.json"), normalizer_sha256="a" * 64,
+            world_sha256="b" * 64, reward_sha256="c" * 64,
+        )
+        self.assertIsNone(payload)
+        self.assertTrue(any("missing frozen normalizer sidecar" in item for item in errors))
+
+    def test_sidecar_binds_artifacts_replays_splits_and_git(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            sidecar = valid_sidecar(root)
+            path = root / "normalizer.sidecar.json"
+            path.write_text(json.dumps(sidecar), encoding="utf-8")
+            _, errors = validate_normalizer_sidecar(
+                path, normalizer_sha256="a" * 64,
+                world_sha256="b" * 64, reward_sha256="c" * 64,
+            )
+            self.assertEqual(errors, [])
+
+            mutations = (
+                ("normalizer", lambda x: x.update(normalizer_sha256="f" * 64)),
+                ("world", lambda x: x.update(world_model_sha256="f" * 64)),
+                ("train seeds", lambda x: x["train"].update(seeds=list(range(4000, 4100)))),
+                ("replay", lambda x: x["validation"].update(replay_sha256="f" * 64)),
+                ("git", lambda x: x["git"].update(git_dirty=True)),
+                ("eligibility", lambda x: x.update(formal_result_eligible=True)),
+            )
+            for label, mutate in mutations:
+                with self.subTest(label=label):
+                    candidate = json.loads(json.dumps(sidecar))
+                    mutate(candidate)
+                    path.write_text(json.dumps(candidate), encoding="utf-8")
+                    _, errors = validate_normalizer_sidecar(
+                        path, normalizer_sha256="a" * 64,
+                        world_sha256="b" * 64, reward_sha256="c" * 64,
+                    )
+                    self.assertTrue(errors)
+
     def test_development_pilot_exact_transition_gate(self):
         good = {"requested_transitions": 100, "environment_steps": 100,
                 "controller_tick_end": 100, "all_agents_done": True, "errors": []}

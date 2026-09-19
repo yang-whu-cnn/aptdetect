@@ -7,6 +7,7 @@ calibration-only uncertainty-normalizer bundle before planner construction.
 from __future__ import annotations
 
 import argparse
+from functools import lru_cache
 import hashlib
 import json
 from pathlib import Path
@@ -26,8 +27,14 @@ DEFAULT_MANIFEST = "docs/FINAL_REWARD_MODEL_MANIFEST.json"
 DEFAULT_WORLD_MODEL = "outputs/world_model_final_20260917/a4_5b/world_model_absolute.pt"
 DEFAULT_REWARD_MODEL = "outputs/world_model_final_20260917/a4_5c/response_reward_predictor.pt"
 DEFAULT_NORMALIZER = "outputs/rsmbrl_cc4/calibration/rsmbrl_normalizers_frozen.pt"
+DEFAULT_NORMALIZER_SIDECAR = (
+    "outputs/rsmbrl_cc4/calibration/rsmbrl_normalizers_frozen.sidecar.json"
+)
 EXPECTED_REWARD_PROTOCOL = "final_paper_20260917_v1"
 EXPECTED_CALIBRATION_SEEDS = tuple(range(3000, 3008))
+EXPECTED_TRAIN_SEEDS = tuple(range(1000, 1032))
+EXPECTED_VALIDATION_SEEDS = tuple(range(2000, 2008))
+SIDECAR_SCHEMA = "rsmbrl_frozen_normalizer_sidecar_v1"
 
 
 def resolve(path: str | Path) -> Path:
@@ -140,16 +147,120 @@ def validate_frozen_normalizer(path: Path, *, world_sha256: str,
     return dict(payload), errors
 
 
+def _is_sha256(value: object) -> bool:
+    return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) is not None
+
+
+@lru_cache(maxsize=4)
+def _replay_seed_set(path_text: str, expected_sha256: str) -> tuple[int, ...]:
+    path = Path(path_text)
+    if sha256_file(path) != expected_sha256:
+        raise ValueError("replay SHA256 mismatch")
+    seeds: set[int] = set()
+    with path.open("r", encoding="utf-8") as handle:
+        for line_no, raw in enumerate(handle, 1):
+            if not raw.strip():
+                continue
+            row = json.loads(raw)
+            if not isinstance(row, Mapping) or "episode_seed" not in row:
+                raise ValueError(f"replay line {line_no} lacks episode_seed")
+            seeds.add(int(row["episode_seed"]))
+    return tuple(sorted(seeds))
+
+
+def validate_normalizer_sidecar(
+    path: Path,
+    *,
+    normalizer_sha256: str,
+    world_sha256: str,
+    reward_sha256: str,
+) -> tuple[dict | None, list[str]]:
+    """Validate immutable provenance outside the pickle-like normalizer bundle."""
+    if not path.is_file():
+        return None, [f"missing frozen normalizer sidecar: {path}"]
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        return None, [f"normalizer sidecar cannot be loaded: {exc}"]
+    if not isinstance(payload, Mapping):
+        return None, ["normalizer sidecar must be a mapping"]
+
+    errors: list[str] = []
+    expected = {
+        "schema": SIDECAR_SCHEMA,
+        "method": "RSMBRL-CC4",
+        "normalizer_sha256": normalizer_sha256,
+        "world_model_sha256": world_sha256,
+        "reward_model_sha256": reward_sha256,
+        "formal_result_eligible": False,
+        "normalizer_schema": {
+            "format_version": 2, "source_split": "calibration",
+            "state_dim": 27, "horizon": 4,
+        },
+    }
+    for key, value in expected.items():
+        if payload.get(key) != value:
+            errors.append(f"normalizer sidecar {key} mismatch")
+    if payload.get("test_seeds_used") is not False:
+        errors.append("normalizer sidecar must declare test_seeds_used=false")
+
+    for split, seeds in (("train", EXPECTED_TRAIN_SEEDS),
+                         ("validation", EXPECTED_VALIDATION_SEEDS)):
+        entry = payload.get(split)
+        if not isinstance(entry, Mapping):
+            errors.append(f"normalizer sidecar {split} must be a mapping")
+            continue
+        try:
+            actual_seeds = tuple(int(seed) for seed in entry.get("seeds", ()))
+        except (TypeError, ValueError):
+            actual_seeds = ()
+        if entry.get("split") != split or actual_seeds != seeds:
+            errors.append(f"normalizer sidecar {split} split/seeds mismatch")
+        replay_sha = entry.get("replay_sha256")
+        if not _is_sha256(replay_sha):
+            errors.append(f"normalizer sidecar {split} replay_sha256 is invalid")
+            continue
+        replay_path = entry.get("replay_path")
+        if not isinstance(replay_path, str) or not replay_path:
+            errors.append(f"normalizer sidecar {split} replay_path is invalid")
+            continue
+        replay_file = resolve(replay_path)
+        if not replay_file.is_file():
+            errors.append(f"normalizer sidecar {split} replay is missing: {replay_file}")
+        else:
+            try:
+                replay_seeds = _replay_seed_set(str(replay_file.resolve()), replay_sha)
+                if replay_seeds != seeds:
+                    errors.append(f"normalizer sidecar {split} replay seed coverage mismatch")
+            except Exception as exc:
+                errors.append(f"normalizer sidecar {split} replay audit failed: {exc}")
+
+    git = payload.get("git")
+    if not isinstance(git, Mapping):
+        errors.append("normalizer sidecar git must be a mapping")
+    else:
+        if re.fullmatch(r"[0-9a-f]{40}", str(git.get("code_commit", ""))) is None:
+            errors.append("normalizer sidecar git.code_commit is invalid")
+        if git.get("git_dirty") is not False:
+            errors.append("normalizer sidecar git.git_dirty must be false")
+        empty_diff_sha = hashlib.sha256(b"").hexdigest()
+        if git.get("git_diff_sha256") != empty_diff_sha:
+            errors.append("normalizer sidecar git.git_diff_sha256 must bind an empty clean diff")
+    return dict(payload), errors
+
+
 def run_preflight(
     *, manifest_path: str | Path = DEFAULT_MANIFEST,
     world_model_path: str | Path = DEFAULT_WORLD_MODEL,
     reward_model_path: str | Path = DEFAULT_REWARD_MODEL,
     normalizer_path: str | Path = DEFAULT_NORMALIZER,
+    normalizer_sidecar_path: str | Path = DEFAULT_NORMALIZER_SIDECAR,
     device: str = "cpu",
 ) -> dict:
     errors: list[str] = []
-    manifest_file, world_file, reward_file, normalizer_file = map(
-        resolve, (manifest_path, world_model_path, reward_model_path, normalizer_path)
+    manifest_file, world_file, reward_file, normalizer_file, sidecar_file = map(
+        resolve, (manifest_path, world_model_path, reward_model_path, normalizer_path,
+                  normalizer_sidecar_path)
     )
     for label, path in (("manifest", manifest_file), ("world model", world_file), ("reward model", reward_file)):
         if not path.is_file():
@@ -209,6 +320,12 @@ def run_preflight(
         normalizer_file, world_sha256=wm_sha, reward_sha256=reward_sha
     )
     errors.extend(normalizer_errors)
+    normalizer_sha = sha256_file(normalizer_file) if normalizer_file.is_file() else ""
+    _, sidecar_errors = validate_normalizer_sidecar(
+        sidecar_file, normalizer_sha256=normalizer_sha,
+        world_sha256=wm_sha, reward_sha256=reward_sha,
+    )
+    errors.extend(sidecar_errors)
     return {
         "status": "PASS" if not errors else "FAIL",
         "eligible": not errors,
@@ -221,7 +338,9 @@ def run_preflight(
             "manifest": str(manifest_file), "world_model": str(world_file),
             "world_model_sha256": wm_sha, "reward_model": str(reward_file),
             "reward_model_sha256": reward_sha, "normalizer": str(normalizer_file),
-            "normalizer_sha256": sha256_file(normalizer_file) if normalizer_file.is_file() else None,
+            "normalizer_sha256": normalizer_sha or None,
+            "normalizer_sidecar": str(sidecar_file),
+            "normalizer_sidecar_sha256": sha256_file(sidecar_file) if sidecar_file.is_file() else None,
         },
         "errors": errors,
     }
@@ -233,11 +352,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--world-model", default=DEFAULT_WORLD_MODEL)
     parser.add_argument("--reward-model", default=DEFAULT_REWARD_MODEL)
     parser.add_argument("--normalizer", default=DEFAULT_NORMALIZER)
+    parser.add_argument("--normalizer-sidecar", default=DEFAULT_NORMALIZER_SIDECAR)
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--report")
     args = parser.parse_args(argv)
     report = run_preflight(manifest_path=args.manifest, world_model_path=args.world_model,
                            reward_model_path=args.reward_model, normalizer_path=args.normalizer,
+                           normalizer_sidecar_path=args.normalizer_sidecar,
                            device=args.device)
     text = json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True)
     print(text)
