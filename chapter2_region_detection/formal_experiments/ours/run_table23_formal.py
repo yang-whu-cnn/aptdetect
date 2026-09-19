@@ -23,7 +23,7 @@ TRAIN_SEEDS = tuple(range(1000, 1032))
 VALIDATION_SEEDS = tuple(range(2000, 2008))
 TEST_SEEDS = tuple(range(4000, 4100))
 FORMAL_EPISODE_TICKS = 500
-ORCHESTRATOR_VERSION = "table23_formal_runner_v1"
+ORCHESTRATOR_VERSION = "table23_formal_runner_v2"
 FULL_REWARD_SEMANTICS = "cc4_v3_full_reward"
 
 
@@ -82,6 +82,15 @@ def physical_jobs() -> tuple[RowSpec, ...]:
     return tuple(selected.values())
 
 
+def job_dependencies(spec: RowSpec) -> dict[str, bool]:
+    """Declare only the frozen inputs consumed by one physical job."""
+    return {
+        "offline_prior": spec.component_variant in {"llm_rl", "lwm_rl"},
+        "world_model": spec.component_variant in {"wm_rl", "lwm_rl"},
+        "ablation_reward_gate": spec.reward_mode in {"delay_only", "fail_only"},
+    }
+
+
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with Path(path).open("rb") as handle:
@@ -124,17 +133,62 @@ def _load_gate(path: Path, mode: RewardMode) -> dict[str, Any]:
     return {"pass": True, "manifest_sha256": sha256_file(path), "checkpoint_sha256": payload["checkpoint_sha256"]}
 
 
-def preflight(*, project_root: Path, profile: RunProfile) -> dict[str, Any]:
-    rewards = project_root / "outputs/formal_v3/table3_reward_models"
-    gates = {}
-    errors = []
-    for mode in RewardMode:
+def _job_preflight(*, project_root: Path, spec: RowSpec,
+                   offline_prior_artifact: Path | None) -> dict[str, Any]:
+    dependencies = job_dependencies(spec)
+    gates: dict[str, Any] = {}
+    errors: list[str] = []
+    if dependencies["ablation_reward_gate"]:
+        mode = RewardMode({"delay_only": "Delay-Only", "fail_only": "Fail-Only"}[spec.reward_mode])
+        path = project_root / "outputs/formal_v3/table3_reward_models" / spec.reward_mode / "frozen_manifest.json"
         try:
-            gates[mode.value] = _load_gate(rewards / mode.value.lower().replace("-", "_") / "frozen_manifest.json", mode)
+            gates["reward"] = _load_gate(path, mode)
         except Exception as exc:
             errors.append(str(exc))
+    else:
+        gates["reward"] = {"pass": True, "source": "frozen_full_reward_preflight"}
+    if dependencies["offline_prior"]:
+        if offline_prior_artifact is None:
+            errors.append("BLOCKED: this job requires --offline-prior-artifact")
+        else:
+            path = Path(offline_prior_artifact)
+            if not path.is_absolute(): path = project_root / path
+            if not path.is_file():
+                errors.append(f"BLOCKED: offline prior artifact not found: {path}")
+            else:
+                try:
+                    from baselines.priorrl_cc4.prototype_retrieval import FrozenPrototypePriorAdapter
+                    FrozenPrototypePriorAdapter.load_artifact(path)
+                    gates["offline_prior"] = {"pass": True, "sha256": sha256_file(path), "path": str(path)}
+                except Exception as exc:
+                    errors.append(f"BLOCKED: invalid frozen K6/H4 offline prior artifact: {exc}")
+    else:
+        gates["offline_prior"] = {"pass": True, "required": False}
+    return {"canonical_id": spec.canonical_id, "table_id": spec.table_id, "row_id": spec.row_id,
+            "dependencies": dependencies, "status": "PASS" if not errors else "FAIL",
+            "errors": errors, "gates": gates}
+
+
+def preflight(*, project_root: Path, profile: RunProfile, selected_spec: RowSpec | None = None,
+              offline_prior_artifact: Path | None = None) -> dict[str, Any]:
+    """Preflight either one physical job or the complete six-job plan.
+
+    A selected job is never blocked by an unrelated row.  With no selection,
+    the report remains a conservative whole-plan readiness summary.
+    """
+    jobs = (_job_preflight(project_root=project_root, spec=spec,
+                           offline_prior_artifact=offline_prior_artifact)
+            for spec in physical_jobs())
+    job_reports = {item["canonical_id"]: item for item in jobs}
+    active = job_reports[selected_spec.canonical_id] if selected_spec is not None else None
+    errors = list(active["errors"]) if active is not None else [
+        f"{job_id}: {error}" for job_id, item in job_reports.items() for error in item["errors"]]
+    gates = dict(active["gates"]) if active is not None else {
+        job_id: item["gates"] for job_id, item in job_reports.items()}
     return {"version": ORCHESTRATOR_VERSION, "status": "PASS" if not errors else "FAIL",
             "errors": errors, "gates": gates, "formal_result_eligible": profile.formal_result_eligible,
+            "scope": "selected_job" if selected_spec is not None else "complete_plan",
+            "selected_job": active, "jobs": job_reports,
             "profile": {**asdict(profile), "train_seeds": list(profile.train_seeds),
                         "validation_seeds": list(profile.validation_seeds), "test_seeds": list(profile.test_seeds)},
             "policy_seeds": list(POLICY_SEEDS), "physical_job_count": len(physical_jobs()),
@@ -356,26 +410,28 @@ def main() -> int:
     parser.add_argument("--offline-prior-artifact", type=Path)
     args = parser.parse_args()
     profile = RunProfile() if args.mode == "formal" else RunProfile("dev", (1000,), (2000,), (3200,), args.dev_ticks)
-    report = preflight(project_root=args.project_root, profile=profile)
+    selected_spec = None
+    if bool(args.table_id) != bool(args.row_id):
+        parser.error("--table-id and --row-id must be supplied together")
+    if args.table_id:
+        matches = [x for x in row_specs() if x.table_id == args.table_id and x.row_id == args.row_id]
+        if len(matches) != 1: parser.error("unknown table/row combination")
+        selected_spec = matches[0]
+    if args.offline_prior_artifact is not None and not args.offline_prior_artifact.is_absolute():
+        args.offline_prior_artifact = args.project_root / args.offline_prior_artifact
+    report = preflight(project_root=args.project_root, profile=profile, selected_spec=selected_spec,
+                       offline_prior_artifact=args.offline_prior_artifact)
     report["operation"] = "execute" if args.execute else "dry_run_preflight_only"
     if args.execute:
         if not args.table_id or not args.row_id or not args.out:
             parser.error("--execute requires --table-id, --row-id, and --out")
-        matches = [x for x in row_specs() if x.table_id == args.table_id and x.row_id == args.row_id]
-        if len(matches) != 1: parser.error("unknown table/row combination")
-        selected_spec = matches[0]
+        assert selected_spec is not None
         if selected_spec.table_id == "table3" and selected_spec.row_id == "full_reward":
             parser.error("Table3 Full-Reward aliases canonical Table2 lwm_rl; duplicate execution is forbidden")
-        # A formal launch covers the complete frozen table plan and therefore
-        # rejects any failed row gate. A reduced dev row may proceed only when
-        # its own reward gate is not the failed gate; it remains ineligible.
-        selected_gate_failed = selected_spec.reward_mode == "fail_only" and report["status"] != "PASS"
-        if (profile.formal_result_eligible and report["status"] != "PASS") or selected_gate_failed:
+        # Each physical job is independently launchable, but its own frozen
+        # dependencies always fail closed in both formal and development mode.
+        if report["status"] != "PASS":
             print(json.dumps(report, indent=2)); return 2
-        if not profile.formal_result_eligible and report["status"] != "PASS":
-            report["complete_formal_plan_status"] = report["status"]
-            report["status"] = "PASS"
-            report["errors"] = []
         callbacks = RealCC4ProductionCallbacks(spec=selected_spec, repeat_index=args.repeat_index,
                                                profile=profile, run_dir=args.out, device=args.device,
                                                offline_prior_artifact=args.offline_prior_artifact)

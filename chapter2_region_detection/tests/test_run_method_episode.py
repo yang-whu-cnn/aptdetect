@@ -59,6 +59,12 @@ class TestRunMethodEpisodeContract(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "policy_seed"):
             run_method_episode(method="dca_cc4", seed=4000, ticks=500, run_mode="formal")
 
+    def test_uamcts_is_registered_without_relaxing_formal_seed_gate(self):
+        from formal_experiments.evaluation.run_method_episode import METHODS, run_method_episode
+        self.assertIn("uamcts_cc4", METHODS)
+        with self.assertRaisesRegex(ValueError, "policy_seed"):
+            run_method_episode(method="uamcts_cc4", seed=3999, ticks=500, run_mode="formal")
+
 
 if __name__ == "__main__":
     unittest.main()

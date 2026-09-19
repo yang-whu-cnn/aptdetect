@@ -23,7 +23,8 @@ class AgentPrior:
         except RuntimeError: self.misses+=1; raise
         selected=full[np.asarray(actions,dtype=int)]; return selected/selected.sum()
 
-def build_runtime(*,world_path,reward_path,progress_path,prototype_path,normalizers_path,device="cpu",simulations=64):
+def build_runtime(*,world_path,reward_path,progress_path,prototype_path,normalizers_path,
+                  device="cpu",simulations=64,planner_seed=73001):
     wm=WMAdapter(BootstrapProbabilisticWorldModel.load_checkpoint(world_path,device=device))
     reward=RewardAdapter(ResponseRewardPredictor.load_checkpoint(reward_path,device=device))
     progress=FrozenProgressEnsemble(progress_path,device=device); retriever=UAMCTSPrototypeRetriever(prototype_path)
@@ -31,6 +32,6 @@ def build_runtime(*,world_path,reward_path,progress_path,prototype_path,normaliz
     for i,agent in enumerate(BLUE_AGENTS):
         priors[agent]=AgentPrior(retriever,agent)
         planners[agent]=UAMCTSPlanner(world_model=wm,reward_model=reward,progress_model=progress,
-            prior_model=priors[agent],config=UAMCTSConfig(simulations=simulations),seed=73001+i,
+            prior_model=priors[agent],config=UAMCTSConfig(simulations=simulations),seed=int(planner_seed)+i,
             uncertainty_normalizers=normalizers)
     return planners,priors

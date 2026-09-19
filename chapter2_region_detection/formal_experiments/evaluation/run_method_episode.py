@@ -21,7 +21,7 @@ from shared.cyborg_action_adapter import CybORGActionAdapter
 from shared.formal_state import BLUE_AGENTS, FormalStateEncoder, ObservableHostEvidenceTracker
 
 
-METHODS = ("dca_cc4", "rsmbrl_cc4")
+METHODS = ("dca_cc4", "rsmbrl_cc4", "uamcts_cc4")
 POLICY_SEEDS = (51001, 51002, 51003, 51004, 51005)
 FAMILY_TO_A4 = {"Sleep": 0, "Analyse": 1, "Remove": 2, "Restore": 3}
 
@@ -90,6 +90,7 @@ def run_method_episode(
     runtime_seeds: dict[str, int] = {}
 
     planners = None
+    uamcts_priors = None
     if method == "rsmbrl_cc4":
         from baselines.rsmbrl_cc4.runtime import build_runtime
         planner_seed = derive_runtime_seed(
@@ -98,6 +99,20 @@ def run_method_episode(
         planners, gate = build_runtime(device=device, planner_seed=planner_seed)
         if not gate["eligible"]:
             raise RuntimeError("RSMBRL artifact gate failed")
+    elif method == "uamcts_cc4":
+        from baselines.uamcts_cc4.runtime import build_runtime
+        root = Path(__file__).resolve().parents[2]
+        planner_seed = derive_runtime_seed(
+            policy_seed=policy_seed, episode_seed=seed, agent_name="planner_base"
+        )
+        planners, uamcts_priors = build_runtime(
+            world_path=root / "outputs/world_model_final_20260917/a4_5b/world_model_absolute.pt",
+            reward_path=root / "outputs/world_model_final_20260917/a4_5c/response_reward_predictor.pt",
+            progress_path=root / "outputs/uamcts_cc4/progress/progress_ensemble_train_only.pt",
+            prototype_path=root / "outputs/priorrl_cc4/prototypes/frozen_prototypes.json",
+            normalizers_path=root / "outputs/uamcts_cc4/calibration/uamcts_uncertainty_normalizers_frozen.pt",
+            device=device, planner_seed=planner_seed,
+        )
 
     for index, agent in enumerate(BLUE_AGENTS):
         tracker = ObservableHostEvidenceTracker(agent)
@@ -150,7 +165,7 @@ def run_method_episode(
                 if preferred_target in resolver_scores:
                     resolver_scores[preferred_target] = max(resolver_scores.values(), default=0.0) + 1.0
                 diagnostics = {"reason": policy_decision.reason}
-            else:
+            elif method == "rsmbrl_cc4":
                 plan, root_action_mask = plan_rsmbrl_with_visible_mask(
                     planners[agent], state, family_availability
                 )
@@ -158,6 +173,23 @@ def run_method_episode(
                 resolver_scores = host_scores
                 diagnostics = {"best_score": float(plan.best_score),
                                "uncertainty": float(plan.uncertainty)}
+            else:
+                from shared.action_contract import ACTION_CONTRACTS
+                from shared.d27_projection import D27ProjectionContext
+                root_action_mask = root_action_mask_from_availability(family_availability)
+                available = [index for index, enabled in enumerate(root_action_mask) if enabled]
+                context = D27ProjectionContext.from_root(
+                    state, root_tick=tick, episode_steps=ticks
+                )
+                plan = planners[agent].plan(
+                    state, available_actions=available,
+                    durations=tuple(int(item.duration_ticks) for item in ACTION_CONTRACTS),
+                    projection_context=context,
+                )
+                requested = int(plan.action)
+                resolver_scores = host_scores
+                diagnostics = {"root_visits": list(plan.root_visits), "root_q": list(plan.root_q),
+                               "simulations": int(plan.simulations)}
             if method == "dca_cc4":
                 root_action_mask = root_action_mask_from_availability(family_availability)
             resolution = adapter.resolve(env=env, agent_name=agent, action_id=requested,
@@ -253,6 +285,8 @@ def run_method_episode(
 
     if int(controller.step_count) != ticks or len(tick_rewards) != ticks:
         raise RuntimeError("episode did not complete the exact requested tick count")
+    if uamcts_priors is not None and any(prior.misses for prior in uamcts_priors.values()):
+        raise RuntimeError("UAMCTS offline prior cache miss (fail closed)")
     episode = {
         "schema_version": 1, "protocol_version": PROTOCOL_VERSION,
         "episode_seed": seed, "tick_count": ticks, "episode_end_tick": ticks,

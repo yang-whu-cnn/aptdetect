@@ -6,7 +6,7 @@ from pathlib import Path
 from formal_experiments.ours.run_table23_formal import (
     FORMAL_EPISODE_TICKS, POLICY_SEEDS, TEST_SEEDS, TRAIN_SEEDS,
     VALIDATION_SEEDS, FormalStageRunner, ResumeJournal, RunProfile,
-    assert_immutable, physical_jobs, preflight, resolved_repeat_metadata,
+    assert_immutable, job_dependencies, physical_jobs, preflight, resolved_repeat_metadata,
     row_specs, select_validation_checkpoint,
 )
 
@@ -46,6 +46,40 @@ class TestTable23FormalRunner(unittest.TestCase):
         report = preflight(project_root=root, profile=RunProfile())
         self.assertEqual(report["status"], "FAIL")
         self.assertTrue(any("Fail-Only" in item and "FAIL" in item for item in report["errors"]))
+
+    def test_selected_jobs_are_not_blocked_by_unrelated_gates(self):
+        root = Path(__file__).resolve().parents[1]
+        specs = {(x.table_id, x.row_id): x for x in row_specs()}
+        for key in (("table2", "rl_only"), ("table2", "wm_rl")):
+            report = preflight(project_root=root, profile=RunProfile(), selected_spec=specs[key])
+            self.assertEqual(report["scope"], "selected_job")
+            self.assertEqual(report["status"], "PASS", report["errors"])
+            self.assertFalse(report["selected_job"]["dependencies"]["offline_prior"])
+        prior = root / "outputs/priorrl_cc4/prototypes/frozen_prototypes.json"
+        delay = preflight(project_root=root, profile=RunProfile(),
+                          selected_spec=specs[("table3", "delay_only")],
+                          offline_prior_artifact=prior)
+        self.assertEqual(delay["status"], "PASS", delay["errors"])
+
+    def test_prior_and_fail_only_jobs_fail_closed_on_own_dependencies(self):
+        root = Path(__file__).resolve().parents[1]
+        specs = {(x.table_id, x.row_id): x for x in row_specs()}
+        llm = preflight(project_root=root, profile=RunProfile(),
+                        selected_spec=specs[("table2", "llm_rl")])
+        self.assertEqual(llm["status"], "FAIL")
+        self.assertTrue(any("offline-prior-artifact" in item for item in llm["errors"]))
+        fail = preflight(project_root=root, profile=RunProfile(),
+                         selected_spec=specs[("table3", "fail_only")])
+        self.assertEqual(fail["status"], "FAIL")
+        self.assertTrue(any("Fail-Only" in item for item in fail["errors"]))
+
+    def test_dependency_matrix_and_shared_full_are_stable(self):
+        specs = {(x.table_id, x.row_id): x for x in row_specs()}
+        self.assertEqual(job_dependencies(specs[("table2", "rl_only")]), {
+            "offline_prior": False, "world_model": False, "ablation_reward_gate": False})
+        self.assertTrue(job_dependencies(specs[("table2", "lwm_rl")])["offline_prior"])
+        self.assertEqual(specs[("table2", "lwm_rl")].canonical_id,
+                         specs[("table3", "full_reward")].canonical_id)
 
     def test_stage_runner_split_isolation_resume_and_immutable_test(self):
         calls = []

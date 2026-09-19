@@ -1,4 +1,4 @@
-"""Resumable repeat orchestrator for DCA-CC4 and RSMBRL-CC4."""
+"""Resumable repeat orchestrator for Table-1 CC4 methods."""
 
 from __future__ import annotations
 
@@ -17,11 +17,14 @@ from formal_experiments.evaluation.validate_formal_run import validate_run_direc
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-METHOD_NAMES = {"dca_cc4": "DCA-CC4 (adapted)", "rsmbrl_cc4": "RSMBRL-CC4"}
-PAPER_FILES = {"dca_cc4": "DCA.pdf", "rsmbrl_cc4": "RSMBRL.pdf"}
+METHOD_NAMES = {"dca_cc4": "DCA-CC4 (adapted)", "rsmbrl_cc4": "RSMBRL-CC4",
+                "uamcts_cc4": "UAMCTS-CC4 (adapted)"}
+PAPER_FILES = {"dca_cc4": "DCA.pdf", "rsmbrl_cc4": "RSMBRL.pdf",
+               "uamcts_cc4": "UAMCTS.pdf"}
 EXPECTED_PAPER_HASHES = {
     "dca_cc4": "173fa04a1675e98ce636c2a8b2eda9eae5e3c9e2347f5f19cb4aafe6708e3cb1",
     "rsmbrl_cc4": "df594e5b3d2bd36e06d94d96e3cde0c549fa1894a9fe5d26ecd6c4552c91d4d7",
+    "uamcts_cc4": "5dffdc568bf6e7fa04a430c44dcac9d293b588c4a2b5211cc5f14324f10af145",
 }
 RSMBRL_UPSTREAM_COMMIT = "9f97859594f2b0547e01193a8758936090b0b2ec"
 
@@ -69,6 +72,21 @@ def artifact_provenance(method: str, output: Path) -> tuple[dict[str, Any], str]
         audit = REPO_ROOT / "chapter2_region_detection" / "baselines" / "dca_cc4" / "PROVENANCE_AUDIT.md"
         artifacts = {"policy_spec_sha256": policy_sha, "provenance_audit_sha256": sha256_file(audit)}
         return artifacts, policy_sha
+    if method == "uamcts_cc4":
+        base = REPO_ROOT / "chapter2_region_detection" / "outputs"
+        paths = {
+            "world_model_sha256": base / "world_model_final_20260917/a4_5b/world_model_absolute.pt",
+            "reward_model_sha256": base / "world_model_final_20260917/a4_5c/response_reward_predictor.pt",
+            "progress_model_sha256": base / "uamcts_cc4/progress/progress_ensemble_train_only.pt",
+            "prototype_prior_sha256": base / "priorrl_cc4/prototypes/frozen_prototypes.json",
+            "normalizer_sha256": base / "uamcts_cc4/calibration/uamcts_uncertainty_normalizers_frozen.pt",
+        }
+        missing = [str(path) for path in paths.values() if not path.is_file()]
+        if missing:
+            raise RuntimeError(f"UAMCTS frozen artifact gate failed: missing {missing}")
+        artifacts = {"policy_spec_sha256": policy_sha,
+                     **{key: sha256_file(path) for key, path in paths.items()}}
+        return artifacts, artifacts["world_model_sha256"]
     from baselines.rsmbrl_cc4.artifact_preflight import (
         DEFAULT_NORMALIZER, DEFAULT_REWARD_MODEL, DEFAULT_WORLD_MODEL, resolve,
     )
@@ -193,8 +211,8 @@ def run_repeat(*, method: str, run_mode: str, repeat_index: int, policy_seed: in
         "run_mode": run_mode, "formal_result_eligible": run_mode == "formal",
         "table_id": "table1", "row_id": method,
         "component_variant": method,
-        "reward_mode": "full_reward" if method == "rsmbrl_cc4" else "not_applicable",
-        "reward_semantics": ("cc4_v3_full_reward" if method == "rsmbrl_cc4"
+        "reward_mode": "full_reward" if method in ("rsmbrl_cc4", "uamcts_cc4") else "not_applicable",
+        "reward_semantics": ("cc4_v3_full_reward" if method in ("rsmbrl_cc4", "uamcts_cc4")
                              else "fixed_response_mapping_no_learning_reward"),
         # eligibility_report.json is deliberately excluded: it is the signed-by-
         # validation verdict over these inputs, and including itself would create
