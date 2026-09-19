@@ -1,0 +1,23 @@
+method_name: UAMCTS-CC4 (adapted)
+formal_result_eligible: false
+search:
+  simulations: 64
+  validation_grid: [64, 128]
+  horizon: 4
+  gamma: 0.99
+  beta: 0.1
+  c_puct: 1.0
+  rho_max: 1.0
+  c_u_max: 1.0
+  phi: 1.0
+uncertainty:
+  weights: [1.0, 1.0, 1.0]
+  normalizer: blocked_until_calibration_artifact
+artifacts:
+  frozen_world_model: required
+  frozen_full_reward: required
+  train_only_progress_ensemble: blocked
+  frozen_progress_calibration: blocked
+  offline_prior_preflight: blocked
+online_llm_allowed: false
+online_model_updates_allowed: false

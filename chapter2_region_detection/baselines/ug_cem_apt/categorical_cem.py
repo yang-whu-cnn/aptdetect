@@ -448,6 +448,22 @@ class CategoricalCEMOptimizer:
 
         return plans
 
+    def _apply_root_action_mask(self, probs: torch.Tensor, root_action_mask) -> torch.Tensor:
+        if root_action_mask is None:
+            return probs
+        mask = torch.as_tensor(root_action_mask, dtype=torch.bool, device=self.device)
+        if tuple(mask.shape) != (self.cfg.n_actions,):
+            raise ValueError("root_action_mask must have shape [A]")
+        if not bool(mask[0]) or not bool(mask.any()):
+            raise ValueError("root_action_mask must keep explicit no-op valid")
+        result = probs.clone()
+        result[0] = torch.where(mask, result[0], torch.zeros_like(result[0]))
+        total = result[0].sum()
+        if not torch.isfinite(total) or float(total) <= 0:
+            raise ValueError("root_action_mask removed all probability mass")
+        result[0] = result[0] / total
+        return result
+
     def _elite_frequencies(
         self,
         elite_plans: torch.Tensor,
@@ -592,6 +608,7 @@ class CategoricalCEMOptimizer:
         initial_probs: Optional[
             torch.Tensor
         ] = None,
+        root_action_mask: Optional[torch.Tensor] = None,
     ) -> CEMResult:
         """
         执行一次完整 CEM 搜索。
@@ -635,6 +652,7 @@ class CategoricalCEMOptimizer:
                 initial_probs
             )
         )
+        probs = self._apply_root_action_mask(probs, root_action_mask)
 
         best_plan = None
         best_score = float(
@@ -789,6 +807,7 @@ class CategoricalCEMOptimizer:
                     elite_freq,
                 )
             )
+            probs = self._apply_root_action_mask(probs, root_action_mask)
 
         if best_plan is None:
             raise RuntimeError(

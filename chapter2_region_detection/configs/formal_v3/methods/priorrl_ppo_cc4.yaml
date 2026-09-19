@@ -1,0 +1,12 @@
+method: PriorRL-PPO-CC4
+status: pilot
+state: {encoder: shared.formal_state.FormalStateEncoder, dim: 27}
+action: {space: A4, durations: [1, 2, 3, 5]}
+policy: {algorithm: PPO, hidden_dim: 128, duration_aware_gae: true, gamma_tick: 0.99}
+prior: {source: offline_cache, k_plans: 6, horizon: 4, epsilon: 1.0e-6, cache_miss: fail_closed}
+regularizer: {formula: KL(pi||p_LLM), alpha_kl: 0.05, validation_grid: [0.01, 0.05, 0.1, 0.5]}
+world_model: forbidden
+online_llm: forbidden
+reward: final_paper_20260917_v1
+policy_seeds: [51001, 51002, 51003, 51004, 51005]
+pilot: {training_repeats: 2, episodes_per_repeat: 5, ticks_per_episode: 100}

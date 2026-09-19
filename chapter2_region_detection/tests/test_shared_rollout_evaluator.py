@@ -14,6 +14,7 @@ from shared.rollout_evaluator import (
     SharedRolloutConfig,
     SharedRolloutEvaluator,
 )
+from shared.d27_projection import D27ProjectionContext
 
 
 DURATIONS = {
@@ -158,6 +159,17 @@ class TestSharedRolloutEvaluator(unittest.TestCase):
         self.assertEqual(tuple(result.next_states.shape), (4, 1, 5, 27))
         self.assertEqual(tuple(result.member_returns.shape), (1, 5))
         self.assertEqual(tuple(result.expected_return.shape), (1,))
+
+    def test_projection_is_applied_before_reward_and_recursive_child(self):
+        evaluator, _, reward = self.make_evaluator(members=3)
+        state=base_state(); state[0]=1.0; state[6]=.75
+        context=D27ProjectionContext.from_root(state,root_tick=0,episode_steps=100)
+        result=evaluator.evaluate(state,np.zeros((1,4),dtype=np.int64),projection_context=context)
+        children=result.next_states[:,0]
+        self.assertTrue(torch.all(children[...,0]==1)); self.assertTrue(torch.all(children[...,1:5]==0))
+        self.assertTrue(torch.all(children[...,6]==.75)); self.assertTrue(torch.all(children>=0)); self.assertTrue(torch.all(children<=1))
+        self.assertTrue(torch.allclose(children[0,:,5],torch.full((3,),.01)))
+        self.assertTrue(torch.allclose(children[3,:,5],torch.full((3,),.04)))
 
     def test_output_shapes_n64(self):
         evaluator, _, _ = self.make_evaluator(members=5)

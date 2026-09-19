@@ -343,10 +343,12 @@ def run_provisional_stage(
     alignment_count = 0
     action_completed_count = 0
 
-    def prepare_with_cost(state, agent_name: str) -> PreparedCandidates:
+    def prepare_with_cost(state, agent_name: str, *, root_tick: int,
+                          episode_steps: int) -> PreparedCandidates:
         nonlocal run_cost, run_latency
         misses_before = runtime.cache_misses
-        prepared = runtime.prepare(state, agent_name=agent_name)
+        prepared = runtime.prepare(state, agent_name=agent_name, root_tick=root_tick,
+                                   episode_steps=episode_steps)
         if runtime.cache_misses > misses_before:
             cost = prepared.metadata.get("cost_usd")
             if cost is not None:
@@ -463,7 +465,8 @@ def run_provisional_stage(
 
                 prepared = ready_context[agent]
                 if prepared is None:
-                    prepared = prepare_with_cost(state, agent)
+                    prepared = prepare_with_cost(state, agent, root_tick=tick_start,
+                                                 episode_steps=episode_steps)
                 else:
                     if not _exact_state_match(prepared.state, state):
                         raise RuntimeError(f"{agent}: prefetched context/state mismatch")
@@ -588,7 +591,8 @@ def run_provisional_stage(
                         next_prepared = None
                         next_value = 0.0
                     else:
-                        next_prepared = prepare_with_cost(next_state, agent)
+                        next_prepared = prepare_with_cost(next_state, agent, root_tick=tick_end,
+                                                         episode_steps=episode_steps)
                         next_value = float(next_prepared.critic_value)
 
                     transition = replay.end_decision(

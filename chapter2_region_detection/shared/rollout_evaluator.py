@@ -11,6 +11,7 @@ from shared.action_contract import (
 )
 from shared.formal_state import FORMAL_STATE_DIM
 from shared.model_space_action import canonicalize_requested_tensor
+from shared.d27_projection import D27ProjectionContext, project_d27_tensor
 
 
 ACTION_DURATION = torch.tensor(
@@ -183,6 +184,7 @@ class SharedRolloutEvaluator:
         self,
         state,
         plans,
+        *, projection_context: D27ProjectionContext | None = None,
     ) -> SharedRolloutResult:
         state_t = self._prepare_state(state)
         plans_t = self._prepare_plans(plans)
@@ -243,6 +245,11 @@ class SharedRolloutEvaluator:
                     raise RuntimeError("world model returned invalid next-state shape")
                 if not torch.isfinite(predicted_next).all():
                     raise ValueError("world model returned non-finite next state")
+
+                if projection_context is not None:
+                    next_elapsed = elapsed_ticks[:, member_idx] + self._duration[canonical]
+                    predicted_next = project_d27_tensor(predicted_next, context=projection_context,
+                                                        elapsed_ticks=next_elapsed)
 
                 predicted_reward = self.reward_predictor.predict_tensor(
                     current_member,

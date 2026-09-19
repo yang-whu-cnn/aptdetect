@@ -14,6 +14,7 @@ from formal_experiments.ours.posterior_features import build_posterior_candidate
 from formal_experiments.ours.ppo_core import CandidateActorCritic
 from formal_experiments.ours.prior_cache import PriorCache, make_identity
 from shared.formal_state import BLUE_AGENTS, FORMAL_STATE_DIM
+from shared.d27_projection import D27ProjectionContext
 
 
 LivePriorGenerator = Callable[[np.ndarray, str], tuple[PriorBatch, Mapping[str, object]]]
@@ -135,7 +136,8 @@ class LWMDecisionRuntime:
             raise ValueError("runtime state must be finite")
         return array.copy()
 
-    def prepare(self, state, *, agent_name: str) -> PreparedCandidates:
+    def prepare(self, state, *, agent_name: str, root_tick: int | None = None,
+                episode_steps: int | None = None) -> PreparedCandidates:
         agent = str(agent_name)
         if agent not in BLUE_AGENTS:
             raise ValueError(f"unsupported Blue agent: {agent}")
@@ -175,7 +177,13 @@ class LWMDecisionRuntime:
 
         cached = lookup.cached_prior
         prior = cached.prior
-        rollout = self.evaluator.evaluate(state_array, prior.plans)
+        context = None
+        if root_tick is not None or episode_steps is not None:
+            if root_tick is None or episode_steps is None:
+                raise ValueError("root_tick and episode_steps must be supplied together")
+            context = D27ProjectionContext.from_root(state_array,root_tick=root_tick,
+                                                     episode_steps=episode_steps)
+        rollout = self.evaluator.evaluate(state_array, prior.plans, projection_context=context)
         features = build_posterior_candidate_features(
             state_array,
             prior.plans,

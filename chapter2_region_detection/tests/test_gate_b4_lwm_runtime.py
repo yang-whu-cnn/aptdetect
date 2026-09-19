@@ -56,8 +56,9 @@ class FakeEvaluator:
     def __init__(self):
         self.calls = 0
 
-    def evaluate(self, state, plans):
+    def evaluate(self, state, plans, *, projection_context=None):
         self.calls += 1
+        self.last_projection_context = projection_context
         self.last_state = np.asarray(state, dtype=np.float32).copy()
         self.last_plans = np.asarray(plans, dtype=np.int64).copy()
         member_returns = torch.tensor(

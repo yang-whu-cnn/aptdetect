@@ -1,0 +1,18 @@
+method: RSMBRL-CC4
+status: pilot
+state: {encoder: shared.formal_state.FormalStateEncoder, dim: 27}
+action: {space: A4, durations: [1, 2, 3, 5], execute_first_only: true}
+planning:
+  horizon: 4
+  ensemble_size: 5
+  population_size: 200
+  iterations: 5
+  elite_ratio: 0.3
+  trajectory_sampling: shared_fixed_ensemble_rollouts
+  paper_particles_12: not_implemented_in_shared_evaluator
+  alpha: 0.1
+  beta: 0.1
+  objective: expected_return_minus_beta_epistemic_uncertainty
+normalizer: {source_split: calibration, evaluation_updates: false}
+reward: final_paper_20260917_v1
+pilot: {training_repeats: 2, episodes_per_repeat: 5, ticks_per_episode: 100}

@@ -75,8 +75,15 @@ def build_openai_http_client(env: Mapping[str, str] | None = None):
 
     try:
         import httpx
-    except Exception as exc:
-        raise RuntimeError("httpx is required for explicit OFOX network mode") from exc
+    except ImportError:
+        try:
+            # openai>=3 uses the separately packaged httpx2 client.  Keep the
+            # older import compatible with previously frozen environments.
+            import httpx2 as httpx
+        except ImportError as exc:
+            raise RuntimeError(
+                "httpx or httpx2 is required for explicit OFOX network mode"
+            ) from exc
 
     if mode == "direct_no_env_proxy":
         return httpx.Client(trust_env=False)
@@ -118,6 +125,8 @@ def masked_detected_proxies(env: Mapping[str, str] | None = None) -> dict[str, s
 
 def classify_live_exception(exc: Exception) -> str:
     message = f"{type(exc).__name__}: {exc}".lower()
+    if any(code in message for code in ("500", "502", "503", "504", "server error", "server_error")):
+        return "server_error"
     if (
         "429" in message
         or "quota" in message
@@ -287,6 +296,10 @@ class OFOXPriorLiveClient:
 
         prior = parse_prior_response(text, config=self.config)
         prompt_material = "\n".join(str(item["content"]) for item in messages)
+        # OpenAI-compatible gateways expose the served model on the response.
+        # Preserve the configured value only for older test doubles that omit
+        # this field; formal builders independently fail closed on mismatch.
+        actual_model = str(getattr(response, "model", self.config.api_model))
 
         return OFOXPriorLiveResult(
             prior=prior,
@@ -294,7 +307,7 @@ class OFOXPriorLiveClient:
             key_source=self.key_source,
             network_mode=self.network_mode,
             base_url=OFOX_BASE_URL,
-            model=self.config.api_model,
+            model=actual_model,
             temperature=float(self.config.temperature),
             prompt_sha256=sha256_text(prompt_material),
             response_sha256=sha256_text(text),
