@@ -30,7 +30,9 @@ CANDIDATE_PROVENANCE_PATH = Path(
 # Intentionally unset until the root window commits the reviewed source tree
 # and regenerates a clean=true final sidecar. Formal consumers must fail closed
 # while this trust anchor is None.
-APPROVED_FAIL_ONLY_PROVENANCE_SHA256: str | None = None
+APPROVED_FAIL_ONLY_PROVENANCE_SHA256: str | None = (
+    "926f681be1c4e3abe08328611963a23e3dd54569ec410e7a9af1961edfb732cf"
+)
 
 TRAINING_SOURCE_PATHS = (
     "formal_experiments/ours/reward_ablation.py",

@@ -79,8 +79,9 @@ class TestRewardProvenance(unittest.TestCase):
     def test_formal_validator_stays_blocked_without_clean_commit_approval(self):
         with TemporaryDirectory() as temporary:
             path = Path(temporary) / "sidecar.json"; path.write_text("{}\n", encoding="utf-8")
-            with self.assertRaisesRegex(RuntimeError, "no clean-commit approved"):
-                validate_fail_only_provenance(path, project_root=Path(temporary))
+            with patch.object(reward_provenance, "APPROVED_FAIL_ONLY_PROVENANCE_SHA256", None):
+                with self.assertRaisesRegex(RuntimeError, "no clean-commit approved"):
+                    validate_fail_only_provenance(path, project_root=Path(temporary))
 
     def test_final_binding_requires_exact_candidate_sources_and_inputs(self):
         sections = {

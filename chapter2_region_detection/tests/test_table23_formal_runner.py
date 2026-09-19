@@ -52,16 +52,20 @@ class TestTable23FormalRunner(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         specs = {(x.table_id, x.row_id): x for x in row_specs()}
         prior = root / "outputs/priorrl_cc4/prototypes/frozen_prototypes.json"
-        report = preflight(
-            project_root=root,
-            profile=RunProfile(),
-            selected_spec=specs[("table3", "fail_only")],
-            offline_prior_artifact=prior,
-        )
-        self.assertEqual(report["status"], "FAIL")
-        self.assertTrue(any("no clean-commit approved" in item for item in report["errors"]))
-        with self.assertRaisesRegex(RuntimeError, "no clean-commit approved"):
-            _derive_fail_only_training_contract(root)
+        with patch(
+            "formal_experiments.ours.reward_provenance.APPROVED_FAIL_ONLY_PROVENANCE_SHA256",
+            None,
+        ):
+            report = preflight(
+                project_root=root,
+                profile=RunProfile(),
+                selected_spec=specs[("table3", "fail_only")],
+                offline_prior_artifact=prior,
+            )
+            self.assertEqual(report["status"], "FAIL")
+            self.assertTrue(any("no clean-commit approved" in item for item in report["errors"]))
+            with self.assertRaisesRegex(RuntimeError, "no clean-commit approved"):
+                _derive_fail_only_training_contract(root)
 
     def test_fail_only_contract_uses_validated_final_sidecar_bindings(self):
         source_root = Path(__file__).resolve().parents[1]
@@ -130,8 +134,12 @@ class TestTable23FormalRunner(unittest.TestCase):
                         selected_spec=specs[("table2", "llm_rl")])
         self.assertEqual(llm["status"], "FAIL")
         self.assertTrue(any("offline-prior-artifact" in item for item in llm["errors"]))
-        fail = preflight(project_root=root, profile=RunProfile(),
-                         selected_spec=specs[("table3", "fail_only")])
+        with patch(
+            "formal_experiments.ours.reward_provenance.APPROVED_FAIL_ONLY_PROVENANCE_SHA256",
+            None,
+        ):
+            fail = preflight(project_root=root, profile=RunProfile(),
+                             selected_spec=specs[("table3", "fail_only")])
         self.assertEqual(fail["status"], "FAIL")
         self.assertTrue(any("offline-prior-artifact" in item for item in fail["errors"]))
         self.assertTrue(any("no clean-commit approved" in item for item in fail["errors"]))
