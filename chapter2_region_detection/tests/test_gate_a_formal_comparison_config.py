@@ -29,6 +29,9 @@ class TestGateAFormalComparisonConfig(unittest.TestCase):
         self.assertEqual(meta["version"], "2.1")
         self.assertEqual(meta["status"], "formal_gate_a")
 
+    def test_environment_uses_final_paper_episode_length(self):
+        self.assertEqual(self.config["environment"]["episode_steps"], 500)
+
     def test_state_contract_matches_code(self):
         state = self.config["state"]
         self.assertEqual(state["dim"], FORMAL_STATE_DIM)
@@ -113,7 +116,7 @@ class TestGateAFormalComparisonConfig(unittest.TestCase):
         self.assertEqual(seeds["train"], list(range(1000, 1032)))
         self.assertEqual(seeds["validation"], list(range(2000, 2008)))
         self.assertEqual(seeds["calibration"], list(range(3000, 3008)))
-        self.assertEqual(seeds["test"], list(range(4000, 4020)))
+        self.assertEqual(seeds["test"], list(range(4000, 4100)))
 
     def test_final_paper_evaluation_protocol(self):
         evaluation = self.config["final_paper_evaluation"]
@@ -145,6 +148,12 @@ class TestGateAFormalComparisonConfig(unittest.TestCase):
             "calibration_test_update_forbidden",
         ):
             self.assertTrue(fairness[key], key)
+
+        self.assertFalse(
+            self.config["ug_cem_runtime"][
+                "normalizer_online_updates_after_warmup"
+            ]
+        )
 
     def test_no_legacy_objective_keys_in_formal_config(self):
         text = FORMAL_CONFIG_PATH.read_text(encoding="utf-8")
