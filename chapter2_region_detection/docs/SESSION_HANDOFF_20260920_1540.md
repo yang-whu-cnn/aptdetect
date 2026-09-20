@@ -276,3 +276,64 @@ CC4/D27/A4 实验，而不是 smoke、pilot、旧 reward 或单 seed 数字：
   `01a0b807-955b-7ce1-a36b-79594f6a1674` 的单一 10 分钟 heartbeat；正常状态保持安静。
 - 已归档此前 32 个 `CC4 启动与运行核验` / `CC4 启动门禁核验子代理` 窗口；归档不删除
   历史。后续不得再为每次轮询创建新窗口。
+
+## 10. 2026-09-20 21:25 接管续写
+
+本节覆盖第 9 节中已经过时的运行状态；严格 paper 完成度仍为 `1/14 = 7.14%`，只有
+Table 1 DCA-CC4 的 5×100×500 与 eligibility 全部 PASS。任何 train-only、predictor、
+partial episode 或 preflight 均不得计入该比例。
+
+### 10.1 LWM-RL repeat 2 审计与备份
+
+- repeat 2 的训练数据本身为完整 `32/32/32`，seed `1000..1031` 连续、32 个 checkpoint
+  SHA 全部重算匹配，provider calls 与 online environment steps 为 0；无 validation/test。
+- 外层 launcher 将 `exit_code.txt` 错写为字面量 `System.String`，因此不能宣称 outer exit=3，
+  不能使用官方 exact-safe-stop 备份入口，也不能成为 paper result；不得改写该文件。
+- 已建立不可覆盖的异常依赖证据备份：
+  `C:\aptdetect_experiment_backups\20260920T130308.000164Z__anomalous_safe_stop__table2_lwm_rl_repeat_2__c97d3ad4690e.finalized`；
+  40 files、16,077,506 bytes、snapshot
+  `06dba796a19d24682159e36e72572debb27a1f95a048a960689861add597c5ff`、manifest
+  `b046cacae8e518317ac52f8bb8cfed3688d8ae8a4ea43aed066ad8e88c362a04`。
+
+### 10.2 LWM-RL repeat 3 正在运行
+
+- 子代理的两次启动尝试均在正式 Python writer 前失败，证据已移动到
+  `outputs/launch_failures/`；它们不是实验运行，不计重跑次数。
+- 主窗口使用经 AST 检查的单独 launcher
+  `outputs/launcher_scripts/lwm_repeat3_cc4.ps1` 启动成功；launcher PID `31564`，venv/base
+  Python 初始 PID `33256/14392`，运行 worktree HEAD
+  `f14472dd7f467efe0e74970e34ef1942d8f11213` 且 clean。
+- canonical 输出为 `outputs/formal_v3/table2/lwm_rl/repeat_3`；身份为 repeat 3、policy seed
+  51003、32 train seeds、500 ticks、`stop_after=train`，无 `--resume`。启动初检推进至
+  `6/6/6`，stderr 为 0，GPU 正常活动；完成应 exact exit 3 和 STOPPED/PARTIAL。
+- 唯一 heartbeat 自动化为 `cc4-lwm-repeat3`，每 10 分钟只读核验；正常静默，完成或异常
+  才通知；绝不自动启动 repeat 4。
+
+### 10.3 Table 3 provenance 与启动门
+
+- `D:\w\priorrl` 的 Delay/Fail predictor、frozen manifest、candidate、final sidecar 共 8 个资产
+  已逐 SHA 审核并备份到
+  `C:\aptdetect_experiment_backups\table3_predictor_dependency_20260920T130741175Z_c9ea6ac305a9410fb475e582885ecd8c.finalized`；
+  8 files、242,443 bytes、snapshot
+  `0fbed846b3b516d7630066ea0c74bd19a3b93b4bd9517d919799c3af65928970`、manifest
+  `d840dd388502b5243bb4ef607768b82792fcac123bb485cb2be02817981cc3c0`。
+- 主分支以 merge commit `299516770bc3a06236e0c67c37e5ef89b5b9ad60` 保留
+  `00fab235 -> 0dfe386c -> 325ffd98` 祖先链。直接把 `D:\w\priorrl` 的 4 个 provenance JSON
+  放入主 canonical 后，validator 发现 frozen manifest 的 checkpoint 仍绑定 `D:\w\priorrl`；
+  这 4 个 JSON 已由主窗口移动到
+  `outputs/provenance_integration_failures/table3_priorrl_bound_20260920T2118`，没有删除或覆盖。
+- Table 3 的正式运行环境继续使用 `D:\w\priorrl`。该工作树已用 CreateNew 补入 normalizer
+  `fefa9042586c6858f4e56a3728c5c2a5eea310e2916553a6b0ea7504c799ba4c` 与 sidecar
+  `c0db1c4cef39abd9db28bcb6c6e18ebc365cbaf3b3968f8b4e29bf3150cc0d49`；70 个定向测试、
+  RSMBRL artifact preflight、Delay/Fail formal preflight 全部 PASS。因 LWM 正在占用 GPU 且
+  可用 RAM 约 3.2 GiB，尚未启动 Table 3 policy 训练。
+
+### 10.4 其他正式行与下一步
+
+- TERLA policy seeds 51001..51003 为 3/5，均已备份；51004 等内存安全后严格串行启动。
+- RSMBRL 5 个 repeats 各有 seed 4000 的一个完整 500-tick episode，resume index 与 SHA
+  均通过；正式入口可从 seed 4001 单调续跑，但当前内存不足，未启动第二 writer。
+- 当前并行代理仅做 UAMCTS provenance 解阻、PriorRL 正式门禁和下一批 GPU launcher 准备；
+  它们不得启动高内存实验、删除/reset/clean/restore/覆盖或推送。
+- repeat 3 完成后顺序固定为：主窗口审计 -> 不可覆盖备份 -> 复核 RAM/GPU -> 在 LWM repeat 4
+  与 Table 3 Delay-Only repeat 1 中按“主方法优先”选择一个启动；不得未经审核自动越级。
