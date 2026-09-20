@@ -446,6 +446,7 @@ class _WindowsDependencyLockSet:
         self.includes = includes
         self.directory_handles: list[int] = []
         self.file_handles: dict[str, tuple[Any, dict[str, int]]] = {}
+        self.source_root_final: str | None = None
 
     def _close(self) -> None:
         errors: list[Exception] = []
@@ -493,6 +494,8 @@ class _WindowsDependencyLockSet:
             # lock unrelated handles, but never share DELETE/rename.
             directory_share = _WIN_FILE_SHARE_READ | _WIN_FILE_SHARE_WRITE
             anchor_final: str | None = None
+            source_root_final: str | None = None
+            source_root_key = _windows_path_key(self.source_root)
             for component in chain:
                 handle: int | None = None
                 try:
@@ -514,10 +517,17 @@ class _WindowsDependencyLockSet:
                         raise BackupError(f"dependency lock chain final path is invalid: {component}")
                     self.directory_handles.append(handle)
                     handle = None
+                    if _windows_path_key(component) == source_root_key:
+                        if source_root_final is not None:
+                            raise BackupError("dependency lock chain contains duplicate source root")
+                        source_root_final = final_path
                 finally:
                     if handle is not None:
                         _windows_close_handle(handle)
-            root_final = _windows_handle_final_path(self.directory_handles[-1])
+            if source_root_final is None:
+                raise BackupError("dependency lock chain omitted source root")
+            self.source_root_final = source_root_final
+            root_final = source_root_final
             for relative in self.includes:
                 target = self.source_root.joinpath(*relative.split("/"))
                 file_handle: int | None = None

@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -370,6 +371,83 @@ class BackupOutputTests(unittest.TestCase):
             manifest["payload_identity"][0].get("file_index"),
         )
         self.assertTrue(backups.verify_backup(backup_dir=backup_dir, backup_root=self.backup_root)["passed"])
+
+    def test_windows_lockset_uses_source_root_handle_for_sibling_directories(self):
+        source = self.root / "sibling-source"
+        delay_only = source / "delay_only"
+        fail_only = source / "fail_only"
+        delay_only.mkdir(parents=True)
+        fail_only.mkdir()
+        (delay_only / "delay.json").write_text("delay\n", encoding="utf-8")
+        (fail_only / "fail.json").write_text("fail\n", encoding="utf-8")
+        includes = ("delay_only/delay.json", "fail_only/fail.json")
+
+        handles: dict[int, Path] = {}
+        next_handle = 100
+
+        def open_handle(path, **_kwargs):
+            nonlocal next_handle
+            handle = next_handle
+            next_handle += 1
+            handles[handle] = Path(path)
+            return handle
+
+        def handle_info(handle):
+            return {
+                "attributes": 0,
+                "link_count": 1,
+                "volume_serial": 1,
+                "file_index": handle,
+            }
+
+        def final_path(handle):
+            return os.path.abspath(os.fspath(handles[handle]))
+
+        def open_osfhandle(handle, _flags):
+            return os.open(os.fspath(handles[handle]), os.O_RDONLY)
+
+        fake_msvcrt = mock.Mock()
+        fake_msvcrt.open_osfhandle.side_effect = open_osfhandle
+        with mock.patch.object(backups.os, "name", "nt"), mock.patch.object(
+            backups, "_windows_open_handle", side_effect=open_handle
+        ), mock.patch.object(backups, "_windows_handle_info", side_effect=handle_info), mock.patch.object(
+            backups, "_windows_handle_final_path", side_effect=final_path
+        ), mock.patch.object(backups, "_windows_close_handle"), mock.patch.dict(
+            sys.modules, {"msvcrt": fake_msvcrt}
+        ):
+            with backups._WindowsDependencyLockSet(source, includes) as lockset:
+                self.assertEqual(lockset.source_root_final, os.path.abspath(os.fspath(source)))
+                self.assertEqual(set(lockset.file_handles), set(includes))
+
+    def test_windows_lockset_rejects_outside_sibling(self):
+        source = self.root / "sibling-source"
+        source.mkdir()
+        outside = self.root / "outside.json"
+        outside.write_text("outside\n", encoding="utf-8")
+        handles: dict[int, Path] = {}
+        next_handle = 100
+
+        def open_handle(path, **_kwargs):
+            nonlocal next_handle
+            handle = next_handle
+            next_handle += 1
+            handles[handle] = Path(path)
+            return handle
+
+        def handle_info(_handle):
+            return {"attributes": 0, "link_count": 1, "volume_serial": 1, "file_index": 1}
+
+        def final_path(handle):
+            return os.path.abspath(os.fspath(handles[handle]))
+
+        with mock.patch.object(backups.os, "name", "nt"), mock.patch.object(
+            backups, "_windows_open_handle", side_effect=open_handle
+        ), mock.patch.object(backups, "_windows_handle_info", side_effect=handle_info), mock.patch.object(
+            backups, "_windows_handle_final_path", side_effect=final_path
+        ), mock.patch.object(backups, "_windows_close_handle"):
+            with self.assertRaisesRegex(backups.BackupError, "selected dependency escaped locked source root"):
+                with backups._WindowsDependencyLockSet(source, ("../outside.json",)):
+                    pass
 
     def test_finalized_manifest_backup_id_binding_applies_to_ordinary_backup(self):
         result = self.create_partial_backup()
