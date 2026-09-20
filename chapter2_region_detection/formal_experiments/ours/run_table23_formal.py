@@ -19,7 +19,9 @@ from formal_experiments.common.prior_provenance import validate_frozen_prior_pro
 from formal_experiments.common.run_manifest import POLICY_SEEDS
 from formal_experiments.ours.reward_ablation import RewardMode
 from formal_experiments.ours.reward_artifact_contract import validate_frozen_reward_artifact
-from formal_experiments.ours.reward_provenance import validate_fail_only_provenance
+from formal_experiments.ours.reward_provenance import (
+    validate_delay_only_provenance, validate_fail_only_provenance,
+)
 from formal_experiments.ours.table2_variants import Table2Variant
 
 TRAIN_SEEDS = tuple(range(1000, 1032))
@@ -29,10 +31,10 @@ FORMAL_EPISODE_TICKS = 500
 ORCHESTRATOR_VERSION = "table23_formal_runner_v2"
 FULL_REWARD_SEMANTICS = "cc4_v3_full_reward"
 TRAINING_CURVE_SCHEMA = "cc4_v3_training_curve_v1"
-FROZEN_PROTOTYPE_PROVENANCE_SHA256 = "ddbc74065fd2340ab9826dddee43a7a1dafb06c7ba8ecfc64d646862461d6358"
+FROZEN_PROTOTYPE_PROVENANCE_SHA256 = "464b306274a4123acf39384d289eca632e02960f3dfb9a381e9cf7613d471363"
 OFOX_ENTRY_SET_SHA256 = "7941f6f11d47989265955bdc6caff950de97a9f5b9562afa8f7cb5e0209a7e10"
-OFOX_SUPPLEMENT_MANIFEST_SHA256 = "35eea8a2a8ddb977ac139e25d7fb94142b3b93286d948464d6bf01071ca0f3cd"
-OFOX_LOGICAL_MANIFEST_SHA256 = "b981a125f162e8d59bd3c9c5b0f4d53871f0b3d9938305f2e5a6a60c2d2fe0e0"
+OFOX_SUPPLEMENT_MANIFEST_SHA256 = "ece590f5bc01ea6b6cf06458cd86096914e85d886d50686b2c7c9d365e909d44"
+OFOX_LOGICAL_MANIFEST_SHA256 = "5ddc621817a902d3c8f70d76353f80ba2ab0c37e1947d8e855a5f4518443e49f"
 
 
 @dataclass(frozen=True)
@@ -205,9 +207,11 @@ def _load_gate(path: Path, mode: RewardMode) -> dict[str, Any]:
     if mode == RewardMode.FULL_REWARD: return {"pass": True, "source": "frozen_full_reward_preflight"}
     project_root = Path(__file__).resolve().parents[2]
     provenance_sha256 = None
-    if mode == RewardMode.FAIL_ONLY:
+    if mode in {RewardMode.DELAY_ONLY, RewardMode.FAIL_ONLY}:
         provenance_path = path.with_name("provenance_sidecar.json")
-        provenance = validate_fail_only_provenance(provenance_path, project_root=project_root)
+        validator = (validate_delay_only_provenance
+                     if mode == RewardMode.DELAY_ONLY else validate_fail_only_provenance)
+        provenance = validator(provenance_path, project_root=project_root)
         provenance_sha256 = sha256_file(provenance_path)
     _, _, audit = validate_frozen_reward_artifact(
         path, mode=mode, project_root=project_root
@@ -216,7 +220,7 @@ def _load_gate(path: Path, mode: RewardMode) -> dict[str, Any]:
         reward_binding = provenance.get("reward_artifact", {})
         if (reward_binding.get("manifest_sha256") != audit.get("manifest_sha256")
                 or reward_binding.get("checkpoint_sha256") != audit.get("checkpoint_sha256")):
-            raise RuntimeError("BLOCKED: Fail-Only provenance/reward artifact binding mismatch")
+                raise RuntimeError(f"BLOCKED: {mode.value} provenance/reward artifact binding mismatch")
         audit = {**audit, "provenance_sidecar_sha256": provenance_sha256}
     return audit
 
