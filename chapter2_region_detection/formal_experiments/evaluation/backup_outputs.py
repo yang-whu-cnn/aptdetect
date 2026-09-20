@@ -487,8 +487,10 @@ class _WindowsDependencyLockSet:
                     current = current / part
                     chain_set.setdefault(os.path.normcase(os.fspath(current)), current)
             chain = sorted(chain_set.values(), key=lambda item: len(item.parts))
-            # The chain begins at the volume/UNC anchor by design.  Sharing
-            # READ/WRITE/DELETE is forbidden while these handles are held.
+            # The chain begins at the volume/UNC anchor by design.  Directory
+            # handles share reads and writes so opening a volume root does not
+            # lock unrelated handles, but never share DELETE/rename.
+            directory_share = _WIN_FILE_SHARE_READ | _WIN_FILE_SHARE_WRITE
             anchor_final: str | None = None
             for component in chain:
                 handle: int | None = None
@@ -496,7 +498,7 @@ class _WindowsDependencyLockSet:
                     handle = _windows_open_handle(
                         component,
                         directory=True,
-                        share_mode=0,
+                        share_mode=directory_share,
                     )
                     info = _windows_handle_info(handle)
                     if info["attributes"] & _REPARSE_POINT:
@@ -564,6 +566,68 @@ class _WindowsDependencyLockSet:
         import msvcrt
         raw_handle = msvcrt.get_osfhandle(file_handle.fileno())
         return _windows_handle_info(raw_handle)
+
+    def snapshot(self) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+        """Hash selected source files only through the locked file handles.
+
+        The returned content snapshot deliberately contains no filesystem
+        identity fields.  Those are returned separately because a payload is
+        expected to have a different identity even when its bytes are equal.
+        """
+
+        files: list[dict[str, Any]] = []
+        identities: list[dict[str, Any]] = []
+        for relative in self.includes:
+            if relative not in self.file_handles:
+                raise BackupError(f"selected dependency is not held by a lock handle: {relative}")
+            handle = self.file_handles[relative][0]
+            try:
+                handle.seek(0)
+                before = os.fstat(handle.fileno())
+                before_identity = self.refresh_file_info(relative)
+                if type(before_identity.get("link_count")) is not int or before_identity["link_count"] != 1:
+                    raise BackupError(f"hardlinked dependency file is not allowed: {relative}")
+                digest = hashlib.sha256()
+                while True:
+                    block = handle.read(_CHUNK_SIZE)
+                    if not block:
+                        break
+                    digest.update(block)
+                after = os.fstat(handle.fileno())
+                after_identity = self.refresh_file_info(relative)
+            except (OSError, ValueError) as exc:
+                raise BackupError(f"cannot snapshot locked dependency file {relative}: {exc}") from exc
+            if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns):
+                raise BackupError(f"dependency file changed while hashing: {relative}")
+            if not _dependency_identity_matches(before_identity, after_identity):
+                raise BackupError(f"dependency file identity/link count changed while hashing: {relative}")
+            sha256 = digest.hexdigest()
+            files.append(
+                {
+                    "relative_path": relative,
+                    "bytes": int(after.st_size),
+                    "sha256": sha256,
+                    "link_count": int(after_identity["link_count"]),
+                }
+            )
+            identities.append(
+                {
+                    "relative_path": relative,
+                    "volume_serial": int(after_identity["volume_serial"]),
+                    "file_index": int(after_identity["file_index"]),
+                    "link_count": int(after_identity["link_count"]),
+                    "bytes": int(after.st_size),
+                    "mtime_ns": int(after.st_mtime_ns),
+                    "sha256": sha256,
+                }
+            )
+        snapshot = {
+            "file_count": len(files),
+            "total_bytes": sum(int(item["bytes"]) for item in files),
+            "files": files,
+            "snapshot_digest_sha256": _dependency_snapshot_digest(files),
+        }
+        return snapshot, identities
 
 
 def _validate_source(source: Path, outputs_root: Path | None = None) -> Path:
@@ -1045,6 +1109,104 @@ def _copy_dependency_payload(source_root: Path, destination: Path, snapshot: dic
     _fsync_directory(destination, strict=True)
 
 
+def _dependency_payload_identities(root: Path, includes: tuple[str, ...]) -> list[dict[str, Any]]:
+    """Return identity records for the finalized payload files."""
+
+    records: list[dict[str, Any]] = []
+    for relative in includes:
+        path = root.joinpath(*relative.split("/"))
+        with _secure_dependency_file(path, root) as (handle, identity):
+            stat_result = os.fstat(handle.fileno())
+            if type(identity.get("link_count")) is not int or identity["link_count"] != 1:
+                raise BackupError(f"hardlinked payload file is not allowed: {relative}")
+            record: dict[str, Any] = {
+                "relative_path": relative,
+                "link_count": int(identity["link_count"]),
+                "bytes": int(stat_result.st_size),
+                "mtime_ns": int(stat_result.st_mtime_ns),
+            }
+            handle.seek(0)
+            digest = hashlib.sha256()
+            while True:
+                block = handle.read(_CHUNK_SIZE)
+                if not block:
+                    break
+                digest.update(block)
+            after = os.fstat(handle.fileno())
+            if (stat_result.st_size, stat_result.st_mtime_ns) != (after.st_size, after.st_mtime_ns):
+                raise BackupError(f"payload file changed while recording identity: {relative}")
+            record["sha256"] = digest.hexdigest()
+            for key in ("volume_serial", "file_index"):
+                if key in identity:
+                    record[key] = int(identity[key])
+            records.append(record)
+    return records
+
+
+def _copy_dependency_payload_handles(
+    lockset: _WindowsDependencyLockSet,
+    destination: Path,
+    snapshot: dict[str, Any],
+) -> None:
+    """Copy from the already-open source handles held by ``lockset``."""
+
+    destination.mkdir(parents=False, exist_ok=False)
+    _check_existing_components(destination, destination.parent)
+    expected = {item["relative_path"]: item for item in snapshot["files"]}
+    for relative in lockset.includes:
+        record = expected[relative]
+        relative_path = Path(*relative.split("/"))
+        destination_file = destination / relative_path
+        _secure_dependency_mkdirs(destination, relative_path.parent)
+        source_handle = lockset.file_handles[relative][0]
+        try:
+            source_handle.seek(0)
+            source_before = os.fstat(source_handle.fileno())
+            source_before_identity = lockset.refresh_file_info(relative)
+            if type(source_before_identity.get("link_count")) is not int or source_before_identity["link_count"] != 1:
+                raise BackupError(f"hardlinked dependency file is not allowed: {relative}")
+            with _secure_dependency_file(
+                destination_file, destination, write=True, create_new=True
+            ) as (destination_handle, destination_identity):
+                if type(destination_identity.get("link_count")) is not int or destination_identity["link_count"] != 1:
+                    raise BackupError(f"hardlinked payload file is not allowed: {relative}")
+                digest = hashlib.sha256()
+                copied = 0
+                while True:
+                    block = source_handle.read(_CHUNK_SIZE)
+                    if not block:
+                        break
+                    digest.update(block)
+                    destination_handle.write(block)
+                    copied += len(block)
+                source_after = os.fstat(source_handle.fileno())
+                source_after_identity = lockset.refresh_file_info(relative)
+                if (
+                    (source_before.st_size, source_before.st_mtime_ns)
+                    != (source_after.st_size, source_after.st_mtime_ns)
+                    or not _dependency_identity_matches(source_before_identity, source_after_identity)
+                ):
+                    raise BackupError(f"source file changed or identity/link count drifted during copy: {relative}")
+                if copied != record["bytes"] or digest.hexdigest() != record["sha256"]:
+                    raise BackupError(f"locked source content drifted during copy: {relative}")
+                destination_handle.flush()
+                os.fsync(destination_handle.fileno())
+                destination_stat = os.fstat(destination_handle.fileno())
+                if destination_stat.st_size != copied:
+                    raise BackupError(f"payload byte count mismatch after copy: {relative}")
+                if not _dependency_identity_matches(
+                    destination_identity,
+                    _dependency_handle_identity(destination_handle),
+                ):
+                    raise BackupError(f"payload file identity/link count changed: {relative}")
+                _fsync_directory(destination_file.parent, strict=True)
+        except BackupError:
+            raise
+        except (OSError, ValueError) as exc:
+            raise BackupError(f"cannot securely copy locked dependency file {relative}: {exc}") from exc
+    _fsync_directory(destination, strict=True)
+
+
 def _attach_dependency_git_metadata(
     snapshot: dict[str, Any], git_records: list[dict[str, Any]]
 ) -> dict[str, Any]:
@@ -1518,6 +1680,117 @@ def _prepare_dependency_source(
     return root, normalized, checked_label, identity, git_records, source_before
 
 
+def _dependency_create_windows_locked(
+    *,
+    source_path: Path,
+    normalized: tuple[str, ...],
+    checked_label: str,
+    identity: dict[str, Any],
+    git_records: list[dict[str, Any]],
+    root: Path,
+    backup_dir: Path | str | None,
+    max_bytes: int | None,
+    allow_ignored_includes: bool,
+) -> dict[str, Any]:
+    """Run the production Windows dependency pipeline under one lock set."""
+
+    if os.name != "nt":
+        raise BackupError(
+            "BLOCKED: dependency-create requires the Windows handle-backed lock pipeline"
+        )
+    if not root.exists():
+        try:
+            root.mkdir(parents=True, exist_ok=False)
+        except FileExistsError:
+            pass
+        except OSError as exc:
+            raise BackupError(f"cannot create backup root {root}: {exc}") from exc
+        _check_backup_path(root, root, must_exist=True)
+    finalized = _requested_final_path(root, backup_dir, checked_label)
+    _check_backup_path(finalized, root)
+    if finalized.exists() or finalized.is_symlink():
+        raise BackupError(f"refusing to overwrite existing backup: {finalized}")
+    staging = finalized.with_name(finalized.name[:-len(".finalized")] + ".partial")
+    if staging.exists() or staging.is_symlink():
+        raise BackupError(f"staging backup already exists; refusing to reuse it: {staging}")
+
+    try:
+        with _WindowsDependencyLockSet(source_path, normalized) as lockset:
+            source_before_core, source_identity_before = lockset.snapshot()
+            source_before = _attach_dependency_git_metadata(source_before_core, git_records)
+            if max_bytes is not None and (max_bytes < 0 or source_before["total_bytes"] > max_bytes):
+                raise BackupError("selected dependency size exceeds --max-bytes")
+            warning = _space_warning(root, source_before["total_bytes"])
+            staging.mkdir(parents=False, exist_ok=False)
+            _check_existing_components(staging, root)
+            payload = staging / "payload"
+            _copy_dependency_payload_handles(lockset, payload, source_before_core)
+            payload_after = _attach_dependency_git_metadata(
+                _dependency_snapshot(payload, normalized, True), git_records
+            )
+            payload_identity = _dependency_payload_identities(payload, normalized)
+            source_after_core, source_identity_after = lockset.snapshot()
+            source_after = _attach_dependency_git_metadata(source_after_core, git_records)
+            if not (source_before == source_after == payload_after):
+                raise BackupError(
+                    "dependency source/payload content snapshots disagree; refusing to finalize"
+                )
+            if source_identity_before != source_identity_after:
+                raise BackupError("dependency source handle identity changed during backup")
+            identity_after = _require_dependency_git(source_path, identity["head"])
+            if identity_after != identity:
+                raise BackupError("dependency source Git identity changed during backup")
+            manifest = {
+                "schema": _BACKUP_SCHEMA,
+                "schema_version": 1,
+                "backup_id": finalized.name.removesuffix(".finalized"),
+                "created_utc": datetime.now(timezone.utc).isoformat(),
+                "backup_kind": _DEPENDENCY_BACKUP_KIND,
+                "status": "PARTIAL",
+                "formal_result_eligible": False,
+                "paper_table_eligible": False,
+                "eligibility_report_passed": False,
+                "label": checked_label,
+                "source_root": str(source_path),
+                "source_git_root": identity["git_root"],
+                "source_commit": identity["head"],
+                "expect_git_head": identity["head"].lower(),
+                "source_git_clean": True,
+                "tracked_worktree_clean": identity["tracked_worktree_clean"] is True,
+                "allow_ignored_includes": bool(allow_ignored_includes),
+                "include": list(normalized),
+                "git_files": git_records,
+                "source_before": source_before,
+                "source_after": source_after,
+                "payload_after": payload_after,
+                "handle_backed": True,
+                "source_identity_before": source_identity_before,
+                "source_identity_after": source_identity_after,
+                "payload_identity": payload_identity,
+                "space_warning": warning,
+            }
+            _write_manifest(staging, manifest, strict_directory=True)
+            _fsync_directory(staging, strict=True)
+            _rename_noreplace(staging, finalized)
+            _fsync_directory(root, strict=True)
+    except Exception as exc:
+        if staging.exists() and not finalized.exists():
+            raise BackupError(
+                f"{exc}; incomplete staging retained for main-window review: {staging}"
+            ) from exc
+        raise
+    return {
+        "action": "dependency-create",
+        "backup_dir": str(finalized),
+        "manifest": str(finalized / "backup_manifest.json"),
+        "status": "PARTIAL",
+        "backup_kind": _DEPENDENCY_BACKUP_KIND,
+        "formal_result_eligible": False,
+        "paper_table_eligible": False,
+        "space_warning": warning,
+    }
+
+
 def dependency_dry_run(
     *,
     source_root: Path | str,
@@ -1589,26 +1862,17 @@ def dependency_create(
     )
     source_path, normalized, checked_label, identity, git_records = metadata
     if "tracked_worktree_clean" in identity:
-        # A path-only create would reopen files after the initial snapshot and
-        # therefore leave an ignored-source TOCTOU window.  The production
-        # path is allowed to proceed only after exclusive no-share handles
-        # exist from the volume/UNC anchor through every selected file.  The
-        # current implementation intentionally fails closed after acquiring
-        # those locks until the complete handle-backed copy/manifest pipeline
-        # is available; dry-run remains available for audit planning.
-        if os.name != "nt":
-            raise BackupError(
-                "BLOCKED: dependency-create requires an equivalent exclusive POSIX lock set; dry-run is available"
-            )
-        try:
-            with _WindowsDependencyLockSet(source_path, normalized):
-                raise BackupError(
-                    "BLOCKED: dependency-create handle-backed Windows copy is unavailable; no backup was finalized"
-                )
-        except BackupError as exc:
-            if str(exc).startswith("BLOCKED:"):
-                raise
-            raise BackupError(f"BLOCKED: {exc}") from exc
+        return _dependency_create_windows_locked(
+            source_path=source_path,
+            normalized=normalized,
+            checked_label=checked_label,
+            identity=identity,
+            git_records=git_records,
+            root=root,
+            backup_dir=backup_dir,
+            max_bytes=max_bytes,
+            allow_ignored_includes=allow_ignored_includes,
+        )
     snap = _snapshotter or _dependency_snapshot
     source_before = _attach_dependency_git_metadata(
         snap(source_path, normalized, False), git_records
@@ -1673,6 +1937,7 @@ def dependency_create(
             "source_before": source_before,
             "source_after": source_after,
             "payload_after": payload_after,
+            "handle_backed": False,
             "space_warning": warning,
         }
         _write_manifest(staging, manifest, strict_directory=True)
@@ -1721,6 +1986,7 @@ def _verify_dependency_backup(directory: Path, manifest: dict[str, Any]) -> dict
         "source_before",
         "source_after",
         "payload_after",
+        "handle_backed",
         "space_warning",
     }
     missing = sorted(required - set(manifest))
@@ -1764,6 +2030,8 @@ def _verify_dependency_backup(directory: Path, manifest: dict[str, Any]) -> dict
         raise BackupError("verified-dependency source_commit does not match expect_git_head")
     if manifest.get("source_git_clean") is not True or manifest.get("tracked_worktree_clean") is not True:
         raise BackupError("verified-dependency source Git worktree must be clean")
+    if type(manifest.get("handle_backed")) is not bool:
+        raise BackupError("verified-dependency handle_backed must be boolean")
     if type(manifest.get("allow_ignored_includes")) is not bool:
         raise BackupError("verified-dependency allow_ignored_includes must be boolean")
     if manifest.get("space_warning") is not None and type(manifest.get("space_warning")) is not dict:
@@ -1847,6 +2115,43 @@ def _verify_dependency_backup(directory: Path, manifest: dict[str, Any]) -> dict
     )
     if not (source_before == source_after == manifest_payload == payload_snapshot):
         raise BackupError("verified-dependency payload hash/count verification failed")
+    if manifest["handle_backed"]:
+        identity_keys = {
+            "relative_path", "volume_serial", "file_index", "link_count",
+            "bytes", "mtime_ns", "sha256",
+        }
+        identity_before = manifest.get("source_identity_before")
+        identity_after = manifest.get("source_identity_after")
+        payload_identity = manifest.get("payload_identity")
+        if type(identity_before) is not list or type(identity_after) is not list or type(payload_identity) is not list:
+            raise BackupError("handle-backed verified-dependency identities are required")
+        if len(identity_before) != len(includes) or identity_before != identity_after:
+            raise BackupError("handle-backed source identities are inconsistent")
+        for collection_name, collection in (
+            ("source", identity_before),
+            ("payload", payload_identity),
+        ):
+            if len(collection) != len(includes):
+                raise BackupError(f"handle-backed {collection_name} identity count is invalid")
+            for record, relative in zip(collection, includes):
+                if type(record) is not dict or not set(record).issubset(identity_keys):
+                    raise BackupError(f"handle-backed {collection_name} identity record is malformed")
+                if record.get("relative_path") != relative:
+                    raise BackupError(f"handle-backed {collection_name} identity path mismatch")
+                for key in ("link_count", "bytes", "mtime_ns"):
+                    if type(record.get(key)) is not int or record[key] < 0:
+                        raise BackupError(f"handle-backed {collection_name} identity field is invalid")
+                if record["link_count"] != 1:
+                    raise BackupError(f"handle-backed {collection_name} identity is hardlinked")
+                if type(record.get("sha256")) is not str or re.fullmatch(r"[0-9a-f]{64}", record["sha256"]) is None:
+                    raise BackupError(f"handle-backed {collection_name} identity hash is invalid")
+                if collection_name == "source":
+                    content = source_before["files"][includes.index(relative)]
+                    if record["bytes"] != content["bytes"] or record["sha256"] != content["sha256"]:
+                        raise BackupError("handle-backed source identity does not match content snapshot")
+        actual_payload_identity = _dependency_payload_identities(payload, normalized)
+        if actual_payload_identity != payload_identity:
+            raise BackupError("handle-backed payload identity verification failed")
     return {
         "action": "verify",
         "backup_dir": str(directory),

@@ -49,6 +49,23 @@ create the backup root or any output. `verify` checks the sidecar, manifest,
 all payload paths, counts, byte totals, and SHA-256 values. `restore` requires
 a target that does not exist and is a strict child of `outputs`.
 
+For verified dependency assets (for example, ignored frozen Table-3
+predictors or a blocked PriorRL candidate), use `dependency-dry-run` first and
+then `dependency-create` with `--allow-ignored-includes` only after the
+selected ignored paths have been reviewed. A dependency backup is always
+`status=PARTIAL`, `formal_result_eligible=false`, and `paper_table_eligible=false`.
+On Windows, production creation fails closed unless it can open the complete
+volume/UNC-to-source directory chain, with directory handles sharing only
+read/write (never delete/rename), and every selected source file with an
+exclusive no-share handle. The same handles remain live through source
+snapshots, copy, source/Git recheck, manifest and sidecar writes, and the
+staging-to-final rename. Source identity (`volume_serial`, `file_index`, link
+count, size, mtime, and SHA-256) is recorded separately from payload identity;
+verification compares bytes and hashes between source and payload, while
+requiring the source identities to remain stable and the payload identity to
+match its own recorded record. Non-Windows production creation remains fail
+closed; the isolated legacy test seam is not production evidence.
+
 ## Atomic copy and audit record
 
 Creation uses a unique `<id>.partial/payload` directory. The source is

@@ -338,6 +338,28 @@ class BackupOutputTests(unittest.TestCase):
         self.assertEqual(result["git_files"][0]["git_classification"], "ignored_untracked")
         self.assertFalse(result["git_files"][0]["tracked_worktree_clean"])
 
+    @unittest.skipUnless(os.name == "nt", "production dependency locking is Windows-only")
+    def test_dependency_production_handle_pipeline_uses_real_git_identity(self):
+        source, head = self.make_git_dependency_source()
+        result = backups.dependency_create(
+            source_root=source,
+            includes=["selected.ignored"],
+            label="real-production",
+            expect_git_head=head,
+            backup_root=self.backup_root,
+            backup_dir="real-production",
+            allow_ignored_includes=True,
+        )
+        backup_dir = Path(result["backup_dir"])
+        manifest = json.loads((backup_dir / "backup_manifest.json").read_text(encoding="utf-8"))
+        self.assertTrue(manifest["handle_backed"])
+        self.assertEqual(manifest["source_identity_before"], manifest["source_identity_after"])
+        self.assertNotEqual(
+            manifest["source_identity_before"][0].get("file_index"),
+            manifest["payload_identity"][0].get("file_index"),
+        )
+        self.assertTrue(backups.verify_backup(backup_dir=backup_dir, backup_root=self.backup_root)["passed"])
+
     def test_dependency_unrelated_ignored_file_does_not_dirty_gate(self):
         source, head = self.make_git_dependency_source()
         result = backups.dependency_dry_run(
