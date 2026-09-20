@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -288,6 +289,20 @@ class BackupOutputTests(unittest.TestCase):
             "backup_root": self.backup_root,
         }
 
+    def make_git_dependency_source(self):
+        source = self.root / "git-dependency-source"
+        source.mkdir()
+        (source / ".gitignore").write_text("*.ignored\n", encoding="utf-8")
+        (source / "tracked.json").write_text('{"tracked": true}\n', encoding="utf-8")
+        (source / "selected.ignored").write_text("ignored\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(source), "init", "-q"], check=True)
+        subprocess.run(["git", "-C", str(source), "config", "user.email", "test@example.com"], check=True)
+        subprocess.run(["git", "-C", str(source), "config", "user.name", "backup-tests"], check=True)
+        subprocess.run(["git", "-C", str(source), "add", ".gitignore", "tracked.json"], check=True)
+        subprocess.run(["git", "-C", str(source), "commit", "-qm", "init"], check=True)
+        head = subprocess.check_output(["git", "-C", str(source), "rev-parse", "HEAD"], text=True).strip()
+        return source, head
+
     def test_dependency_dry_run_is_read_only_and_subset_aware(self):
         source = self.make_dependency_source()
         with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
@@ -300,6 +315,100 @@ class BackupOutputTests(unittest.TestCase):
         self.assertEqual(result["include"], ["artifact.json", "nested/coverage.json"])
         self.assertEqual(result["source_snapshot"]["file_count"], 2)
         self.assertFalse(self.backup_root.exists())
+
+    def test_dependency_ignored_include_requires_explicit_opt_in(self):
+        source, head = self.make_git_dependency_source()
+        with self.assertRaises(backups.BackupError):
+            backups.dependency_dry_run(
+                source_root=source,
+                includes=["selected.ignored"],
+                label="ignored",
+                expect_git_head=head,
+                backup_root=self.backup_root,
+            )
+        result = backups.dependency_dry_run(
+            source_root=source,
+            includes=["selected.ignored"],
+            label="ignored",
+            expect_git_head=head,
+            backup_root=self.backup_root,
+            allow_ignored_includes=True,
+        )
+        self.assertTrue(result["allow_ignored_includes"])
+        self.assertEqual(result["git_files"][0]["git_classification"], "ignored_untracked")
+        self.assertFalse(result["git_files"][0]["tracked_worktree_clean"])
+
+    def test_dependency_unrelated_ignored_file_does_not_dirty_gate(self):
+        source, head = self.make_git_dependency_source()
+        result = backups.dependency_dry_run(
+            source_root=source,
+            includes=["tracked.json"],
+            label="tracked",
+            expect_git_head=head,
+            backup_root=self.backup_root,
+        )
+        self.assertTrue(result["tracked_worktree_clean"])
+
+    def test_dependency_hardlink_is_rejected(self):
+        source = self.make_dependency_source()
+        hardlink = source / "hardlink.json"
+        try:
+            os.link(source / "artifact.json", hardlink)
+        except OSError as exc:
+            self.skipTest(f"hardlinks unavailable: {exc}")
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            with self.assertRaises(backups.BackupError):
+                backups.dependency_dry_run(
+                    **self.dependency_args(
+                        source,
+                        includes=["hardlink.json"],
+                    )
+                )
+
+    def test_dependency_ancestor_reparse_is_rejected(self):
+        source = self.make_dependency_source()
+        ancestor = source.parent / "ancestor-link"
+        try:
+            ancestor.symlink_to(source.parent, target_is_directory=True)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"directory symlinks unavailable: {exc}")
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            with self.assertRaises(backups.BackupError):
+                backups.dependency_dry_run(
+                    **self.dependency_args(ancestor / source.name)
+                )
+
+    def test_dependency_verify_rejects_schema_version_drift(self):
+        source = self.make_dependency_source()
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            result = backups.dependency_create(**self.dependency_args(source), backup_dir="schema")
+        backup_dir = Path(result["backup_dir"])
+        manifest_path = backup_dir / "backup_manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["schema_version"] = 2
+        manifest_bytes = (json.dumps(manifest, sort_keys=True, indent=2) + "\n").encode("utf-8")
+        manifest_path.write_bytes(manifest_bytes)
+        (backup_dir / "backup_manifest.sha256").write_text(
+            hashlib.sha256(manifest_bytes).hexdigest() + "\n", encoding="ascii"
+        )
+        with self.assertRaises(backups.BackupError):
+            backups.verify_backup(backup_dir=backup_dir, backup_root=self.backup_root)
+
+    def test_dependency_verify_requires_all_three_snapshots_equal(self):
+        source = self.make_dependency_source()
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            result = backups.dependency_create(**self.dependency_args(source), backup_dir="triple")
+        backup_dir = Path(result["backup_dir"])
+        manifest_path = backup_dir / "backup_manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["source_after"]["total_bytes"] += 1
+        manifest_bytes = (json.dumps(manifest, sort_keys=True, indent=2) + "\n").encode("utf-8")
+        manifest_path.write_bytes(manifest_bytes)
+        (backup_dir / "backup_manifest.sha256").write_text(
+            hashlib.sha256(manifest_bytes).hexdigest() + "\n", encoding="ascii"
+        )
+        with self.assertRaises(backups.BackupError):
+            backups.verify_backup(backup_dir=backup_dir, backup_root=self.backup_root)
 
     def test_dependency_create_and_verify_records_non_paper_manifest(self):
         source = self.make_dependency_source()
