@@ -49,6 +49,17 @@ class BackupOutputTests(unittest.TestCase):
         self.make_partial()
         return backups.create_backup(source=self.source, backup_root=self.backup_root)
 
+    def rewrite_backup_manifest(self, backup_dir, mutate):
+        manifest_path = Path(backup_dir) / "backup_manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        mutate(manifest)
+        manifest_bytes = (json.dumps(manifest, sort_keys=True, indent=2) + "\n").encode("utf-8")
+        manifest_path.write_bytes(manifest_bytes)
+        (Path(backup_dir) / "backup_manifest.sha256").write_bytes(
+            (hashlib.sha256(manifest_bytes).hexdigest() + "\n").encode("ascii")
+        )
+        return manifest
+
     def test_running_missing_and_unknown_status_are_rejected(self):
         for status in ("RUNNING", "UNKNOWN"):
             with self.subTest(status=status):
@@ -360,6 +371,13 @@ class BackupOutputTests(unittest.TestCase):
         )
         self.assertTrue(backups.verify_backup(backup_dir=backup_dir, backup_root=self.backup_root)["passed"])
 
+    def test_finalized_manifest_backup_id_binding_applies_to_ordinary_backup(self):
+        result = self.create_partial_backup()
+        backup_dir = Path(result["backup_dir"])
+        self.rewrite_backup_manifest(backup_dir, lambda manifest: manifest.update(backup_id="different"))
+        with self.assertRaisesRegex(backups.BackupError, "directory/manifest backup_id mismatch"):
+            backups.verify_backup(backup_dir=backup_dir, backup_root=self.backup_root)
+
     def test_dependency_unrelated_ignored_file_does_not_dirty_gate(self):
         source, head = self.make_git_dependency_source()
         result = backups.dependency_dry_run(
@@ -525,6 +543,58 @@ class BackupOutputTests(unittest.TestCase):
         verified = backups.verify_backup(backup_dir=backup_dir, backup_root=self.backup_root)
         self.assertTrue(verified["passed"])
         self.assertEqual(verified["backup_kind"], "verified_dependency")
+
+    def test_dependency_finalized_manifest_backup_id_binding_cannot_be_bypassed_by_sidecar(self):
+        source = self.make_dependency_source()
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            result = backups.dependency_create(**self.dependency_args(source), backup_dir="bound-dependency")
+        backup_dir = Path(result["backup_dir"])
+        self.rewrite_backup_manifest(backup_dir, lambda manifest: manifest.update(backup_id="different"))
+        with self.assertRaisesRegex(backups.BackupError, "directory/manifest backup_id mismatch"):
+            backups.verify_backup(backup_dir=backup_dir, backup_root=self.backup_root)
+
+    @unittest.skipUnless(os.name == "nt", "Windows handle-backed identity schema is Windows-only")
+    def test_dependency_verify_rejects_invalid_windows_identity_fields(self):
+        source = self.make_dependency_source()
+        invalid_values = ("not-an-int", True, -1)
+        for collection_name in ("source_identity_before", "payload_identity"):
+            for field_name in ("volume_serial", "file_index"):
+                for invalid_value in invalid_values:
+                    with self.subTest(
+                        collection=collection_name,
+                        field=field_name,
+                        value=repr(invalid_value),
+                    ):
+                        backup_name = (
+                            f"identity-{collection_name.replace('_', '-')}-"
+                            f"{field_name}-{invalid_values.index(invalid_value)}"
+                        )
+                        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+                            result = backups.dependency_create(
+                                **self.dependency_args(source), backup_dir=backup_name
+                            )
+                        backup_dir = Path(result["backup_dir"])
+
+                        def mutate(manifest):
+                            includes = tuple(manifest["include"])
+                            source_identity = backups._dependency_payload_identities(source, includes)
+                            payload_identity = backups._dependency_payload_identities(
+                                backup_dir / "payload", includes
+                            )
+                            manifest["handle_backed"] = True
+                            manifest["source_identity_before"] = source_identity
+                            manifest["source_identity_after"] = [dict(item) for item in source_identity]
+                            manifest["payload_identity"] = payload_identity
+                            manifest[collection_name][0][field_name] = invalid_value
+                            if collection_name == "source_identity_before":
+                                manifest["source_identity_after"][0][field_name] = invalid_value
+
+                        self.rewrite_backup_manifest(backup_dir, mutate)
+                        with self.assertRaisesRegex(
+                            backups.BackupError,
+                            rf"handle-backed .* identity {field_name} field is invalid",
+                        ):
+                            backups.verify_backup(backup_dir=backup_dir, backup_root=self.backup_root)
 
     def test_dependency_include_validation_is_fail_closed(self):
         source = self.make_dependency_source()

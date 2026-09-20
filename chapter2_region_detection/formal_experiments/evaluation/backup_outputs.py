@@ -1446,6 +1446,28 @@ def _read_manifest(backup_dir: Path) -> dict[str, Any]:
     return value
 
 
+def _validate_finalized_backup_identity(directory: Path, manifest: dict[str, Any]) -> None:
+    """Bind a finalized directory name to its manifest identity."""
+
+    expected_backup_id = directory.name.removesuffix(".finalized")
+    backup_id = manifest.get("backup_id")
+    if type(backup_id) is not str or not backup_id:
+        raise BackupError(
+            f"finalized backup directory/manifest binding requires a non-empty string backup_id "
+            f"for {directory.name}"
+        )
+    if _BACKUP_ID_RE.fullmatch(backup_id) is None:
+        raise BackupError(
+            f"finalized backup manifest backup_id has invalid format for directory binding: "
+            f"{directory.name}"
+        )
+    if backup_id != expected_backup_id:
+        raise BackupError(
+            f"finalized backup directory/manifest backup_id mismatch: directory "
+            f"{directory.name!r} requires backup_id {expected_backup_id!r}, got {backup_id!r}"
+        )
+
+
 def _requested_final_path(backup_root: Path, backup_dir: Path | str | None, run_id: str) -> Path:
     if backup_dir is None:
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
@@ -2116,10 +2138,9 @@ def _verify_dependency_backup(directory: Path, manifest: dict[str, Any]) -> dict
     if not (source_before == source_after == manifest_payload == payload_snapshot):
         raise BackupError("verified-dependency payload hash/count verification failed")
     if manifest["handle_backed"]:
-        identity_keys = {
-            "relative_path", "volume_serial", "file_index", "link_count",
-            "bytes", "mtime_ns", "sha256",
-        }
+        identity_keys = {"relative_path", "link_count", "bytes", "mtime_ns", "sha256"}
+        if os.name == "nt":
+            identity_keys.update({"volume_serial", "file_index"})
         identity_before = manifest.get("source_identity_before")
         identity_after = manifest.get("source_identity_after")
         payload_identity = manifest.get("payload_identity")
@@ -2141,6 +2162,12 @@ def _verify_dependency_backup(directory: Path, manifest: dict[str, Any]) -> dict
                 for key in ("link_count", "bytes", "mtime_ns"):
                     if type(record.get(key)) is not int or record[key] < 0:
                         raise BackupError(f"handle-backed {collection_name} identity field is invalid")
+                if os.name == "nt":
+                    for key in ("volume_serial", "file_index"):
+                        if type(record.get(key)) is not int or record[key] < 0:
+                            raise BackupError(
+                                f"handle-backed {collection_name} identity {key} field is invalid"
+                            )
                 if record["link_count"] != 1:
                     raise BackupError(f"handle-backed {collection_name} identity is hardlinked")
                 if type(record.get("sha256")) is not str or re.fullmatch(r"[0-9a-f]{64}", record["sha256"]) is None:
@@ -2181,6 +2208,7 @@ def verify_backup(*, backup_dir: Path | str, backup_root: Path | str = DEFAULT_B
     if not directory.name.endswith(".finalized"):
         raise BackupError("verify requires a .finalized backup directory")
     manifest = _read_manifest(directory)
+    _validate_finalized_backup_identity(directory, manifest)
     if manifest.get("backup_kind") == _DEPENDENCY_BACKUP_KIND:
         return _verify_dependency_backup(directory, manifest)
     status = manifest.get("status")
