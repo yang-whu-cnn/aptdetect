@@ -268,6 +268,200 @@ class BackupOutputTests(unittest.TestCase):
         self.assertFalse(result["would_write"])
         self.assertFalse(self.backup_root.exists())
 
+    def make_dependency_source(self):
+        source = self.root / "dependency-source"
+        (source / "nested").mkdir(parents=True)
+        (source / "artifact.json").write_text('{"ok": true}\n', encoding="utf-8")
+        (source / "nested" / "coverage.json").write_text('{"coverage": 1}\n', encoding="utf-8")
+        (source / "ignored.txt").write_text("not selected\n", encoding="utf-8")
+        return source
+
+    def dependency_identity(self, head="a" * 40, clean=True):
+        return {"git_root": str(self.root), "head": head, "clean": clean}
+
+    def dependency_args(self, source, *, includes=None, label="priorrl-candidate", head="a" * 40):
+        return {
+            "source_root": source,
+            "includes": includes or ["nested/coverage.json", "artifact.json"],
+            "label": label,
+            "expect_git_head": head,
+            "backup_root": self.backup_root,
+        }
+
+    def test_dependency_dry_run_is_read_only_and_subset_aware(self):
+        source = self.make_dependency_source()
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            result = backups.dependency_dry_run(**self.dependency_args(source))
+        self.assertFalse(result["would_write"])
+        self.assertEqual(result["status"], "PARTIAL")
+        self.assertEqual(result["backup_kind"], "verified_dependency")
+        self.assertFalse(result["formal_result_eligible"])
+        self.assertFalse(result["paper_table_eligible"])
+        self.assertEqual(result["include"], ["artifact.json", "nested/coverage.json"])
+        self.assertEqual(result["source_snapshot"]["file_count"], 2)
+        self.assertFalse(self.backup_root.exists())
+
+    def test_dependency_create_and_verify_records_non_paper_manifest(self):
+        source = self.make_dependency_source()
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            result = backups.dependency_create(**self.dependency_args(source), backup_dir="priorrl-candidate")
+        backup_dir = Path(result["backup_dir"])
+        manifest = json.loads((backup_dir / "backup_manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["backup_kind"], "verified_dependency")
+        self.assertEqual(manifest["status"], "PARTIAL")
+        self.assertFalse(manifest["formal_result_eligible"])
+        self.assertFalse(manifest["paper_table_eligible"])
+        self.assertFalse(manifest["eligibility_report_passed"])
+        self.assertTrue(manifest["source_git_clean"])
+        self.assertEqual(manifest["include"], ["artifact.json", "nested/coverage.json"])
+        self.assertEqual(manifest["source_before"], manifest["source_after"])
+        self.assertEqual(manifest["source_before"], manifest["payload_after"])
+        verified = backups.verify_backup(backup_dir=backup_dir, backup_root=self.backup_root)
+        self.assertTrue(verified["passed"])
+        self.assertEqual(verified["backup_kind"], "verified_dependency")
+
+    def test_dependency_include_validation_is_fail_closed(self):
+        source = self.make_dependency_source()
+        cases = (
+            [str(source / "artifact.json")],
+            ["../artifact.json"],
+            ["nested/../artifact.json"],
+            ["nested/coverage.json", "nested\\coverage.json"],
+            ["nested"],
+            ["missing.json"],
+        )
+        for includes in cases:
+            with self.subTest(includes=includes):
+                with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+                    with self.assertRaises(backups.BackupError):
+                        backups.dependency_dry_run(**self.dependency_args(source, includes=includes))
+
+    def test_dependency_symlink_is_rejected(self):
+        source = self.make_dependency_source()
+        link = source / "linked.json"
+        try:
+            link.symlink_to(source / "artifact.json")
+        except (OSError, NotImplementedError):
+            link = source / "artifact.json"
+            reparse = lambda path: Path(path).name == "artifact.json"
+        else:
+            reparse = lambda path: Path(path) == link
+        with mock.patch.object(backups, "_is_reparse", side_effect=reparse):
+            with self.assertRaises(backups.BackupError):
+                backups.dependency_dry_run(
+                    **self.dependency_args(source, includes=[link.name])
+                )
+
+    def test_dependency_git_head_and_dirty_gates(self):
+        source = self.make_dependency_source()
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity(head="b" * 40)):
+            with self.assertRaises(backups.BackupError):
+                backups.dependency_dry_run(**self.dependency_args(source))
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity(clean=False)):
+            with self.assertRaises(backups.BackupError):
+                backups.dependency_dry_run(**self.dependency_args(source))
+
+    def test_dependency_target_conflict_is_never_overwritten(self):
+        source = self.make_dependency_source()
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            first = backups.dependency_create(**self.dependency_args(source), backup_dir="fixed")
+            with self.assertRaises(backups.BackupError):
+                backups.dependency_create(**self.dependency_args(source), backup_dir="fixed")
+        self.assertTrue(Path(first["backup_dir"]).is_dir())
+        self.assertFalse(list(self.backup_root.glob("fixed*.partial")))
+
+    def test_dependency_source_race_retains_partial_evidence(self):
+        source = self.make_dependency_source()
+        original = backups._dependency_snapshot
+        calls = {"count": 0}
+
+        def racing_snapshot(root, includes, strict_payload):
+            calls["count"] += 1
+            snapshot = original(root, includes, strict_payload)
+            if calls["count"] == 2:
+                (source / "artifact.json").write_text("changed\n", encoding="utf-8")
+            return snapshot
+
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            with self.assertRaises(backups.BackupError):
+                backups.dependency_create(
+                    **self.dependency_args(source), _snapshotter=racing_snapshot
+                )
+        self.assertFalse(list(self.backup_root.glob("*.finalized")))
+        self.assertEqual(len(list(self.backup_root.glob("*.partial"))), 1)
+
+    def test_dependency_payload_mismatch_retains_partial_evidence(self):
+        source = self.make_dependency_source()
+        original = backups._dependency_snapshot
+
+        def mismatching_snapshot(root, includes, strict_payload):
+            if strict_payload:
+                (root / "artifact.json").write_text("payload changed\n", encoding="utf-8")
+            return original(root, includes, strict_payload)
+
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            with self.assertRaises(backups.BackupError):
+                backups.dependency_create(
+                    **self.dependency_args(source), _snapshotter=mismatching_snapshot
+                )
+        self.assertFalse(list(self.backup_root.glob("*.finalized")))
+        self.assertEqual(len(list(self.backup_root.glob("*.partial"))), 1)
+
+    def test_dependency_git_head_drift_during_copy_retains_partial(self):
+        source = self.make_dependency_source()
+        identities = [self.dependency_identity(), self.dependency_identity(head="b" * 40)]
+        with mock.patch.object(backups, "_read_git_identity", side_effect=identities):
+            with self.assertRaises(backups.BackupError):
+                backups.dependency_create(**self.dependency_args(source))
+        self.assertFalse(list(self.backup_root.glob("*.finalized")))
+        self.assertEqual(len(list(self.backup_root.glob("*.partial"))), 1)
+
+    def test_dependency_existing_partial_is_never_reused(self):
+        source = self.make_dependency_source()
+        self.backup_root.mkdir()
+        (self.backup_root / "reserved.partial").mkdir()
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            with self.assertRaises(backups.BackupError):
+                backups.dependency_create(**self.dependency_args(source), backup_dir="reserved")
+        self.assertTrue((self.backup_root / "reserved.partial").is_dir())
+
+    def test_dependency_manifest_sidecar_and_payload_tampering_fail(self):
+        source = self.make_dependency_source()
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            result = backups.dependency_create(**self.dependency_args(source), backup_dir="tamper-sidecar")
+        backup_dir = Path(result["backup_dir"])
+        (backup_dir / "backup_manifest.sha256").write_text("0" * 64 + "\n", encoding="ascii")
+        with self.assertRaises(backups.BackupError):
+            backups.verify_backup(backup_dir=backup_dir, backup_root=self.backup_root)
+
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            result = backups.dependency_create(**self.dependency_args(source), backup_dir="tamper-payload")
+        payload_file = Path(result["backup_dir"]) / "payload" / "artifact.json"
+        payload_file.write_text("tampered\n", encoding="utf-8")
+        with self.assertRaises(backups.BackupError):
+            backups.verify_backup(backup_dir=result["backup_dir"], backup_root=self.backup_root)
+
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            result = backups.dependency_create(**self.dependency_args(source), backup_dir="tamper-manifest")
+        manifest_path = Path(result["backup_dir"]) / "backup_manifest.json"
+        manifest_path.write_text(
+            manifest_path.read_text(encoding="utf-8").replace('"status": "PARTIAL"', '"status": "PASS"'),
+            encoding="utf-8",
+        )
+        with self.assertRaises(backups.BackupError):
+            backups.verify_backup(backup_dir=result["backup_dir"], backup_root=self.backup_root)
+
+    def test_dependency_restore_is_explicitly_rejected(self):
+        source = self.make_dependency_source()
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            result = backups.dependency_create(**self.dependency_args(source), backup_dir="no-restore")
+        with self.assertRaises(backups.BackupError):
+            backups.restore_backup(
+                backup_dir=result["backup_dir"],
+                restore_target=self.outputs / "restored-dependency",
+                backup_root=self.backup_root,
+            )
+
 
 def shutil_usage(total, free):
     # ``disk_usage`` returns a named tuple; a small equivalent is enough for

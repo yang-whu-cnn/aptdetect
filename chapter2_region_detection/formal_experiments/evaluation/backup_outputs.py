@@ -12,12 +12,14 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import stat
+import subprocess
 import sys
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any, Callable, Iterable
 
 
@@ -28,6 +30,9 @@ _CHUNK_SIZE = 1024 * 1024
 _TWO_GIB = 2 * 1024 * 1024 * 1024
 _TWENTY_GIB = 20 * 1024 * 1024 * 1024
 _REPARSE_POINT = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+_DEPENDENCY_BACKUP_KIND = "verified_dependency"
+_GIT_HEAD_RE = re.compile(r"[0-9a-fA-F]{40}")
+_DEPENDENCY_LABEL_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
 
 
 class BackupError(RuntimeError):
@@ -205,6 +210,176 @@ def _check_status_gates(source: Path, status: str) -> tuple[bool, bool]:
     if report.get("passed") is not True:
         raise BackupError("PASS requires eligibility_report.passed=true")
     return True, True
+
+
+def _validate_dependency_source_root(source_root: Path | str) -> Path:
+    """Validate an arbitrary source directory without following links."""
+
+    root = _absolute(source_root)
+    if not root.exists() or not root.is_dir() or _is_reparse(root):
+        raise BackupError(f"source root is missing or unsafe: {root}")
+    _check_existing_components(root, root.parent)
+    return root
+
+
+def _validate_dependency_label(label: str) -> str:
+    if not isinstance(label, str) or not _DEPENDENCY_LABEL_RE.fullmatch(label):
+        raise BackupError(
+            "--label must be 1-128 ASCII characters matching [A-Za-z0-9][A-Za-z0-9._-]*"
+        )
+    return label
+
+
+def _normalize_dependency_include(raw: str) -> str:
+    """Return one canonical, non-escaping POSIX-style relative path."""
+
+    if not isinstance(raw, str) or not raw or raw != raw.strip() or "\x00" in raw:
+        raise BackupError("--include must be a non-empty relative file path")
+    windows = PureWindowsPath(raw)
+    value = raw.replace("\\", "/")
+    if value.startswith("/") or windows.drive or windows.root:
+        raise BackupError(f"--include must be relative: {raw}")
+    parts = value.split("/")
+    if not parts or any(part in {"", ".", ".."} for part in parts):
+        raise BackupError(f"--include is not a canonical relative path: {raw}")
+    if any(":" in part for part in parts):
+        raise BackupError(f"--include contains an invalid path component: {raw}")
+    normalized = PurePosixPath(*parts).as_posix()
+    if normalized in {"", "."} or PurePosixPath(normalized).is_absolute():
+        raise BackupError(f"--include is not a canonical relative path: {raw}")
+    return normalized
+
+
+def _validate_dependency_includes(source_root: Path, includes: Iterable[str]) -> tuple[str, ...]:
+    normalized = tuple(sorted(_normalize_dependency_include(value) for value in includes))
+    if not normalized:
+        raise BackupError("at least one --include is required")
+    if len(set(normalized)) != len(normalized):
+        raise BackupError("--include paths must be unique after normalization")
+    for relative in normalized:
+        path = source_root.joinpath(*relative.split("/"))
+        _check_existing_components(path, source_root)
+        if not path.exists() or not path.is_file():
+            raise BackupError(f"included path must be an existing regular file: {relative}")
+    return normalized
+
+
+def _read_git_identity(source_root: Path) -> dict[str, Any]:
+    """Read the repository identity and porcelain status without writing."""
+
+    def run(*args: str) -> str:
+        try:
+            completed = subprocess.run(
+                ["git", "-C", os.fspath(source_root), *args],
+                check=False,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
+        except OSError as exc:
+            raise BackupError(f"cannot execute git for dependency source: {exc}") from exc
+        if completed.returncode != 0:
+            detail = (completed.stderr or completed.stdout).strip()
+            raise BackupError(f"git command failed for dependency source: {detail}")
+        return completed.stdout.strip()
+
+    git_root = _absolute(run("rev-parse", "--show-toplevel"))
+    head = run("rev-parse", "HEAD").lower()
+    status = run("status", "--porcelain=v1", "--untracked-files=all")
+    return {"git_root": str(git_root), "head": head, "clean": status == ""}
+
+
+def _require_dependency_git(source_root: Path, expected_head: str) -> dict[str, Any]:
+    if not isinstance(expected_head, str) or _GIT_HEAD_RE.fullmatch(expected_head) is None:
+        raise BackupError("--expect-git-head must be a 40-character hexadecimal commit")
+    identity = _read_git_identity(source_root)
+    actual = identity.get("head")
+    if actual != expected_head.lower():
+        raise BackupError(f"git HEAD mismatch: expected {expected_head.lower()}, got {actual}")
+    if identity.get("clean") is not True:
+        raise BackupError("dependency source repository is not clean")
+    return identity
+
+
+def _dependency_snapshot_digest(files: list[dict[str, Any]]) -> str:
+    payload = {
+        "file_count": len(files),
+        "total_bytes": sum(int(item["bytes"]) for item in files),
+        "files": files,
+    }
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _dependency_snapshot(
+    root: Path,
+    includes: tuple[str, ...],
+    strict_payload: bool,
+) -> dict[str, Any]:
+    """Snapshot only selected source files, or exactly the selected payload."""
+
+    if not root.exists() or not root.is_dir() or _is_reparse(root):
+        raise BackupError(f"dependency snapshot root is missing or unsafe: {root}")
+    if strict_payload:
+        tree = _snapshot_tree(root)
+        by_path = {item["path"]: item for item in tree["files"]}
+        expected = set(includes)
+        if set(by_path) != expected:
+            extra = sorted(set(by_path) - expected)
+            missing = sorted(expected - set(by_path))
+            raise BackupError(
+                f"dependency payload file set mismatch; extra={extra}, missing={missing}"
+            )
+        files = [
+            {
+                "relative_path": relative,
+                "bytes": int(by_path[relative]["bytes"]),
+                "sha256": by_path[relative]["sha256"],
+            }
+            for relative in includes
+        ]
+    else:
+        files = []
+        for relative in includes:
+            path = root.joinpath(*relative.split("/"))
+            _check_existing_components(path, root)
+            if not path.exists() or not path.is_file():
+                raise BackupError(f"included path is missing or unsafe: {relative}")
+            size, sha256 = _hash_file(path)
+            files.append({"relative_path": relative, "bytes": size, "sha256": sha256})
+    return {
+        "file_count": len(files),
+        "total_bytes": sum(int(item["bytes"]) for item in files),
+        "files": files,
+        "snapshot_digest_sha256": _dependency_snapshot_digest(files),
+    }
+
+
+def _copy_dependency_payload(source_root: Path, destination: Path, snapshot: dict[str, Any]) -> None:
+    destination.mkdir(parents=False, exist_ok=False)
+    for record in snapshot["files"]:
+        relative = Path(*record["relative_path"].split("/"))
+        source_file = source_root / relative
+        destination_file = destination / relative
+        parent = destination_file.parent
+        parent.mkdir(parents=True, exist_ok=True)
+        _check_existing_components(parent, destination)
+        if _is_reparse(source_file):
+            raise BackupError(f"source changed to symlink/reparse point: {source_file}")
+        try:
+            with source_file.open("rb") as source_handle, destination_file.open("xb") as destination_handle:
+                while True:
+                    block = source_handle.read(_CHUNK_SIZE)
+                    if not block:
+                        break
+                    destination_handle.write(block)
+                destination_handle.flush()
+                os.fsync(destination_handle.fileno())
+        except FileExistsError as exc:
+            raise BackupError(f"refusing to overwrite destination file: {destination_file}") from exc
+        except OSError as exc:
+            raise BackupError(f"cannot copy {source_file} to {destination_file}: {exc}") from exc
 
 
 def _hash_file(path: Path) -> tuple[int, str]:
@@ -569,6 +744,215 @@ def create_backup(
     }
 
 
+def _prepare_dependency_source(
+    source_root: Path | str,
+    includes: Iterable[str],
+    label: str,
+    expected_head: str,
+    *,
+    snapshotter: Callable[[Path, tuple[str, ...], bool], dict[str, Any]] | None = None,
+) -> tuple[Path, tuple[str, ...], str, dict[str, Any], dict[str, Any]]:
+    root = _validate_dependency_source_root(source_root)
+    normalized = _validate_dependency_includes(root, includes)
+    checked_label = _validate_dependency_label(label)
+    identity = _require_dependency_git(root, expected_head)
+    snap = snapshotter or _dependency_snapshot
+    source_before = snap(root, normalized, False)
+    return root, normalized, checked_label, identity, source_before
+
+
+def dependency_dry_run(
+    *,
+    source_root: Path | str,
+    includes: Iterable[str],
+    label: str,
+    expect_git_head: str,
+    backup_root: Path | str = DEFAULT_BACKUP_ROOT,
+    max_bytes: int | None = None,
+    _snapshotter: Callable[[Path, tuple[str, ...], bool], dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Validate an immutable verified-dependency backup without writing."""
+
+    root = _validate_backup_root(backup_root)
+    source_path, normalized, checked_label, identity, source_before = _prepare_dependency_source(
+        source_root, includes, label, expect_git_head, snapshotter=_snapshotter
+    )
+    if max_bytes is not None and (max_bytes < 0 or source_before["total_bytes"] > max_bytes):
+        raise BackupError("selected dependency size exceeds --max-bytes")
+    warning = _space_warning(root, source_before["total_bytes"])
+    return {
+        "action": "dependency-dry-run",
+        "source_root": str(source_path),
+        "source_git_root": identity["git_root"],
+        "source_commit": identity["head"],
+        "source_git_clean": True,
+        "label": checked_label,
+        "include": list(normalized),
+        "status": "PARTIAL",
+        "backup_kind": _DEPENDENCY_BACKUP_KIND,
+        "formal_result_eligible": False,
+        "paper_table_eligible": False,
+        "eligibility_report_passed": False,
+        "source_snapshot": source_before,
+        "space_warning": warning,
+        "would_write": False,
+    }
+
+
+def dependency_create(
+    *,
+    source_root: Path | str,
+    includes: Iterable[str],
+    label: str,
+    expect_git_head: str,
+    backup_root: Path | str = DEFAULT_BACKUP_ROOT,
+    backup_dir: Path | str | None = None,
+    max_bytes: int | None = None,
+    _snapshotter: Callable[[Path, tuple[str, ...], bool], dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Create one immutable, non-paper-eligible dependency backup."""
+
+    root = _validate_backup_root(backup_root)
+    source_path, normalized, checked_label, identity, source_before = _prepare_dependency_source(
+        source_root, includes, label, expect_git_head, snapshotter=_snapshotter
+    )
+    if max_bytes is not None and (max_bytes < 0 or source_before["total_bytes"] > max_bytes):
+        raise BackupError("selected dependency size exceeds --max-bytes")
+    warning = _space_warning(root, source_before["total_bytes"])
+    if not root.exists():
+        try:
+            root.mkdir(parents=True, exist_ok=False)
+        except FileExistsError:
+            pass
+        except OSError as exc:
+            raise BackupError(f"cannot create backup root {root}: {exc}") from exc
+        _check_backup_path(root, root, must_exist=True)
+
+    finalized = _requested_final_path(root, backup_dir, checked_label)
+    _check_backup_path(finalized, root)
+    if finalized.exists() or finalized.is_symlink():
+        raise BackupError(f"refusing to overwrite existing backup: {finalized}")
+    staging = finalized.with_name(finalized.name[:-len(".finalized")] + ".partial")
+    if staging.exists() or staging.is_symlink():
+        raise BackupError(f"staging backup already exists; refusing to reuse it: {staging}")
+    snap = _snapshotter or _dependency_snapshot
+    try:
+        staging.mkdir(parents=False, exist_ok=False)
+        _check_existing_components(staging, root)
+        payload = staging / "payload"
+        _copy_dependency_payload(source_path, payload, source_before)
+        payload_after = snap(payload, normalized, True)
+        source_after = snap(source_path, normalized, False)
+        if source_before != source_after:
+            raise BackupError("dependency source changed during backup; refusing to finalize")
+        if source_before["files"] != payload_after["files"] or source_before["total_bytes"] != payload_after["total_bytes"]:
+            raise BackupError("copied dependency payload does not match source; refusing to finalize")
+        identity_after = _require_dependency_git(source_path, expect_git_head)
+        if identity_after != identity:
+            raise BackupError("dependency source Git identity changed during backup")
+        manifest = {
+            "schema": _BACKUP_SCHEMA,
+            "schema_version": 1,
+            "backup_id": finalized.name.removesuffix(".finalized"),
+            "created_utc": datetime.now(timezone.utc).isoformat(),
+            "backup_kind": _DEPENDENCY_BACKUP_KIND,
+            "status": "PARTIAL",
+            "formal_result_eligible": False,
+            "paper_table_eligible": False,
+            "eligibility_report_passed": False,
+            "label": checked_label,
+            "source_root": str(source_path),
+            "source_git_root": identity["git_root"],
+            "source_commit": identity["head"],
+            "expect_git_head": expect_git_head.lower(),
+            "source_git_clean": True,
+            "include": list(normalized),
+            "source_before": source_before,
+            "source_after": source_after,
+            "payload_after": payload_after,
+            "space_warning": warning,
+        }
+        _write_manifest(staging, manifest)
+        _fsync_directory(staging)
+        _rename_noreplace(staging, finalized)
+        _fsync_directory(root)
+    except Exception as exc:
+        if staging.exists() and not finalized.exists():
+            raise BackupError(
+                f"{exc}; incomplete staging retained for main-window review: {staging}"
+            ) from exc
+        raise
+    return {
+        "action": "dependency-create",
+        "backup_dir": str(finalized),
+        "manifest": str(finalized / "backup_manifest.json"),
+        "status": "PARTIAL",
+        "backup_kind": _DEPENDENCY_BACKUP_KIND,
+        "formal_result_eligible": False,
+        "paper_table_eligible": False,
+        "space_warning": warning,
+    }
+
+
+def _verify_dependency_backup(directory: Path, manifest: dict[str, Any]) -> dict[str, Any]:
+    if manifest.get("backup_kind") != _DEPENDENCY_BACKUP_KIND:
+        raise BackupError("not a verified-dependency backup")
+    required_false = ("formal_result_eligible", "paper_table_eligible", "eligibility_report_passed")
+    if manifest.get("status") != "PARTIAL":
+        raise BackupError("verified-dependency backup must have status PARTIAL")
+    if any(manifest.get(key) is not False for key in required_false):
+        raise BackupError("verified-dependency backup must be explicitly non-paper-eligible")
+    source_root = manifest.get("source_root")
+    source_commit = manifest.get("source_commit")
+    source_git_root = manifest.get("source_git_root")
+    if not isinstance(source_root, str) or not source_root:
+        raise BackupError("verified-dependency manifest is missing source_root")
+    if not isinstance(source_git_root, str) or not source_git_root:
+        raise BackupError("verified-dependency manifest is missing source_git_root")
+    if not isinstance(source_commit, str) or _GIT_HEAD_RE.fullmatch(source_commit) is None:
+        raise BackupError("verified-dependency manifest has an invalid source_commit")
+    if manifest.get("source_git_clean") is not True:
+        raise BackupError("verified-dependency source_git_clean must be true")
+    label = manifest.get("label")
+    _validate_dependency_label(label)
+    includes = manifest.get("include")
+    if not isinstance(includes, list) or not includes:
+        raise BackupError("verified-dependency manifest is missing include")
+    normalized = _validate_dependency_includes_for_manifest(includes)
+    if includes != list(normalized):
+        raise BackupError("verified-dependency include paths are not in canonical order")
+    for key in ("source_before", "source_after", "payload_after"):
+        if not isinstance(manifest.get(key), dict):
+            raise BackupError(f"verified-dependency manifest is missing {key}")
+    source_before = manifest["source_before"]
+    source_after = manifest["source_after"]
+    payload = directory / "payload"
+    payload_snapshot = _dependency_snapshot(payload, normalized, strict_payload=True)
+    if source_before != source_after:
+        raise BackupError("verified-dependency manifest records a source mutation")
+    if payload_snapshot != manifest["payload_after"]:
+        raise BackupError("verified-dependency payload hash/count verification failed")
+    return {
+        "action": "verify",
+        "backup_dir": str(directory),
+        "status": "PARTIAL",
+        "backup_kind": _DEPENDENCY_BACKUP_KIND,
+        "formal_result_eligible": False,
+        "paper_table_eligible": False,
+        "payload_snapshot": payload_snapshot,
+        "passed": True,
+    }
+
+
+def _validate_dependency_includes_for_manifest(includes: list[Any]) -> tuple[str, ...]:
+    if any(not isinstance(value, str) for value in includes):
+        raise BackupError("verified-dependency include entries must be strings")
+    normalized = tuple(sorted(_normalize_dependency_include(value) for value in includes))
+    if len(normalized) != len(set(normalized)):
+        raise BackupError("verified-dependency include paths are duplicated")
+    return normalized
+
+
 def verify_backup(*, backup_dir: Path | str, backup_root: Path | str = DEFAULT_BACKUP_ROOT) -> dict[str, Any]:
     """Fully verify a finalized backup and its payload hashes."""
 
@@ -577,6 +961,8 @@ def verify_backup(*, backup_dir: Path | str, backup_root: Path | str = DEFAULT_B
     if not directory.name.endswith(".finalized"):
         raise BackupError("verify requires a .finalized backup directory")
     manifest = _read_manifest(directory)
+    if manifest.get("backup_kind") == _DEPENDENCY_BACKUP_KIND:
+        return _verify_dependency_backup(directory, manifest)
     status = manifest.get("status")
     if status not in {"STOPPED", "PARTIAL", "PASS"}:
         raise BackupError("backup manifest has an invalid status")
@@ -616,6 +1002,8 @@ def restore_backup(
 
     result = verify_backup(backup_dir=backup_dir, backup_root=backup_root)
     source_backup = _check_backup_path(Path(backup_dir), _validate_backup_root(backup_root), must_exist=True)
+    if result.get("backup_kind") == _DEPENDENCY_BACKUP_KIND:
+        raise BackupError("restore is not supported for verified-dependency backups")
     target = _absolute(restore_target)
     outputs_root = _absolute(OUTPUTS_ROOT)
     _path_parts_from_root(target, outputs_root)
@@ -684,6 +1072,24 @@ def _parser() -> argparse.ArgumentParser:
     restore.add_argument("--backup-dir", type=Path, required=True)
     restore.add_argument("--restore-target", type=Path, required=True)
     restore.add_argument("--backup-root", type=Path)
+
+    def dependency_args(command: argparse.ArgumentParser) -> None:
+        command.add_argument("--source-root", type=Path, required=True)
+        command.add_argument("--include", action="append", required=True)
+        command.add_argument("--label", required=True)
+        command.add_argument("--expect-git-head", required=True)
+        command.add_argument("--backup-root", type=Path)
+        command.add_argument("--max-bytes", type=int)
+
+    dependency_dry = sub.add_parser(
+        "dependency-dry-run", help="validate a verified-dependency backup without writing"
+    )
+    dependency_args(dependency_dry)
+    dependency_create_parser = sub.add_parser(
+        "dependency-create", help="copy and finalize a verified-dependency backup"
+    )
+    dependency_args(dependency_create_parser)
+    dependency_create_parser.add_argument("--backup-dir", type=Path)
     return parser
 
 
@@ -706,6 +1112,25 @@ def main(argv: Iterable[str] | None = None) -> int:
             result = restore_backup(
                 backup_dir=args.backup_dir, restore_target=args.restore_target,
                 backup_root=args.backup_root or DEFAULT_BACKUP_ROOT,
+            )
+        elif args.action == "dependency-dry-run":
+            result = dependency_dry_run(
+                source_root=args.source_root,
+                includes=args.include,
+                label=args.label,
+                expect_git_head=args.expect_git_head,
+                backup_root=args.backup_root or DEFAULT_BACKUP_ROOT,
+                max_bytes=args.max_bytes,
+            )
+        elif args.action == "dependency-create":
+            result = dependency_create(
+                source_root=args.source_root,
+                includes=args.include,
+                label=args.label,
+                expect_git_head=args.expect_git_head,
+                backup_root=args.backup_root or DEFAULT_BACKUP_ROOT,
+                backup_dir=args.backup_dir,
+                max_bytes=args.max_bytes,
             )
         else:  # pragma: no cover - argparse enforces this
             raise BackupError(f"unsupported action: {args.action}")
