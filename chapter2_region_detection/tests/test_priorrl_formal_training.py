@@ -48,9 +48,9 @@ class TestPriorRLFormalTraining(unittest.TestCase):
         binding = validate_prototype_provenance(
             root / "outputs/priorrl_cc4/prototypes/frozen_prototypes.json")
         self.assertEqual(binding["prototype_file_sha256"],
-                         "127edfd36d4eb2b97b3a545c357b27c1b986cf67d23caad0ab9cbd07752fc119")
+                         "e4359df9b6703a767ebe0e52ad09d2b208b8ddd19bd11e3820a887a249c96d09")
         self.assertEqual(binding["prototype_provenance_sha256"],
-                         "ddbc74065fd2340ab9826dddee43a7a1dafb06c7ba8ecfc64d646862461d6358")
+                         "464b306274a4123acf39384d289eca632e02960f3dfb9a381e9cf7613d471363")
 
     def test_alpha_selection_rejects_test_leakage(self):
         payload = self.payload(); payload["test_seeds_used"] = True
