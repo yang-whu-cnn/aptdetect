@@ -2134,7 +2134,7 @@ def _verify_dependency_backup(directory: Path, manifest: dict[str, Any]) -> dict
             if len(collection) != len(includes):
                 raise BackupError(f"handle-backed {collection_name} identity count is invalid")
             for record, relative in zip(collection, includes):
-                if type(record) is not dict or not set(record).issubset(identity_keys):
+                if type(record) is not dict or set(record) != identity_keys:
                     raise BackupError(f"handle-backed {collection_name} identity record is malformed")
                 if record.get("relative_path") != relative:
                     raise BackupError(f"handle-backed {collection_name} identity path mismatch")
