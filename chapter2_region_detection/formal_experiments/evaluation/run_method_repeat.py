@@ -78,18 +78,27 @@ def artifact_provenance(method: str, output: Path) -> tuple[dict[str, Any], str]
         artifacts = {"policy_spec_sha256": policy_sha, "provenance_audit_sha256": sha256_file(audit)}
         return artifacts, policy_sha
     if method == "uamcts_cc4":
+        from baselines.uamcts_cc4.preflight import run_preflight
         base = REPO_ROOT / "chapter2_region_detection" / "outputs"
         paths = {
             "world_model_sha256": base / "world_model_final_20260917/a4_5b/world_model_absolute.pt",
             "reward_model_sha256": base / "world_model_final_20260917/a4_5c/response_reward_predictor.pt",
             "progress_model_sha256": base / "uamcts_cc4/progress/progress_ensemble_train_only.pt",
+            "progress_sidecar_sha256": base / "uamcts_cc4/progress/progress_ensemble_train_only.sidecar.json",
             "prototype_prior_sha256": base / "priorrl_cc4/prototypes/frozen_prototypes.json",
+            "prototype_coverage_sha256": base / "priorrl_cc4/prototypes/frozen_prototype_coverage.json",
+            "prototype_provenance_sha256": base / "priorrl_cc4/prototypes/frozen_prototype_provenance.json",
             "prior_entropy_sha256": base / "uamcts_cc4/calibration/validation_prior_entropy.json",
+            "prior_entropy_sidecar_sha256": base / "uamcts_cc4/calibration/validation_prior_entropy.sidecar.json",
             "normalizer_sha256": base / "uamcts_cc4/calibration/uamcts_uncertainty_normalizers_frozen.pt",
+            "normalizer_sidecar_sha256": base / "uamcts_cc4/calibration/uamcts_uncertainty_normalizers_frozen.sidecar.json",
         }
         missing = [str(path) for path in paths.values() if not path.is_file()]
         if missing:
             raise RuntimeError(f"UAMCTS frozen artifact gate failed: missing {missing}")
+        gate = run_preflight(require_sidecars=True)
+        if not gate.get("eligible"):
+            raise RuntimeError("UAMCTS frozen artifact gate failed: " + "; ".join(gate.get("errors", [])))
         artifacts = {"policy_spec_sha256": policy_sha,
                      **{key: sha256_file(path) for key, path in paths.items()}}
         return artifacts, artifacts["world_model_sha256"]
@@ -164,17 +173,45 @@ def _write_json(path: Path, value: Any) -> None:
     temporary.replace(path)
 
 
-def run_repeat(*, method: str, run_mode: str, repeat_index: int, policy_seed: int,
-               episode_seeds: list[int], ticks: int, output: Path, device: str = "cpu",
-               resume: bool = False,
-               episode_runner: Callable[..., tuple[dict, list[dict]]] = run_method_episode) -> dict:
-    if method not in METHODS:
-        raise ValueError("unsupported method")
-    validate_repeat_request(run_mode=run_mode, repeat_index=repeat_index,
-                            policy_seed=policy_seed, episode_seeds=episode_seeds, ticks=ticks)
-    git = git_state()
-    if run_mode == "formal" and git["git_dirty"]:
-        raise RuntimeError("formal repeat requires a clean git snapshot")
+def _canonical_json_bytes(value: Any) -> bytes:
+    return (json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+
+
+def _immutable_json(path: Path, value: Any, *, label: str = "artifact") -> str:
+    """Create an immutable JSON artifact and return its content hash."""
+    encoded = _canonical_json_bytes(value)
+    if path.exists():
+        if path.read_bytes() != encoded:
+            raise RuntimeError(f"immutable {label} overwrite refused: {path}")
+    else:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(encoded)
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _parameter_identity_hash(artifacts: dict[str, str]) -> str:
+    return hashlib.sha256(_canonical_json_bytes(artifacts)).hexdigest()
+
+
+def _uamcts_preflight() -> tuple[dict, dict[str, str]]:
+    from baselines.uamcts_cc4.preflight import run_preflight
+
+    report = run_preflight(require_sidecars=True)
+    if not report.get("eligible"):
+        raise RuntimeError("UAMCTS artifact preflight failed: " + "; ".join(report.get("errors", [])))
+    frozen = report.get("artifacts", {}).get("frozen_artifact_sha256")
+    if not isinstance(frozen, dict) or not frozen:
+        raise RuntimeError("UAMCTS preflight did not return frozen_artifact_sha256")
+    return report, {str(key): str(value) for key, value in frozen.items()
+                    if key != "frozen_artifact_sha256"}
+
+
+def _run_repeat_generic(*, method: str, run_mode: str, repeat_index: int,
+                        policy_seed: int, episode_seeds: list[int], ticks: int,
+                        output: Path, device: str, resume: bool,
+                        episode_runner: Callable[..., tuple[dict, list[dict]]],
+                        git: dict[str, Any]) -> dict:
+    """Run the original generic repeat path without UAMCTS metadata."""
     output.mkdir(parents=True, exist_ok=True)
     parts = output / "episode_parts"; parts.mkdir(exist_ok=True)
     index_path = output / "resume_index.json"
@@ -311,6 +348,193 @@ def run_repeat(*, method: str, run_mode: str, repeat_index: int, policy_seed: in
     if not validation["passed"]:
         raise RuntimeError(f"repeat validation failed: {validation['errors']}")
     return {"manifest": manifest, "metrics": metrics, "validation": validation}
+
+
+def _run_repeat_uamcts(*, run_mode: str, repeat_index: int, policy_seed: int,
+                       episode_seeds: list[int], ticks: int, output: Path,
+                       device: str, resume: bool,
+                       episode_runner: Callable[..., tuple[dict, list[dict]]],
+                       git: dict[str, Any], uamcts_gate: dict,
+                       preflight_artifacts: dict[str, str]) -> dict:
+    """Run UAMCTS with immutable pre-episode trust-chain metadata."""
+    episode_seeds = list(episode_seeds)
+    if resume and not output.is_dir():
+        raise RuntimeError("resume requested without an existing UAMCTS output directory")
+    output.mkdir(parents=True, exist_ok=True)
+    index_path = output / "resume_index.json"
+    if not resume and index_path.exists():
+        raise RuntimeError("output already contains resume state; use --resume or a fresh directory")
+    metadata_paths = {
+        "config": output / "config.resolved.yaml",
+        "policy": output / "policy_spec.json",
+        "snapshot": output / "preflight_snapshot.json",
+    }
+    if resume and any(not path.is_file() for path in metadata_paths.values()):
+        raise RuntimeError("resume requested without immutable UAMCTS metadata")
+    parts = output / "episode_parts"; parts.mkdir(exist_ok=True)
+
+    policy_payload = {"method": "uamcts_cc4", "policy_seed": policy_seed}
+    policy_sha = _immutable_json(metadata_paths["policy"], policy_payload, label="UAMCTS policy spec")
+    frozen_artifacts = dict(preflight_artifacts)
+    frozen_artifacts["policy_spec_sha256"] = policy_sha
+    base_identity = {
+        "method": "uamcts_cc4", "run_mode": run_mode, "repeat_index": repeat_index,
+        "policy_seed": policy_seed, "episode_seeds": episode_seeds, "ticks": ticks,
+        "code_commit": git["code_commit"], "git_diff_sha256": git["git_diff_sha256"],
+        "canonical_output_dir": str(output.resolve()),
+    }
+    config_payload = {
+        **base_identity,
+        "policy_spec_sha256": policy_sha,
+        "frozen_artifact_sha256": frozen_artifacts,
+    }
+    config_sha = _immutable_json(metadata_paths["config"], config_payload, label="UAMCTS config")
+    snapshot_payload = {
+        "schema": "uamcts_formal_preflight_snapshot_v1",
+        **base_identity,
+        "config_sha256": config_sha,
+        "policy_spec_sha256": policy_sha,
+        "frozen_artifact_sha256": frozen_artifacts,
+        "provider_calls": 0, "test_seeds_used": False,
+    }
+    snapshot_sha = _immutable_json(
+        metadata_paths["snapshot"], snapshot_payload, label="UAMCTS preflight snapshot"
+    )
+    identity = {
+        **base_identity,
+        "config_sha256": config_sha,
+        "policy_spec_sha256": policy_sha,
+        "preflight_snapshot_sha256": snapshot_sha,
+        "frozen_artifact_sha256": frozen_artifacts,
+    }
+    if resume:
+        if not index_path.is_file():
+            raise RuntimeError("resume requested without resume_index.json")
+        index = json.loads(index_path.read_text(encoding="utf-8"))
+        if index.get("identity") != identity:
+            raise RuntimeError("UAMCTS resume identity drift (commit, snapshot, config, or artifact)")
+    else:
+        index = {"identity": identity, "episodes": {}}
+        _write_json(index_path, index)
+
+    all_episodes: list[dict] = []; all_decisions: list[dict] = []
+    for episode_seed in episode_seeds:
+        episode_path = parts / f"episode_{episode_seed}.json"
+        decision_path = parts / f"decisions_{episode_seed}.jsonl"
+        record = index["episodes"].get(str(episode_seed))
+        if resume and record is not None:
+            if (not episode_path.is_file() or not decision_path.is_file()
+                    or sha256_file(episode_path) != record.get("episode_sha256")
+                    or sha256_file(decision_path) != record.get("decisions_sha256")):
+                raise RuntimeError(f"resume artifact hash mismatch for seed {episode_seed}")
+            episode = json.loads(episode_path.read_text(encoding="utf-8"))
+            decisions = [json.loads(line) for line in decision_path.read_text(encoding="utf-8").splitlines() if line]
+        else:
+            episode, decisions = episode_runner(
+                method="uamcts_cc4", seed=episode_seed, ticks=ticks, run_mode=run_mode,
+                device=device, policy_seed=policy_seed,
+            )
+            _write_json(episode_path, episode)
+            decision_path.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in decisions), encoding="utf-8")
+            index["episodes"][str(episode_seed)] = {
+                "episode_sha256": sha256_file(episode_path),
+                "decisions_sha256": sha256_file(decision_path),
+            }
+            _write_json(index_path, index)
+        if (episode.get("episode_seed") != episode_seed or episode.get("method") != "uamcts_cc4"
+                or episode.get("policy_seed") != policy_seed):
+            raise RuntimeError(f"episode identity mismatch for seed {episode_seed}")
+        all_episodes.append(episode); all_decisions.extend(decisions)
+
+    episodes_path = output / "episodes.jsonl"
+    decisions_path = output / "decisions.jsonl"
+    episodes_path.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in all_episodes), encoding="utf-8")
+    decisions_path.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in all_decisions), encoding="utf-8")
+    metrics = aggregate_repeat(all_episodes, expected_ticks=ticks).to_dict()
+    _write_json(output / "metrics.json", metrics)
+    (output / "stdout.log").touch()
+    dependencies, hardware = dependency_and_hardware(device)
+    method_artifacts, model_sha = artifact_provenance("uamcts_cc4", output)
+    paper_path = REPO_ROOT / PAPER_FILES["uamcts_cc4"]
+    if not paper_path.is_file():
+        raise RuntimeError(f"missing source paper: {paper_path}")
+    paper_sha = sha256_file(paper_path)
+    if paper_sha != EXPECTED_PAPER_HASHES["uamcts_cc4"]:
+        raise RuntimeError(f"source paper SHA256 mismatch for {paper_path.name}")
+    parameter_hash = _parameter_identity_hash(frozen_artifacts)
+    manifest = {
+        "schema_version": 1, "protocol_version": PROTOCOL_VERSION,
+        "method": METHOD_NAMES["uamcts_cc4"], "method_slug": "uamcts_cc4",
+        "repeat_index": repeat_index, "training_seed": policy_seed,
+        "test_episode_seeds": episode_seeds, "episode_ticks": ticks,
+        "code_commit": git["code_commit"], "git_dirty": git["git_dirty"],
+        "git_diff_sha256": git["git_diff_sha256"], "config_sha256": config_sha,
+        "paper_sha256": paper_sha, "upstream_commit": None,
+        "python_version": platform.python_version(), "dependencies": dependencies,
+        "hardware": hardware, "model_sha256": model_sha,
+        "method_artifacts": method_artifacts,
+        "frozen_artifact_sha256": frozen_artifacts,
+        "preflight_snapshot_sha256": snapshot_sha,
+        "provider_calls": 0, "test_seeds_used": False,
+        "test_parameter_hash_before": parameter_hash,
+        "test_parameter_hash_after": parameter_hash,
+        "test_time_parameter_hash_before": parameter_hash,
+        "test_time_parameter_hash_after": parameter_hash,
+        "test_parameter_sha256_before": parameter_hash,
+        "test_parameter_sha256_after": parameter_hash,
+        "run_mode": run_mode, "formal_result_eligible": run_mode == "formal",
+        "table_id": "table1", "row_id": "uamcts_cc4", "component_variant": "uamcts_cc4",
+        "reward_mode": "full_reward", "reward_semantics": "cc4_v3_full_reward",
+        "artifact_sha256": {
+            "config.resolved.yaml": config_sha,
+            "policy_spec.json": policy_sha,
+            "preflight_snapshot.json": snapshot_sha,
+            "episodes.jsonl": sha256_file(episodes_path),
+            "decisions.jsonl": sha256_file(decisions_path),
+            "metrics.json": sha256_file(output / "metrics.json"),
+        },
+        "uamcts_preflight": {
+            "schema": uamcts_gate.get("schema"),
+            "eligible": bool(uamcts_gate.get("eligible")),
+            "formal_result_eligible": False,
+            "frozen_artifact_sha256": frozen_artifacts,
+        },
+    }
+    _write_json(output / "manifest.json", manifest)
+    validation = validate_run_directory(output, formal=run_mode == "formal")
+    _write_json(output / "validation.json", validation)
+    if not validation["passed"]:
+        raise RuntimeError(f"repeat validation failed: {validation['errors']}")
+    return {"manifest": manifest, "metrics": metrics, "validation": validation}
+
+
+def run_repeat(*, method: str, run_mode: str, repeat_index: int, policy_seed: int,
+               episode_seeds: list[int], ticks: int, output: Path, device: str = "cpu",
+               resume: bool = False,
+               episode_runner: Callable[..., tuple[dict, list[dict]]] = run_method_episode) -> dict:
+    if method not in METHODS:
+        raise ValueError("unsupported method")
+    validate_repeat_request(run_mode=run_mode, repeat_index=repeat_index,
+                            policy_seed=policy_seed, episode_seeds=episode_seeds, ticks=ticks)
+    git = git_state()
+    if run_mode == "formal" and git["git_dirty"]:
+        raise RuntimeError("formal repeat requires a clean git snapshot")
+    if method == "uamcts_cc4":
+        # This is intentionally before output.mkdir: a blocked UAMCTS gate
+        # must not leave an apparently resumable output directory.
+        uamcts_gate, preflight_artifacts = _uamcts_preflight()
+        return _run_repeat_uamcts(
+            run_mode=run_mode, repeat_index=repeat_index, policy_seed=policy_seed,
+            episode_seeds=episode_seeds, ticks=ticks, output=output, device=device,
+            resume=resume, episode_runner=episode_runner, git=git,
+            uamcts_gate=uamcts_gate, preflight_artifacts=preflight_artifacts,
+        )
+    return _run_repeat_generic(
+        method=method, run_mode=run_mode, repeat_index=repeat_index,
+        policy_seed=policy_seed, episode_seeds=episode_seeds, ticks=ticks,
+        output=output, device=device, resume=resume, episode_runner=episode_runner,
+        git=git,
+    )
 
 
 def main() -> None:

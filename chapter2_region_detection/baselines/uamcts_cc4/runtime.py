@@ -5,9 +5,17 @@ import numpy as np
 from formal_experiments.training.bootstrap_world_model import BootstrapProbabilisticWorldModel
 from formal_experiments.training.response_reward_predictor import ResponseRewardPredictor
 from shared.formal_state import BLUE_AGENTS
-from .artifacts import FrozenProgressEnsemble, FrozenUncertaintyNormalizers, UAMCTSPrototypeRetriever
+from .artifacts import (
+    DEFAULT_NORMALIZER_SIDECAR, DEFAULT_PRIOR_ENTROPY_SIDECAR,
+    DEFAULT_PROGRESS_SIDECAR, FrozenProgressEnsemble,
+    FrozenUncertaintyNormalizers, UAMCTSPrototypeRetriever,
+)
 from .planner import UAMCTSPlanner, UAMCTSConfig
-from .preflight import DEFAULT_PRIOR_ENTROPY, run_preflight
+from .preflight import (
+    DEFAULT_PRIOR_ENTROPY, DEFAULT_PROTOTYPE_COVERAGE,
+    DEFAULT_PROTOTYPE_PROVENANCE, DEFAULT_TRAIN_REPLAY,
+    DEFAULT_VALIDATION_REPLAY, run_preflight,
+)
 
 class WMAdapter:
     def __init__(self,model): self.model=model
@@ -26,15 +34,33 @@ class AgentPrior:
 
 def build_runtime(*,world_path,reward_path,progress_path,prototype_path,normalizers_path,
                   prior_entropy_path=DEFAULT_PRIOR_ENTROPY,
+                  progress_sidecar_path=DEFAULT_PROGRESS_SIDECAR,
+                  prior_entropy_sidecar_path=DEFAULT_PRIOR_ENTROPY_SIDECAR,
+                  normalizer_sidecar_path=DEFAULT_NORMALIZER_SIDECAR,
+                  prototype_coverage_path=DEFAULT_PROTOTYPE_COVERAGE,
+                  prototype_provenance_path=DEFAULT_PROTOTYPE_PROVENANCE,
+                  train_replay_path=DEFAULT_TRAIN_REPLAY,
+                  validation_replay_path=DEFAULT_VALIDATION_REPLAY,
                   device="cpu",simulations=64,planner_seed=73001):
     gate=run_preflight(world_model=world_path,reward_model=reward_path,progress=progress_path,
         normalizers=normalizers_path,prototype_artifact=prototype_path,
-        prior_entropy_artifact=prior_entropy_path)
+        prior_entropy_artifact=prior_entropy_path,
+        progress_sidecar=progress_sidecar_path,
+        prior_entropy_sidecar=prior_entropy_sidecar_path,
+        normalizer_sidecar=normalizer_sidecar_path,
+        prototype_coverage_artifact=prototype_coverage_path,
+        prototype_provenance_artifact=prototype_provenance_path,
+        train_replay=train_replay_path, validation_replay=validation_replay_path,
+        require_sidecars=True)
     if not gate["eligible"]:
         raise RuntimeError("UAMCTS artifact preflight failed: " + "; ".join(gate["errors"]))
     wm=WMAdapter(BootstrapProbabilisticWorldModel.load_checkpoint(world_path,device=device))
     reward=RewardAdapter(ResponseRewardPredictor.load_checkpoint(reward_path,device=device))
-    progress=FrozenProgressEnsemble(progress_path,device=device); retriever=UAMCTSPrototypeRetriever(prototype_path)
+    progress=FrozenProgressEnsemble(
+        progress_path, device=device, sidecar_path=progress_sidecar_path,
+        train_replay_path=train_replay_path, validation_replay_path=validation_replay_path,
+        require_sidecar=True,
+    ); retriever=UAMCTSPrototypeRetriever(prototype_path)
     normalizers=FrozenUncertaintyNormalizers(normalizers_path); planners={}; priors={}
     for i,agent in enumerate(BLUE_AGENTS):
         priors[agent]=AgentPrior(retriever,agent)
