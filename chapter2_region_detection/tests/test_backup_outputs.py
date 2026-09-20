@@ -378,6 +378,30 @@ class BackupOutputTests(unittest.TestCase):
         with self.assertRaisesRegex(backups.BackupError, "directory/manifest backup_id mismatch"):
             backups.verify_backup(backup_dir=backup_dir, backup_root=self.backup_root)
 
+    def test_ordinary_double_finalized_suffix_rejected_on_create_and_verify(self):
+        self.make_partial()
+        with self.assertRaisesRegex(backups.BackupError, "reserved suffix"):
+            backups.create_backup(
+                source=self.source,
+                backup_root=self.backup_root,
+                backup_dir="ordinary.finalized.finalized",
+            )
+
+        result = backups.create_backup(
+            source=self.source,
+            backup_root=self.backup_root,
+            backup_dir="ordinary",
+        )
+        backup_dir = Path(result["backup_dir"])
+        attacked_dir = backup_dir.with_name("ordinary.finalized.finalized")
+        backup_dir.rename(attacked_dir)
+        self.rewrite_backup_manifest(
+            attacked_dir,
+            lambda manifest: manifest.update(backup_id="ordinary.finalized"),
+        )
+        with self.assertRaisesRegex(backups.BackupError, "exactly one .finalized suffix"):
+            backups.verify_backup(backup_dir=attacked_dir, backup_root=self.backup_root)
+
     def test_dependency_unrelated_ignored_file_does_not_dirty_gate(self):
         source, head = self.make_git_dependency_source()
         result = backups.dependency_dry_run(
@@ -552,6 +576,30 @@ class BackupOutputTests(unittest.TestCase):
         self.rewrite_backup_manifest(backup_dir, lambda manifest: manifest.update(backup_id="different"))
         with self.assertRaisesRegex(backups.BackupError, "directory/manifest backup_id mismatch"):
             backups.verify_backup(backup_dir=backup_dir, backup_root=self.backup_root)
+
+    def test_dependency_double_finalized_suffix_rejected_on_create_and_verify(self):
+        source = self.make_dependency_source()
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            with self.assertRaisesRegex(backups.BackupError, "reserved suffix"):
+                backups.dependency_create(
+                    **self.dependency_args(source),
+                    backup_dir="dependency.finalized.finalized",
+                )
+
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            result = backups.dependency_create(
+                **self.dependency_args(source),
+                backup_dir="dependency",
+            )
+        backup_dir = Path(result["backup_dir"])
+        attacked_dir = backup_dir.with_name("dependency.finalized.finalized")
+        backup_dir.rename(attacked_dir)
+        self.rewrite_backup_manifest(
+            attacked_dir,
+            lambda manifest: manifest.update(backup_id="dependency.finalized"),
+        )
+        with self.assertRaisesRegex(backups.BackupError, "exactly one .finalized suffix"):
+            backups.verify_backup(backup_dir=attacked_dir, backup_root=self.backup_root)
 
     @unittest.skipUnless(os.name == "nt", "Windows handle-backed identity schema is Windows-only")
     def test_dependency_verify_rejects_invalid_windows_identity_fields(self):

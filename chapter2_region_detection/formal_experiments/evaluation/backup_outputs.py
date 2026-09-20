@@ -34,6 +34,7 @@ _TWO_GIB = 2 * 1024 * 1024 * 1024
 _TWENTY_GIB = 20 * 1024 * 1024 * 1024
 _REPARSE_POINT = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
 _DEPENDENCY_BACKUP_KIND = "verified_dependency"
+_FINALIZED_SUFFIX = ".finalized"
 _GIT_HEAD_RE = re.compile(r"[0-9a-fA-F]{40}")
 _DEPENDENCY_LABEL_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
 _BACKUP_ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,255}\Z")
@@ -1446,21 +1447,26 @@ def _read_manifest(backup_dir: Path) -> dict[str, Any]:
     return value
 
 
+def _validate_backup_id(backup_id: Any, *, context: str) -> None:
+    if type(backup_id) is not str or not backup_id:
+        raise BackupError(f"{context} requires a non-empty string backup_id")
+    if _BACKUP_ID_RE.fullmatch(backup_id) is None:
+        raise BackupError(f"{context} backup_id has invalid format")
+    if _FINALIZED_SUFFIX in backup_id:
+        raise BackupError(
+            f"{context} backup_id contains reserved suffix {_FINALIZED_SUFFIX!r}"
+        )
+
+
 def _validate_finalized_backup_identity(directory: Path, manifest: dict[str, Any]) -> None:
     """Bind a finalized directory name to its manifest identity."""
 
-    expected_backup_id = directory.name.removesuffix(".finalized")
+    expected_backup_id = directory.name.removesuffix(_FINALIZED_SUFFIX)
     backup_id = manifest.get("backup_id")
-    if type(backup_id) is not str or not backup_id:
-        raise BackupError(
-            f"finalized backup directory/manifest binding requires a non-empty string backup_id "
-            f"for {directory.name}"
-        )
-    if _BACKUP_ID_RE.fullmatch(backup_id) is None:
-        raise BackupError(
-            f"finalized backup manifest backup_id has invalid format for directory binding: "
-            f"{directory.name}"
-        )
+    _validate_backup_id(
+        backup_id,
+        context=f"finalized backup directory/manifest binding for {directory.name}",
+    )
     if backup_id != expected_backup_id:
         raise BackupError(
             f"finalized backup directory/manifest backup_id mismatch: directory "
@@ -1471,14 +1477,19 @@ def _validate_finalized_backup_identity(directory: Path, manifest: dict[str, Any
 def _requested_final_path(backup_root: Path, backup_dir: Path | str | None, run_id: str) -> Path:
     if backup_dir is None:
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
-        name = f"{run_id}_{stamp}_{uuid.uuid4().hex}.finalized"
-        return backup_root / name
-    candidate = _absolute(backup_dir) if Path(backup_dir).is_absolute() else backup_root / Path(backup_dir)
-    _path_parts_from_root(candidate, backup_root)
-    if candidate.name.endswith(".partial"):
-        candidate = candidate.with_name(candidate.name[:-len(".partial")] + ".finalized")
-    elif not candidate.name.endswith(".finalized"):
-        candidate = candidate.with_name(candidate.name + ".finalized")
+        name = f"{run_id}_{stamp}_{uuid.uuid4().hex}{_FINALIZED_SUFFIX}"
+        candidate = backup_root / name
+    else:
+        candidate = _absolute(backup_dir) if Path(backup_dir).is_absolute() else backup_root / Path(backup_dir)
+        _path_parts_from_root(candidate, backup_root)
+        if candidate.name.endswith(".partial"):
+            candidate = candidate.with_name(candidate.name[:-len(".partial")] + _FINALIZED_SUFFIX)
+        elif not candidate.name.endswith(_FINALIZED_SUFFIX):
+            candidate = candidate.with_name(candidate.name + _FINALIZED_SUFFIX)
+    _validate_backup_id(
+        candidate.name.removesuffix(_FINALIZED_SUFFIX),
+        context="backup path",
+    )
     return candidate
 
 
@@ -2205,8 +2216,12 @@ def verify_backup(*, backup_dir: Path | str, backup_root: Path | str = DEFAULT_B
 
     root = _validate_backup_root(backup_root)
     directory = _check_backup_path(Path(backup_dir), root, must_exist=True)
-    if not directory.name.endswith(".finalized"):
+    if not directory.name.endswith(_FINALIZED_SUFFIX):
         raise BackupError("verify requires a .finalized backup directory")
+    if directory.name.removesuffix(_FINALIZED_SUFFIX).endswith(_FINALIZED_SUFFIX):
+        raise BackupError(
+            "verify requires a backup directory with exactly one .finalized suffix"
+        )
     manifest = _read_manifest(directory)
     _validate_finalized_backup_identity(directory, manifest)
     if manifest.get("backup_kind") == _DEPENDENCY_BACKUP_KIND:
