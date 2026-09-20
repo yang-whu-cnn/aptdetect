@@ -378,6 +378,20 @@ class BackupOutputTests(unittest.TestCase):
                     **self.dependency_args(ancestor / source.name)
                 )
 
+    def test_dependency_mocked_intermediate_ancestor_reparse_is_rejected(self):
+        source = self.make_dependency_source()
+        middle = source.parent
+        real_is_reparse = backups._is_reparse
+
+        def reparse_middle(path):
+            if Path(path) == middle:
+                return True
+            return real_is_reparse(path)
+
+        with mock.patch.object(backups, "_is_reparse", side_effect=reparse_middle):
+            with self.assertRaises(backups.BackupError):
+                backups._validate_dependency_source_root(source)
+
     def test_dependency_verify_rejects_schema_version_drift(self):
         source = self.make_dependency_source()
         with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
@@ -393,6 +407,67 @@ class BackupOutputTests(unittest.TestCase):
         )
         with self.assertRaises(backups.BackupError):
             backups.verify_backup(backup_dir=backup_dir, backup_root=self.backup_root)
+
+    def test_dependency_verify_rejects_boolean_integer_schema_version(self):
+        source = self.make_dependency_source()
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            result = backups.dependency_create(**self.dependency_args(source), backup_dir="schema-bool")
+        backup_dir = Path(result["backup_dir"])
+        manifest_path = backup_dir / "backup_manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["schema_version"] = True
+        manifest_bytes = (json.dumps(manifest, sort_keys=True, indent=2) + "\n").encode("utf-8")
+        manifest_path.write_bytes(manifest_bytes)
+        (backup_dir / "backup_manifest.sha256").write_text(
+            hashlib.sha256(manifest_bytes).hexdigest() + "\n", encoding="ascii"
+        )
+        with self.assertRaises(backups.BackupError):
+            backups.verify_backup(backup_dir=backup_dir, backup_root=self.backup_root)
+
+    def test_dependency_verify_rejects_noncanonical_git_relative_path(self):
+        source = self.make_dependency_source()
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            result = backups.dependency_create(**self.dependency_args(source), backup_dir="git-path")
+        backup_dir = Path(result["backup_dir"])
+        manifest_path = backup_dir / "backup_manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["git_files"][0]["git_relative_path"] = "../escape.json"
+        manifest_bytes = (json.dumps(manifest, sort_keys=True, indent=2) + "\n").encode("utf-8")
+        manifest_path.write_bytes(manifest_bytes)
+        (backup_dir / "backup_manifest.sha256").write_text(
+            hashlib.sha256(manifest_bytes).hexdigest() + "\n", encoding="ascii"
+        )
+        with self.assertRaises(backups.BackupError):
+            backups.verify_backup(backup_dir=backup_dir, backup_root=self.backup_root)
+
+    def test_dependency_verify_rejects_sidecar_trailing_garbage(self):
+        source = self.make_dependency_source()
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            result = backups.dependency_create(**self.dependency_args(source), backup_dir="sidecar-garbage")
+        sidecar = Path(result["backup_dir"]) / "backup_manifest.sha256"
+        sidecar.write_text(sidecar.read_text(encoding="ascii") + "garbage\n", encoding="ascii")
+        with self.assertRaises(backups.BackupError):
+            backups.verify_backup(backup_dir=result["backup_dir"], backup_root=self.backup_root)
+
+    def test_dependency_nested_directories_are_fsynced(self):
+        source = self.make_dependency_source()
+        real_fsync = backups._fsync_directory
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            with mock.patch.object(backups, "_fsync_directory", wraps=real_fsync) as fsync:
+                backups.dependency_create(**self.dependency_args(source), backup_dir="nested-fsync")
+        paths = {Path(call.args[0]).as_posix() for call in fsync.call_args_list if call.args}
+        self.assertTrue(any(path.endswith("payload/nested") for path in paths))
+
+    def test_dependency_link_count_race_is_rejected(self):
+        source = self.make_dependency_source()
+        with mock.patch.object(backups, "_read_git_identity", return_value=self.dependency_identity()):
+            with mock.patch.object(
+                backups,
+                "_dependency_handle_identity",
+                return_value={"link_count": 2, "device": 1, "inode": 1},
+            ):
+                with self.assertRaises(backups.BackupError):
+                    backups.dependency_dry_run(**self.dependency_args(source))
 
     def test_dependency_verify_requires_all_three_snapshots_equal(self):
         source = self.make_dependency_source()

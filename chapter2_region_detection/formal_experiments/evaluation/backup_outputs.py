@@ -36,6 +36,7 @@ _REPARSE_POINT = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
 _DEPENDENCY_BACKUP_KIND = "verified_dependency"
 _GIT_HEAD_RE = re.compile(r"[0-9a-fA-F]{40}")
 _DEPENDENCY_LABEL_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
+_BACKUP_ID_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,255}\Z")
 
 # Windows handle flags used by the dependency path.  Path-only copying is
 # deliberately not a fallback: the verified-dependency contract is intended
@@ -67,6 +68,24 @@ def _absolute(path: Path | str) -> Path:
     return Path(os.path.abspath(os.fspath(path)))
 
 
+def _anchor_components(path: Path) -> tuple[Path, tuple[str, ...]]:
+    """Split a lexical path at its volume/UNC/root anchor."""
+
+    value = _absolute(path)
+    anchor = Path(value.anchor) if value.anchor else Path()
+    # ``Path.parts`` includes the drive/UNC anchor as the first component on
+    # Windows and '/' on POSIX.  Rebuilding from the anchor avoids resolving
+    # any component while still allowing every existing ancestor to be
+    # inspected individually.
+    parts = value.parts
+    anchor_parts = anchor.parts
+    if anchor_parts and tuple(parts[: len(anchor_parts)]) == tuple(anchor_parts):
+        return anchor, tuple(parts[len(anchor_parts) :])
+    if value.anchor:
+        return anchor, tuple(part for part in parts if part != value.anchor)
+    return Path(), tuple(parts)
+
+
 def _is_reparse(path: Path) -> bool:
     """Return whether *path* is a symlink or Windows reparse point."""
 
@@ -75,6 +94,24 @@ def _is_reparse(path: Path) -> bool:
     except OSError as exc:
         raise BackupError(f"cannot inspect path {path}: {exc}") from exc
     return bool(stat.S_ISLNK(info.st_mode) or (getattr(info, "st_file_attributes", 0) & _REPARSE_POINT))
+
+
+def _check_all_ancestor_components(path: Path) -> None:
+    """Reject any existing reparse point from the volume/UNC anchor onward."""
+
+    anchor, parts = _anchor_components(path)
+    current = anchor
+    if os.path.lexists(os.fspath(current)):
+        if _is_reparse(current):
+            raise BackupError(f"ancestor reparse point is not allowed: {current}")
+    for part in parts:
+        current = current / part
+        # Missing descendants are safe to create only after their existing
+        # parent chain has been inspected.  A symlink can report exists=False
+        # on some Windows providers, so is_symlink is checked separately.
+        if os.path.lexists(os.fspath(current)):
+            if _is_reparse(current):
+                raise BackupError(f"ancestor reparse point is not allowed: {current}")
 
 
 def _path_parts_from_root(path: Path, root: Path) -> tuple[str, ...]:
@@ -92,6 +129,7 @@ def _check_existing_components(path: Path, root: Path) -> None:
 
     root_abs = _absolute(root)
     path_abs = _absolute(path)
+    _check_all_ancestor_components(path_abs)
     # The root may itself be a temporary test path, so do not require it to
     # exist here.  Existing ancestors are checked up to the common root.
     try:
@@ -104,7 +142,7 @@ def _check_existing_components(path: Path, root: Path) -> None:
         raise BackupError(f"reparse point is not allowed: {current}")
     for part in relative.parts:
         current = current / part
-        if current.exists() or current.is_symlink():
+        if os.path.lexists(os.fspath(current)):
             if _is_reparse(current):
                 raise BackupError(f"symlink/reparse point is not allowed: {current}")
 
@@ -143,7 +181,12 @@ def _windows_is_within(path: str | Path, root: str | Path) -> bool:
 
 
 def _windows_open_handle(
-    path: Path, *, directory: bool, create_new: bool = False, writable: bool = False
+    path: Path,
+    *,
+    directory: bool,
+    create_new: bool = False,
+    writable: bool = False,
+    share_mode: int | None = None,
 ) -> int:
     """Open a Windows path with reparse-point-safe flags and no replacement."""
 
@@ -165,10 +208,12 @@ def _windows_open_handle(
         flags |= _WIN_FILE_FLAG_BACKUP_SEMANTICS
     access = _WIN_GENERIC_READ | (_WIN_GENERIC_WRITE if (create_new or writable) else 0)
     creation = _WIN_CREATE_NEW if create_new else _WIN_OPEN_EXISTING
+    if share_mode is None:
+        share_mode = _WIN_FILE_SHARE_READ | _WIN_FILE_SHARE_WRITE | _WIN_FILE_SHARE_DELETE
     handle = kernel32.CreateFileW(
         os.fspath(path),
         access,
-        _WIN_FILE_SHARE_READ | _WIN_FILE_SHARE_WRITE | _WIN_FILE_SHARE_DELETE,
+        share_mode,
         None,
         creation,
         flags | (_WIN_FILE_ATTRIBUTE_NORMAL if not directory else 0),
@@ -324,6 +369,26 @@ def _secure_dependency_file(path: Path, anchor: Path, *, write: bool = False, cr
             os.close(fd)
 
 
+def _dependency_handle_identity(handle: Any) -> dict[str, int]:
+    """Read identity/link-count from the already-open dependency handle."""
+
+    if os.name == "nt":
+        import msvcrt
+        return _windows_handle_info(msvcrt.get_osfhandle(handle.fileno()))
+    info = os.fstat(handle.fileno())
+    return {"link_count": int(info.st_nlink), "device": int(info.st_dev), "inode": int(info.st_ino)}
+
+
+def _dependency_identity_matches(before: dict[str, int], after: dict[str, int]) -> bool:
+    if type(before.get("link_count")) is not int or before.get("link_count") != 1:
+        return False
+    if type(after.get("link_count")) is not int or after.get("link_count") != 1:
+        return False
+    keys = ("volume_serial", "file_index", "device", "inode")
+    compared = [key for key in keys if key in before or key in after]
+    return all(before.get(key) == after.get(key) for key in compared)
+
+
 def _secure_dependency_mkdirs(root: Path, relative: Path) -> None:
     """Create payload parents beneath an opened-directory boundary."""
 
@@ -345,6 +410,7 @@ def _secure_dependency_mkdirs(root: Path, relative: Path) -> None:
             _check_existing_components(current, root)
             if not current.is_dir():
                 raise BackupError(f"payload parent is not a directory: {current}")
+            _fsync_directory(current, strict=True)
         return
     current_fd = os.open(os.fspath(root), os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
@@ -360,6 +426,144 @@ def _secure_dependency_mkdirs(root: Path, relative: Path) -> None:
         raise BackupError(f"cannot create secure payload directory beneath {root}: {exc}") from exc
     finally:
         os.close(current_fd)
+    for index in range(1, len(relative.parts) + 1):
+        _fsync_directory(root.joinpath(*relative.parts[:index]), strict=True)
+
+
+class _WindowsDependencyLockSet:
+    """Exclusive source-chain locks for the production dependency path.
+
+    Windows has no POSIX-style ``openat`` equivalent in the Python standard
+    library.  The dependency creator therefore keeps a no-share handle for
+    every existing directory from the volume/UNC anchor through the source
+    root and for every selected file.  If any component cannot be locked,
+    creation fails closed before a byte is copied.
+    """
+
+    def __init__(self, source_root: Path, includes: tuple[str, ...]) -> None:
+        self.source_root = _absolute(source_root)
+        self.includes = includes
+        self.directory_handles: list[int] = []
+        self.file_handles: dict[str, tuple[Any, dict[str, int]]] = {}
+
+    def _close(self) -> None:
+        errors: list[Exception] = []
+        for handle, _info in self.file_handles.values():
+            try:
+                handle.close()
+            except OSError as exc:
+                errors.append(exc)
+        self.file_handles.clear()
+        for handle in reversed(self.directory_handles):
+            try:
+                _windows_close_handle(handle)
+            except BackupError as exc:
+                errors.append(exc)
+        self.directory_handles.clear()
+        if errors:
+            raise BackupError(f"failed to release dependency lock handles: {errors[0]}")
+
+    def __enter__(self) -> "_WindowsDependencyLockSet":
+        if os.name != "nt":
+            raise BackupError("Windows dependency lock set requested on non-Windows platform")
+        try:
+            _check_all_ancestor_components(self.source_root)
+            anchor, parts = _anchor_components(self.source_root)
+            current = anchor
+            chain = [current]
+            for part in parts:
+                current = current / part
+                chain.append(current)
+            # Include every selected-file parent directory, not merely the
+            # source root.  Sorting by depth ensures the lock chain is opened
+            # from the volume/UNC anchor outward.
+            chain_set = {os.path.normcase(os.fspath(item)): item for item in chain}
+            for relative in self.includes:
+                target_parent = self.source_root.joinpath(*relative.split("/")).parent
+                parent_anchor, parent_parts = _anchor_components(target_parent)
+                current = parent_anchor
+                chain_set.setdefault(os.path.normcase(os.fspath(current)), current)
+                for part in parent_parts:
+                    current = current / part
+                    chain_set.setdefault(os.path.normcase(os.fspath(current)), current)
+            chain = sorted(chain_set.values(), key=lambda item: len(item.parts))
+            # The chain begins at the volume/UNC anchor by design.  Sharing
+            # READ/WRITE/DELETE is forbidden while these handles are held.
+            anchor_final: str | None = None
+            for component in chain:
+                handle: int | None = None
+                try:
+                    handle = _windows_open_handle(
+                        component,
+                        directory=True,
+                        share_mode=0,
+                    )
+                    info = _windows_handle_info(handle)
+                    if info["attributes"] & _REPARSE_POINT:
+                        raise BackupError(f"dependency lock chain contains reparse point: {component}")
+                    final_path = _windows_handle_final_path(handle)
+                    if anchor_final is None:
+                        anchor_final = final_path
+                    if (
+                        not _windows_is_within(final_path, anchor_final)
+                        or _windows_path_key(final_path) != _windows_path_key(component)
+                    ):
+                        raise BackupError(f"dependency lock chain final path is invalid: {component}")
+                    self.directory_handles.append(handle)
+                    handle = None
+                finally:
+                    if handle is not None:
+                        _windows_close_handle(handle)
+            root_final = _windows_handle_final_path(self.directory_handles[-1])
+            for relative in self.includes:
+                target = self.source_root.joinpath(*relative.split("/"))
+                file_handle: int | None = None
+                try:
+                    file_handle = _windows_open_handle(
+                        target,
+                        directory=False,
+                        share_mode=0,
+                    )
+                    info = _windows_handle_info(file_handle)
+                    final_path = _windows_handle_final_path(file_handle)
+                    if (
+                        info["attributes"] & _REPARSE_POINT
+                        or _windows_path_key(final_path) != _windows_path_key(target)
+                        or not _windows_is_within(final_path, root_final)
+                    ):
+                        raise BackupError(f"selected dependency escaped locked source root: {relative}")
+                    import msvcrt
+                    fd = msvcrt.open_osfhandle(file_handle, os.O_BINARY | os.O_RDONLY)
+                    file_handle = None
+                    self.file_handles[relative] = (os.fdopen(fd, "rb"), info)
+                finally:
+                    if file_handle is not None:
+                        _windows_close_handle(file_handle)
+            return self
+        except Exception as exc:
+            try:
+                self._close()
+            except BackupError:
+                pass
+            if isinstance(exc, BackupError):
+                raise
+            raise BackupError(
+                f"cannot acquire exclusive Windows dependency chain locks: {exc}"
+            ) from exc
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self._close()
+
+    def refresh_file_info(self, relative: str) -> dict[str, int]:
+        if relative not in self.file_handles:
+            raise BackupError(f"selected dependency is not held by a lock handle: {relative}")
+        # The handle remains open; querying it after every read catches link
+        # replacement and identity changes even when a provider reports stale
+        # path metadata.
+        file_handle = self.file_handles[relative][0]
+        import msvcrt
+        raw_handle = msvcrt.get_osfhandle(file_handle.fileno())
+        return _windows_handle_info(raw_handle)
 
 
 def _validate_source(source: Path, outputs_root: Path | None = None) -> Path:
@@ -388,6 +592,7 @@ def _validate_backup_root(backup_root: Path | str) -> Path:
     allowed = _absolute(DEFAULT_BACKUP_ROOT)
     if os.path.normcase(os.fspath(root)) != os.path.normcase(os.fspath(allowed)):
         raise BackupError(f"backup root is restricted to {allowed}; got {root}")
+    _check_all_ancestor_components(root)
     # Check existing ancestors before a caller creates the root.  The drive
     # root is normally the first existing component on Windows.
     current = root
@@ -498,7 +703,7 @@ def _validate_dependency_source_root(source_root: Path | str) -> Path:
 
 
 def _validate_dependency_label(label: str) -> str:
-    if not isinstance(label, str) or not _DEPENDENCY_LABEL_RE.fullmatch(label):
+    if type(label) is not str or not _DEPENDENCY_LABEL_RE.fullmatch(label):
         raise BackupError(
             "--label must be 1-128 ASCII characters matching [A-Za-z0-9][A-Za-z0-9._-]*"
         )
@@ -508,7 +713,7 @@ def _validate_dependency_label(label: str) -> str:
 def _normalize_dependency_include(raw: str) -> str:
     """Return one canonical, non-escaping POSIX-style relative path."""
 
-    if not isinstance(raw, str) or not raw or raw != raw.strip() or "\x00" in raw:
+    if type(raw) is not str or not raw or raw != raw.strip() or "\x00" in raw:
         raise BackupError("--include must be a non-empty relative file path")
     windows = PureWindowsPath(raw)
     value = raw.replace("\\", "/")
@@ -537,6 +742,23 @@ def _validate_dependency_includes(source_root: Path, includes: Iterable[str]) ->
         if not path.exists() or not path.is_file():
             raise BackupError(f"included path must be an existing regular file: {relative}")
     return normalized
+
+
+def _derive_git_relative_path(source_git_root: Path | str, source_root: Path | str, relative: str) -> str:
+    """Derive the canonical Git path; never trust a manifest-supplied path."""
+
+    git_root = _absolute(source_git_root)
+    source = _absolute(source_root)
+    try:
+        source_relative = os.path.relpath(os.fspath(source), os.fspath(git_root))
+    except ValueError as exc:
+        raise BackupError("source root and Git root are on different volumes") from exc
+    if source_relative == os.curdir:
+        source_relative = ""
+    elif source_relative == os.pardir or source_relative.startswith(os.pardir + os.sep):
+        raise BackupError("source root is outside its Git root")
+    value = Path(source_relative, *relative.split("/")).as_posix() if source_relative else relative
+    return _normalize_dependency_include(value)
 
 
 def _read_git_identity(source_root: Path) -> dict[str, Any]:
@@ -576,7 +798,7 @@ def _read_git_identity(source_root: Path) -> dict[str, Any]:
 
 
 def _require_dependency_git(source_root: Path, expected_head: str) -> dict[str, Any]:
-    if not isinstance(expected_head, str) or _GIT_HEAD_RE.fullmatch(expected_head) is None:
+    if type(expected_head) is not str or _GIT_HEAD_RE.fullmatch(expected_head) is None:
         raise BackupError("--expect-git-head must be a 40-character hexadecimal commit")
     identity = _read_git_identity(source_root)
     actual = identity.get("head")
@@ -605,7 +827,7 @@ def _git_classify_includes(
         return [
             {
                 "relative_path": relative,
-                "git_relative_path": relative,
+                "git_relative_path": _derive_git_relative_path(identity["git_root"], source_root, relative),
                 "git_classification": "tracked_clean",
                 "tracked_worktree_clean": identity.get("clean") is True,
             }
@@ -633,8 +855,8 @@ def _git_classify_includes(
     for relative in includes:
         selected = source_root / Path(*relative.split("/"))
         try:
-            git_relative = selected.relative_to(git_root).as_posix()
-        except ValueError:
+            git_relative = _derive_git_relative_path(identity["git_root"], source_root, relative)
+        except (ValueError, BackupError):
             raise BackupError(f"selected dependency is outside its Git repository: {relative}")
         tracked_output = run("ls-files", "--stage", "--", git_relative)
         tracked = bool(tracked_output)
@@ -734,7 +956,7 @@ def _dependency_snapshot(
         try:
             with _secure_dependency_file(path, root) as (handle, identity):
                 before = os.fstat(handle.fileno())
-                if int(identity.get("link_count", getattr(before, "st_nlink", 1))) != 1:
+                if type(identity.get("link_count")) is not int or identity.get("link_count") != 1:
                     raise BackupError(f"hardlinked dependency file is not allowed: {relative}")
                 digest = hashlib.sha256()
                 while True:
@@ -743,18 +965,21 @@ def _dependency_snapshot(
                         break
                     digest.update(block)
                 after = os.fstat(handle.fileno())
+                after_identity = _dependency_handle_identity(handle)
         except BackupError:
             raise
         except OSError as exc:
             raise BackupError(f"cannot securely hash dependency file {path}: {exc}") from exc
         if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns):
             raise BackupError(f"dependency file changed while hashing: {path}")
+        if not _dependency_identity_matches(identity, after_identity):
+            raise BackupError(f"dependency file identity/link count changed while hashing: {path}")
         files.append(
             {
                 "relative_path": relative,
                 "bytes": int(after.st_size),
                 "sha256": digest.hexdigest(),
-                "link_count": int(identity.get("link_count", getattr(after, "st_nlink", 1))),
+                "link_count": identity["link_count"],
             }
         )
     return {
@@ -776,24 +1001,48 @@ def _copy_dependency_payload(source_root: Path, destination: Path, snapshot: dic
         _secure_dependency_mkdirs(destination, relative.parent)
         try:
             with _secure_dependency_file(source_file, source_root) as (source_handle, source_identity):
-                if int(source_identity.get("link_count", 1)) != 1:
+                if type(source_identity.get("link_count")) is not int or source_identity.get("link_count") != 1:
                     raise BackupError(f"hardlinked dependency file is not allowed: {relative.as_posix()}")
+                source_before_stat = os.fstat(source_handle.fileno())
                 with _secure_dependency_file(
                     destination_file, destination, write=True, create_new=True
                 ) as (destination_handle, destination_identity):
-                    if int(destination_identity.get("link_count", 1)) != 1:
+                    if type(destination_identity.get("link_count")) is not int or destination_identity.get("link_count") != 1:
                         raise BackupError(f"hardlinked payload file is not allowed: {relative.as_posix()}")
                     while True:
                         block = source_handle.read(_CHUNK_SIZE)
                         if not block:
                             break
                         destination_handle.write(block)
+                    source_after_stat = os.fstat(source_handle.fileno())
+                    if (
+                        source_before_stat.st_size,
+                        source_before_stat.st_mtime_ns,
+                    ) != (
+                        source_after_stat.st_size,
+                        source_after_stat.st_mtime_ns,
+                    ) or not _dependency_identity_matches(
+                        source_identity,
+                        _dependency_handle_identity(source_handle),
+                    ):
+                        raise BackupError(
+                            f"source file changed or identity/link count drifted during copy: {relative.as_posix()}"
+                        )
                     destination_handle.flush()
                     os.fsync(destination_handle.fileno())
+                    if not _dependency_identity_matches(
+                        destination_identity,
+                        _dependency_handle_identity(destination_handle),
+                    ):
+                        raise BackupError(
+                            f"payload file identity/link count changed: {relative.as_posix()}"
+                        )
+                    _fsync_directory(parent, strict=True)
         except BackupError:
             raise
         except OSError as exc:
             raise BackupError(f"cannot securely copy {source_file} to {destination_file}: {exc}") from exc
+    _fsync_directory(destination, strict=True)
 
 
 def _attach_dependency_git_metadata(
@@ -1008,13 +1257,21 @@ def _write_manifest(staging: Path, manifest: dict[str, Any], *, strict_directory
 def _read_manifest(backup_dir: Path) -> dict[str, Any]:
     manifest_path = backup_dir / "backup_manifest.json"
     sidecar_path = backup_dir / "backup_manifest.sha256"
-    if not manifest_path.is_file() or not sidecar_path.is_file():
+    if (
+        not manifest_path.is_file()
+        or _is_reparse(manifest_path)
+        or not sidecar_path.is_file()
+        or _is_reparse(sidecar_path)
+    ):
         raise BackupError("backup_manifest.json and backup_manifest.sha256 are required")
     manifest_bytes = _backup_manifest_bytes(manifest_path)
     try:
-        expected = sidecar_path.read_text(encoding="ascii").strip().split()[0]
-    except (OSError, UnicodeError, IndexError) as exc:
+        sidecar = sidecar_path.read_bytes().decode("ascii")
+    except (OSError, UnicodeError) as exc:
         raise BackupError(f"invalid backup manifest sidecar: {sidecar_path}") from exc
+    if re.fullmatch(r"[0-9a-f]{64}\n", sidecar) is None:
+        raise BackupError("backup_manifest.sha256 must be exactly one lowercase SHA-256 line")
+    expected = sidecar[:-1]
     actual = hashlib.sha256(manifest_bytes).hexdigest()
     if expected != actual:
         raise BackupError("backup_manifest.sha256 does not match backup_manifest.json")
@@ -1218,6 +1475,27 @@ def create_backup(
     }
 
 
+def _prepare_dependency_metadata(
+    source_root: Path | str,
+    includes: Iterable[str],
+    label: str,
+    expected_head: str,
+    *,
+    allow_ignored_includes: bool = False,
+) -> tuple[Path, tuple[str, ...], str, dict[str, Any], list[dict[str, Any]]]:
+    root = _validate_dependency_source_root(source_root)
+    normalized = _validate_dependency_includes(root, includes)
+    checked_label = _validate_dependency_label(label)
+    identity = _require_dependency_git(root, expected_head)
+    git_records = _git_classify_includes(
+        root,
+        normalized,
+        identity,
+        allow_ignored_includes=allow_ignored_includes,
+    )
+    return root, normalized, checked_label, identity, git_records
+
+
 def _prepare_dependency_source(
     source_root: Path | str,
     includes: Iterable[str],
@@ -1227,14 +1505,11 @@ def _prepare_dependency_source(
     allow_ignored_includes: bool = False,
     snapshotter: Callable[[Path, tuple[str, ...], bool], dict[str, Any]] | None = None,
 ) -> tuple[Path, tuple[str, ...], str, dict[str, Any], list[dict[str, Any]], dict[str, Any]]:
-    root = _validate_dependency_source_root(source_root)
-    normalized = _validate_dependency_includes(root, includes)
-    checked_label = _validate_dependency_label(label)
-    identity = _require_dependency_git(root, expected_head)
-    git_records = _git_classify_includes(
-        root,
-        normalized,
-        identity,
+    root, normalized, checked_label, identity, git_records = _prepare_dependency_metadata(
+        source_root,
+        includes,
+        label,
+        expected_head,
         allow_ignored_includes=allow_ignored_includes,
     )
     snap = snapshotter or _dependency_snapshot
@@ -1305,13 +1580,38 @@ def dependency_create(
     """Create one immutable, non-paper-eligible dependency backup."""
 
     root = _validate_backup_root(backup_root)
-    source_path, normalized, checked_label, identity, git_records, source_before = _prepare_dependency_source(
+    metadata = _prepare_dependency_metadata(
         source_root,
         includes,
         label,
         expect_git_head,
         allow_ignored_includes=allow_ignored_includes,
-        snapshotter=_snapshotter,
+    )
+    source_path, normalized, checked_label, identity, git_records = metadata
+    if "tracked_worktree_clean" in identity:
+        # A path-only create would reopen files after the initial snapshot and
+        # therefore leave an ignored-source TOCTOU window.  The production
+        # path is allowed to proceed only after exclusive no-share handles
+        # exist from the volume/UNC anchor through every selected file.  The
+        # current implementation intentionally fails closed after acquiring
+        # those locks until the complete handle-backed copy/manifest pipeline
+        # is available; dry-run remains available for audit planning.
+        if os.name != "nt":
+            raise BackupError(
+                "BLOCKED: dependency-create requires an equivalent exclusive POSIX lock set; dry-run is available"
+            )
+        try:
+            with _WindowsDependencyLockSet(source_path, normalized):
+                raise BackupError(
+                    "BLOCKED: dependency-create handle-backed Windows copy is unavailable; no backup was finalized"
+                )
+        except BackupError as exc:
+            if str(exc).startswith("BLOCKED:"):
+                raise
+            raise BackupError(f"BLOCKED: {exc}") from exc
+    snap = _snapshotter or _dependency_snapshot
+    source_before = _attach_dependency_git_metadata(
+        snap(source_path, normalized, False), git_records
     )
     if max_bytes is not None and (max_bytes < 0 or source_before["total_bytes"] > max_bytes):
         raise BackupError("selected dependency size exceeds --max-bytes")
@@ -1332,7 +1632,6 @@ def dependency_create(
     staging = finalized.with_name(finalized.name[:-len(".finalized")] + ".partial")
     if staging.exists() or staging.is_symlink():
         raise BackupError(f"staging backup already exists; refusing to reuse it: {staging}")
-    snap = _snapshotter or _dependency_snapshot
     try:
         staging.mkdir(parents=False, exist_ok=False)
         _check_existing_components(staging, root)
@@ -1427,46 +1726,66 @@ def _verify_dependency_backup(directory: Path, manifest: dict[str, Any]) -> dict
     missing = sorted(required - set(manifest))
     if missing:
         raise BackupError(f"verified-dependency manifest is missing required fields: {missing}")
-    if manifest.get("schema_version") != 1:
+    if type(manifest.get("schema_version")) is not int or manifest.get("schema_version") != 1:
         raise BackupError("verified-dependency schema_version must be exactly 1")
-    if manifest.get("backup_kind") != _DEPENDENCY_BACKUP_KIND:
+    if type(manifest.get("backup_kind")) is not str or manifest.get("backup_kind") != _DEPENDENCY_BACKUP_KIND:
         raise BackupError("not a verified-dependency backup")
-    if manifest.get("status") != "PARTIAL":
+    if type(manifest.get("status")) is not str or manifest.get("status") != "PARTIAL":
         raise BackupError("verified-dependency backup must have status PARTIAL")
     if any(manifest.get(key) is not False for key in ("formal_result_eligible", "paper_table_eligible", "eligibility_report_passed")):
         raise BackupError("verified-dependency backup must be explicitly non-paper-eligible")
     for key in ("backup_id", "created_utc", "source_root", "source_git_root"):
-        if not isinstance(manifest.get(key), str) or not manifest[key]:
+        if type(manifest.get(key)) is not str or not manifest[key]:
             raise BackupError(f"verified-dependency manifest field {key} must be a non-empty string")
+    if _BACKUP_ID_RE.fullmatch(manifest["backup_id"]) is None:
+        raise BackupError("verified-dependency backup_id has invalid format")
+    try:
+        created = datetime.fromisoformat(manifest["created_utc"])
+    except ValueError as exc:
+        raise BackupError("verified-dependency created_utc is not ISO-8601") from exc
+    if created.tzinfo is None or created.utcoffset() != timezone.utc.utcoffset(created):
+        raise BackupError("verified-dependency created_utc must include UTC offset")
+    source_root = manifest["source_root"]
+    source_git_root = manifest["source_git_root"]
+    if (
+        "\x00" in source_root
+        or "\x00" in source_git_root
+        or not Path(source_root).is_absolute()
+        or not Path(source_git_root).is_absolute()
+    ):
+        raise BackupError("verified-dependency source roots must be absolute paths")
     source_commit = manifest["source_commit"]
     expected_head = manifest["expect_git_head"]
-    if not isinstance(source_commit, str) or _GIT_HEAD_RE.fullmatch(source_commit) is None:
+    if type(source_commit) is not str or re.fullmatch(r"[0-9a-f]{40}", source_commit) is None:
         raise BackupError("verified-dependency manifest has an invalid source_commit")
-    if not isinstance(expected_head, str) or _GIT_HEAD_RE.fullmatch(expected_head) is None:
+    if type(expected_head) is not str or re.fullmatch(r"[0-9a-f]{40}", expected_head) is None:
         raise BackupError("verified-dependency manifest has an invalid expect_git_head")
     if source_commit.lower() != expected_head.lower():
         raise BackupError("verified-dependency source_commit does not match expect_git_head")
     if manifest.get("source_git_clean") is not True or manifest.get("tracked_worktree_clean") is not True:
         raise BackupError("verified-dependency source Git worktree must be clean")
-    if not isinstance(manifest.get("allow_ignored_includes"), bool):
+    if type(manifest.get("allow_ignored_includes")) is not bool:
         raise BackupError("verified-dependency allow_ignored_includes must be boolean")
-    if manifest.get("space_warning") is not None and not isinstance(manifest.get("space_warning"), dict):
+    if manifest.get("space_warning") is not None and type(manifest.get("space_warning")) is not dict:
         raise BackupError("verified-dependency space_warning must be an object or null")
     _validate_dependency_label(manifest["label"])
     includes = manifest["include"]
-    if not isinstance(includes, list) or not includes:
+    if type(includes) is not list or not includes:
         raise BackupError("verified-dependency manifest is missing include")
     normalized = _validate_dependency_includes_for_manifest(includes)
     if includes != list(normalized):
         raise BackupError("verified-dependency include paths are not in canonical order")
     git_files = manifest["git_files"]
-    if not isinstance(git_files, list) or len(git_files) != len(includes):
+    if type(git_files) is not list or len(git_files) != len(includes):
         raise BackupError("verified-dependency git_files must list every include")
     for item, relative in zip(git_files, includes):
-        if not isinstance(item, dict) or set(item) != {"relative_path", "git_relative_path", "git_classification", "tracked_worktree_clean"} or item.get("relative_path") != relative:
+        if type(item) is not dict or set(item) != {"relative_path", "git_relative_path", "git_classification", "tracked_worktree_clean"} or item.get("relative_path") != relative:
             raise BackupError("verified-dependency git_files path mismatch")
-        if not isinstance(item["git_relative_path"], str) or not item["git_relative_path"]:
+        if type(item["git_relative_path"]) is not str or not item["git_relative_path"]:
             raise BackupError("verified-dependency git_files Git path is invalid")
+        expected_git_path = _derive_git_relative_path(source_git_root, source_root, relative)
+        if item["git_relative_path"] != expected_git_path:
+            raise BackupError("verified-dependency git_files Git path is not derivable from source boundary")
         if item.get("git_classification") not in {"tracked_clean", "ignored_untracked"}:
             raise BackupError("verified-dependency git_files has an invalid classification")
         if item.get("git_classification") == "ignored_untracked" and not manifest["allow_ignored_includes"]:
@@ -1476,28 +1795,28 @@ def _verify_dependency_backup(directory: Path, manifest: dict[str, Any]) -> dict
     snapshots: list[dict[str, Any]] = []
     for key in ("source_before", "source_after", "payload_after"):
         value = manifest[key]
-        if not isinstance(value, dict):
+        if type(value) is not dict:
             raise BackupError(f"verified-dependency {key} must be an object")
         if set(value) != {"file_count", "total_bytes", "files", "snapshot_digest_sha256"}:
             raise BackupError(f"verified-dependency {key} has missing or extra fields")
-        if not isinstance(value["file_count"], int) or value["file_count"] != len(includes):
+        if type(value["file_count"]) is not int or value["file_count"] != len(includes):
             raise BackupError(f"verified-dependency {key} file_count is invalid")
-        if not isinstance(value["total_bytes"], int) or value["total_bytes"] < 0:
+        if type(value["total_bytes"]) is not int or value["total_bytes"] < 0:
             raise BackupError(f"verified-dependency {key} total_bytes is invalid")
-        if not isinstance(value["snapshot_digest_sha256"], str) or re.fullmatch(r"[0-9a-f]{64}", value["snapshot_digest_sha256"]) is None:
+        if type(value["snapshot_digest_sha256"]) is not str or re.fullmatch(r"[0-9a-f]{64}", value["snapshot_digest_sha256"]) is None:
             raise BackupError(f"verified-dependency {key} digest is invalid")
-        if not isinstance(value["files"], list) or len(value["files"]) != len(includes):
+        if type(value["files"]) is not list or len(value["files"]) != len(includes):
             raise BackupError(f"verified-dependency {key} files is invalid")
         for index, (item, relative) in enumerate(zip(value["files"], includes)):
-            if not isinstance(item, dict) or set(item) != {"relative_path", "bytes", "sha256", "link_count", "git_classification", "tracked_worktree_clean"}:
+            if type(item) is not dict or set(item) != {"relative_path", "bytes", "sha256", "link_count", "git_classification", "tracked_worktree_clean"}:
                 raise BackupError(f"verified-dependency {key} file record is malformed")
-            if item["relative_path"] != relative or not isinstance(item["bytes"], int) or item["bytes"] < 0:
+            if type(item["relative_path"]) is not str or item["relative_path"] != relative or type(item["bytes"]) is not int or item["bytes"] < 0:
                 raise BackupError(f"verified-dependency {key} file path/size is invalid")
             if re.fullmatch(r"[0-9a-f]{64}", item["sha256"]) is None:
                 raise BackupError(f"verified-dependency {key} file hash is invalid")
-            if item["link_count"] != 1:
+            if type(item["link_count"]) is not int or item["link_count"] != 1:
                 raise BackupError(f"verified-dependency {key} contains a hardlinked file")
-            if item["git_classification"] not in {"tracked_clean", "ignored_untracked"} or not isinstance(item["tracked_worktree_clean"], bool):
+            if type(item["git_classification"]) is not str or item["git_classification"] not in {"tracked_clean", "ignored_untracked"} or type(item["tracked_worktree_clean"]) is not bool:
                 raise BackupError(f"verified-dependency {key} Git metadata is invalid")
             git_record = git_files[index]
             if (
@@ -1541,7 +1860,7 @@ def _verify_dependency_backup(directory: Path, manifest: dict[str, Any]) -> dict
 
 
 def _validate_dependency_includes_for_manifest(includes: list[Any]) -> tuple[str, ...]:
-    if any(not isinstance(value, str) for value in includes):
+    if any(type(value) is not str for value in includes):
         raise BackupError("verified-dependency include entries must be strings")
     normalized = tuple(sorted(_normalize_dependency_include(value) for value in includes))
     if len(normalized) != len(set(normalized)):
