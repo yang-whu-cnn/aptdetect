@@ -19,7 +19,9 @@ from formal_experiments.common.prior_provenance import validate_frozen_prior_pro
 from formal_experiments.common.run_manifest import POLICY_SEEDS
 from formal_experiments.ours.reward_ablation import RewardMode
 from formal_experiments.ours.reward_artifact_contract import validate_frozen_reward_artifact
-from formal_experiments.ours.reward_provenance import validate_fail_only_provenance
+from formal_experiments.ours.reward_provenance import (
+    validate_delay_only_provenance, validate_fail_only_provenance,
+)
 from formal_experiments.ours.table2_variants import Table2Variant
 
 TRAIN_SEEDS = tuple(range(1000, 1032))
@@ -205,9 +207,11 @@ def _load_gate(path: Path, mode: RewardMode) -> dict[str, Any]:
     if mode == RewardMode.FULL_REWARD: return {"pass": True, "source": "frozen_full_reward_preflight"}
     project_root = Path(__file__).resolve().parents[2]
     provenance_sha256 = None
-    if mode == RewardMode.FAIL_ONLY:
+    if mode in {RewardMode.DELAY_ONLY, RewardMode.FAIL_ONLY}:
         provenance_path = path.with_name("provenance_sidecar.json")
-        provenance = validate_fail_only_provenance(provenance_path, project_root=project_root)
+        validator = (validate_delay_only_provenance
+                     if mode == RewardMode.DELAY_ONLY else validate_fail_only_provenance)
+        provenance = validator(provenance_path, project_root=project_root)
         provenance_sha256 = sha256_file(provenance_path)
     _, _, audit = validate_frozen_reward_artifact(
         path, mode=mode, project_root=project_root
@@ -216,7 +220,7 @@ def _load_gate(path: Path, mode: RewardMode) -> dict[str, Any]:
         reward_binding = provenance.get("reward_artifact", {})
         if (reward_binding.get("manifest_sha256") != audit.get("manifest_sha256")
                 or reward_binding.get("checkpoint_sha256") != audit.get("checkpoint_sha256")):
-            raise RuntimeError("BLOCKED: Fail-Only provenance/reward artifact binding mismatch")
+                raise RuntimeError(f"BLOCKED: {mode.value} provenance/reward artifact binding mismatch")
         audit = {**audit, "provenance_sidecar_sha256": provenance_sha256}
     return audit
 

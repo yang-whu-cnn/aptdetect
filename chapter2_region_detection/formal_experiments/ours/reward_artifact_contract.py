@@ -10,8 +10,11 @@ from typing import Any
 from formal_experiments.ours.reward_ablation import RewardMode
 
 
-FAIL_ONLY_MANIFEST_FORMAT = "table3_reward_ablation_v2"
-FAIL_ONLY_MANIFEST_SHA256 = "47c2644c6b5948157d049c4cbc035a16762000b4991385f9172780552ab056ef"
+TABLE3_REWARD_MANIFEST_FORMAT = "table3_reward_ablation_v2"
+DELAY_ONLY_MANIFEST_SHA256 = "fb9fdd64a6f576d0ffb444daacce07e891ba5505da66381b57acb52631c71eaf"
+DELAY_ONLY_CHECKPOINT_SHA256 = "192efbe6512fbd83a746d86d759ebe5e68b1437ee78e570747a119d74b0e683f"
+FAIL_ONLY_MANIFEST_FORMAT = TABLE3_REWARD_MANIFEST_FORMAT
+FAIL_ONLY_MANIFEST_SHA256 = "8295b5177e900f032f7fed142b07cb7773607911d77d73be01b414aebf61f5cc"
 FAIL_ONLY_CHECKPOINT_SHA256 = "8800a65d4cd4f540ca6d5fa5bcc0f7e87a913403c4cded5beed931e91bb0b3b2"
 
 
@@ -99,6 +102,24 @@ def validate_frozen_reward_artifact(
         _require_equal(errors, "training_loss.positive_weight", training_loss.get("positive_weight", 1), 1)
         _require_equal(errors, "training_loss.oversample_factor", training_loss.get("oversample_factor", 1), 1)
         _require_equal(errors, "checkpoint_sha256", payload.get("checkpoint_sha256"), FAIL_ONLY_CHECKPOINT_SHA256)
+    elif mode == RewardMode.DELAY_ONLY:
+        _require_equal(errors, "format", payload.get("format"), TABLE3_REWARD_MANIFEST_FORMAT)
+        _require_equal(errors, "formal_contract_architecture_match",
+                       payload.get("formal_contract_architecture_match"), True)
+        _require_equal(errors, "formal_contract_training_match",
+                       payload.get("formal_contract_training_match"), True)
+        _require_equal(errors, "diagnostic_hurdle_used_for_formal_artifact",
+                       payload.get("diagnostic_hurdle_used_for_formal_artifact"), False)
+        component = payload.get("architecture", {}).get("component_config", {})
+        training_loss = payload.get("training_loss", {})
+        _require_equal(errors, "component_config.loss", component.get("loss"), "mse")
+        _require_equal(errors, "training_loss.name", training_loss.get("name"), "mse")
+        _require_equal(errors, "training_loss.target_space", training_loss.get("target_space"),
+                       "standardized_reward_label")
+        _require_equal(errors, "training_loss.reduction", training_loss.get("reduction"), "mean")
+        _require_equal(errors, "training_loss.sample_weighting", training_loss.get("sample_weighting"), "none")
+        _require_equal(errors, "training_loss.resampling", training_loss.get("resampling"), "none")
+        _require_equal(errors, "checkpoint_sha256", payload.get("checkpoint_sha256"), DELAY_ONLY_CHECKPOINT_SHA256)
 
     checkpoint = Path(str(payload.get("checkpoint", "")))
     if not checkpoint.is_absolute():
@@ -117,6 +138,10 @@ def validate_frozen_reward_artifact(
     if mode == RewardMode.FAIL_ONLY and manifest_sha != FAIL_ONLY_MANIFEST_SHA256:
         errors.append(
             f"manifest_sha256: expected {FAIL_ONLY_MANIFEST_SHA256!r}, got {manifest_sha!r}"
+        )
+    if mode == RewardMode.DELAY_ONLY and manifest_sha != DELAY_ONLY_MANIFEST_SHA256:
+        errors.append(
+            f"manifest_sha256: expected {DELAY_ONLY_MANIFEST_SHA256!r}, got {manifest_sha!r}"
         )
     if errors:
         raise RuntimeError(f"BLOCKED: {mode.value} frozen reward contract FAIL: " + "; ".join(errors))

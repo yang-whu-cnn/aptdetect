@@ -1,4 +1,11 @@
-"""Immutable provenance sidecar for the approved Fail-Only reward artifact."""
+"""Immutable provenance sidecars for the frozen Table-3 reward artifacts.
+
+The sidecars bind each dependency-only predictor to the exact replay, reward
+protocol source, frozen world model, checkpoint and training-source snapshot.
+Candidate sidecars are generated from the reviewed (possibly dirty) tree;
+final sidecars are generated only after the first-stage source commit leaves a
+clean worktree.  Neither sidecar makes a predictor a paper result.
+"""
 
 from __future__ import annotations
 
@@ -20,19 +27,37 @@ from formal_experiments.ours.reward_artifact_contract import validate_frozen_rew
 
 
 FORMAT = "table3_reward_provenance_v1"
-DERIVATION_VERSION = "fail_only_incident_host_lwf_raw_penalty_v1"
+SOURCE_COMMIT = "9e3370580fb84eb91740dcbb8ab66df6385af2c1"
+
+# These are review anchors, not regenerated values.  The candidate/final
+# sidecars below are intentionally ignored experiment outputs; their hashes
+# are promoted into code only after the root window reviews each sidecar.
 LEGACY_CANDIDATE_FAIL_ONLY_PROVENANCE_SHA256 = "97fc9b908f7b8f6410adacb15ff7bea8793a2216d3c68d5446d73ede78e3dbdd"
-CANDIDATE_FAIL_ONLY_PROVENANCE_SHA256 = "a1cb2162aff309f0f21fcaea7c1891c55c7d1e10fc8e4b86b42962214e2bc5d0"
-CANDIDATE_TRAINING_SOURCE_AGGREGATE_SHA256 = "8d0dc9b20cc8014fc6367d578067fb6ce8d697d4abd9f3a7ef7d469e17e9ca2b"
-CANDIDATE_PROVENANCE_PATH = Path(
+CANDIDATE_DELAY_ONLY_PROVENANCE_SHA256 = "facbb190aaa6dc9888f44170ee920063d809c90ce1939856a6bfb92acab70ba3"
+CANDIDATE_FAIL_ONLY_PROVENANCE_SHA256 = "62012a45f54e2f08c7b8134123a38a7dcfda0403e889263a5b3f5b9d37ebae97"
+CANDIDATE_DELAY_ONLY_TRAINING_SOURCE_AGGREGATE_SHA256 = "87b87e0f91779b0d4eecb38d3e213831007f793ffe1ceb749f06d9d2064c8a82"
+CANDIDATE_FAIL_ONLY_TRAINING_SOURCE_AGGREGATE_SHA256 = "87b87e0f91779b0d4eecb38d3e213831007f793ffe1ceb749f06d9d2064c8a82"
+APPROVED_DELAY_ONLY_PROVENANCE_SHA256: str | None = None
+APPROVED_FAIL_ONLY_PROVENANCE_SHA256: str | None = None
+
+CANDIDATE_DELAY_ONLY_PROVENANCE_PATH = Path(
+    "outputs/formal_v3/table3_reward_models/delay_only/provenance_candidate.json"
+)
+CANDIDATE_FAIL_ONLY_PROVENANCE_PATH = Path(
     "outputs/formal_v3/table3_reward_models/fail_only/provenance_candidate.json"
 )
-# Intentionally unset until the root window commits the reviewed source tree
-# and regenerates a clean=true final sidecar. Formal consumers must fail closed
-# while this trust anchor is None.
-APPROVED_FAIL_ONLY_PROVENANCE_SHA256: str | None = (
-    "926f681be1c4e3abe08328611963a23e3dd54569ec410e7a9af1961edfb732cf"
-)
+# Compatibility aliases retained for the existing Fail-Only tests/callers.
+CANDIDATE_PROVENANCE_PATH = CANDIDATE_FAIL_ONLY_PROVENANCE_PATH
+CANDIDATE_TRAINING_SOURCE_AGGREGATE_SHA256 = CANDIDATE_FAIL_ONLY_TRAINING_SOURCE_AGGREGATE_SHA256
+
+DERIVATION_VERSIONS = {
+    RewardMode.DELAY_ONLY: "delay_only_incident_delay_penalty_v1",
+    RewardMode.FAIL_ONLY: "fail_only_incident_host_lwf_raw_penalty_v1",
+}
+LABEL_FIELDS = {
+    RewardMode.DELAY_ONLY: "incident_delay_penalty",
+    RewardMode.FAIL_ONLY: "incident_host_lwf_raw_penalty",
+}
 
 TRAINING_SOURCE_PATHS = (
     "formal_experiments/ours/reward_ablation.py",
@@ -216,24 +241,63 @@ def _require_equal(label: str, actual: Any, expected: Any) -> None:
         raise RuntimeError(f"BLOCKED: {label}: expected {expected!r}, got {actual!r}")
 
 
+def _mode_slug(mode: RewardMode) -> str:
+    return mode.value.lower().replace("-", "_")
+
+
+def _candidate_path(mode: RewardMode) -> Path:
+    if mode == RewardMode.DELAY_ONLY:
+        return CANDIDATE_DELAY_ONLY_PROVENANCE_PATH
+    if mode == RewardMode.FAIL_ONLY:
+        return CANDIDATE_FAIL_ONLY_PROVENANCE_PATH
+    raise ValueError(f"unsupported provenance mode: {mode}")
+
+
+def _candidate_sha(mode: RewardMode) -> str:
+    if mode == RewardMode.DELAY_ONLY:
+        return CANDIDATE_DELAY_ONLY_PROVENANCE_SHA256
+    if mode == RewardMode.FAIL_ONLY:
+        return CANDIDATE_FAIL_ONLY_PROVENANCE_SHA256
+    raise ValueError(f"unsupported provenance mode: {mode}")
+
+
+def _candidate_source_aggregate(mode: RewardMode) -> str:
+    if mode == RewardMode.DELAY_ONLY:
+        return CANDIDATE_DELAY_ONLY_TRAINING_SOURCE_AGGREGATE_SHA256
+    if mode == RewardMode.FAIL_ONLY:
+        # Keep the historical public alias patchable for existing tests and
+        # downstream review tooling.
+        return CANDIDATE_TRAINING_SOURCE_AGGREGATE_SHA256
+    raise ValueError(f"unsupported provenance mode: {mode}")
+
+
+def _approved_sha(mode: RewardMode) -> str | None:
+    if mode == RewardMode.DELAY_ONLY:
+        return APPROVED_DELAY_ONLY_PROVENANCE_SHA256
+    if mode == RewardMode.FAIL_ONLY:
+        return APPROVED_FAIL_ONLY_PROVENANCE_SHA256
+    raise ValueError(f"unsupported provenance mode: {mode}")
+
+
 def _bind_training_snapshot_candidate(
-    project_root: Path, payload: dict[str, Any],
+    project_root: Path, payload: dict[str, Any], mode: RewardMode = RewardMode.FAIL_ONLY,
 ) -> dict[str, Any]:
-    candidate_path = project_root / CANDIDATE_PROVENANCE_PATH
+    candidate_relative = _candidate_path(mode)
+    candidate_path = project_root / candidate_relative
     if not candidate_path.is_file():
         raise RuntimeError(
-            f"BLOCKED: missing immutable Fail-Only training-snapshot candidate: {candidate_path}"
+            f"BLOCKED: missing immutable {mode.value} training-snapshot candidate: {candidate_path}"
         )
     actual_sha = sha256_file(candidate_path)
     _require_equal(
         "training-snapshot candidate SHA256",
         actual_sha,
-        CANDIDATE_FAIL_ONLY_PROVENANCE_SHA256,
+        _candidate_sha(mode),
     )
-    candidate = _load_json(candidate_path, "Fail-Only training-snapshot candidate")
+    candidate = _load_json(candidate_path, f"{mode.value} training-snapshot candidate")
     _require_equal("training-snapshot candidate format", candidate.get("format"), FORMAT)
     _require_equal("training-snapshot candidate status", candidate.get("status"), "candidate")
-    _require_equal("training-snapshot candidate mode", candidate.get("mode"), RewardMode.FAIL_ONLY.value)
+    _require_equal("training-snapshot candidate mode", candidate.get("mode"), mode.value)
     _require_equal("training-snapshot candidate current_clean", candidate.get("current_clean"), False)
     _require_equal(
         "training-snapshot candidate formal_result_eligible",
@@ -255,38 +319,48 @@ def _bind_training_snapshot_candidate(
     _require_equal(
         "training-snapshot candidate source aggregate",
         aggregate,
-        CANDIDATE_TRAINING_SOURCE_AGGREGATE_SHA256,
+        _candidate_source_aggregate(mode),
     )
     return {
-        "candidate_path": CANDIDATE_PROVENANCE_PATH.as_posix(),
+        "candidate_path": candidate_relative.as_posix(),
         "candidate_sha256": actual_sha,
         "training_source_aggregate_sha256": aggregate,
         "verified_sections": list(SNAPSHOT_MATCH_SECTIONS),
     }
 
 
-def build_fail_only_provenance(project_root: Path, *, status: str = "candidate") -> dict[str, Any]:
+def build_reward_provenance(
+    project_root: Path, *, mode: RewardMode, status: str = "candidate",
+) -> dict[str, Any]:
+    """Build one immutable dependency provenance snapshot for a Table-3 mode."""
     project_root = Path(project_root).resolve()
+    if mode == RewardMode.FULL_REWARD:
+        raise ValueError("Full-Reward provenance is the shared Table-2 artifact")
     if status not in {"candidate", "final"}:
         raise ValueError("provenance status must be candidate or final")
     git_state = _git_snapshot(project_root)
     if status == "final" and git_state["dirty"]:
         raise RuntimeError("BLOCKED: final provenance requires a clean worktree")
-    reward_manifest_path = project_root / "outputs/formal_v3/table3_reward_models/fail_only/frozen_manifest.json"
+
+    artifact_directory = project_root / "outputs/formal_v3/table3_reward_models" / _mode_slug(mode)
+    reward_manifest_path = artifact_directory / "frozen_manifest.json"
     reward_manifest, checkpoint_path, reward_audit = validate_frozen_reward_artifact(
-        reward_manifest_path, mode=RewardMode.FAIL_ONLY, project_root=project_root,
+        reward_manifest_path, mode=mode, project_root=project_root,
     )
 
     replay_directory = project_root / "outputs/formal_replay_final_20260917"
     replay_manifest_path, replay_manifest = find_unique_upstream_manifest(
         project_root=project_root, output_directory=replay_directory, label="formal replay",
     )
+    _require_equal("replay source_commit", replay_manifest.get("source_commit"), SOURCE_COMMIT)
+    _require_equal("reward protocol", replay_manifest.get("reward_protocol"), "final_paper_20260917_v1")
     replay_splits: dict[str, Any] = {}
     all_seeds: set[int] = set()
     for split in ("train", "validation"):
         replay_path = replay_directory / f"{split}.jsonl"
         summary_path = replay_directory / f"{split}_summary.json"
-        observed = scan_replay(replay_path); declared = replay_manifest.get("splits", {}).get(split, {})
+        observed = scan_replay(replay_path)
+        declared = replay_manifest.get("splits", {}).get(split, {})
         _require_equal(f"{split} replay sha256", observed["sha256"], declared.get("jsonl_sha256"))
         _require_equal(f"{split} replay bytes", observed["bytes"], declared.get("jsonl_bytes"))
         _require_equal(f"{split} transition count", observed["transition_count"], declared.get("transition_count"))
@@ -311,6 +385,7 @@ def build_fail_only_provenance(project_root: Path, *, status: str = "candidate")
     model_manifest_path, model_manifest = find_unique_upstream_manifest(
         project_root=project_root, output_directory=world_output_directory, label="world model",
     )
+    _require_equal("world-model training_source_commit", model_manifest.get("training_source_commit"), SOURCE_COMMIT)
     model_replay_manifest = _resolve(project_root, model_manifest.get("replay_manifest", ""))
     _require_equal("world-model replay manifest", model_replay_manifest.resolve(), replay_manifest_path.resolve())
     world_sha = sha256_file(world_path)
@@ -337,7 +412,7 @@ def build_fail_only_provenance(project_root: Path, *, status: str = "candidate")
         "status": status,
         "provenance_review_commit": git_state["commit"] if status == "final" else None,
         "current_clean": not git_state["dirty"],
-        "mode": RewardMode.FAIL_ONLY.value,
+        "mode": mode.value,
         "formal_result_eligible": False,
         "test_seeds_used": False,
         "reward_artifact": {
@@ -346,19 +421,23 @@ def build_fail_only_provenance(project_root: Path, *, status: str = "candidate")
             "checkpoint_path": _relative(project_root, checkpoint_path),
             "checkpoint_sha256": reward_audit["checkpoint_sha256"],
             "normalizers": checkpoint_normalizer_digests(checkpoint_path),
+            "training_loss": reward_manifest.get("training_loss"),
+            "formal_contract_architecture_match": reward_manifest.get("formal_contract_architecture_match"),
+            "formal_contract_training_match": reward_manifest.get("formal_contract_training_match"),
         },
         "replay": {
             "manifest_path": _relative(project_root, replay_manifest_path),
             "manifest_sha256": sha256_file(replay_manifest_path),
+            "source_commit": replay_manifest.get("source_commit"),
             "reward_protocol": replay_manifest.get("reward_protocol"),
             "splits": replay_splits,
             "train_validation_seed_union_sha256": canonical_sha256(sorted(all_seeds)),
             "test_seed_overlap_count": len(test_overlap),
         },
         "reward_label_derivation": {
-            "version": DERIVATION_VERSION,
-            "mode": RewardMode.FAIL_ONLY.value,
-            "label_field": "incident_host_lwf_raw_penalty",
+            "version": DERIVATION_VERSIONS[mode],
+            "mode": mode.value,
+            "label_field": LABEL_FIELDS[mode],
             "module_path": _relative(project_root, derivation_module),
             "module_sha256": sha256_file(derivation_module),
             "function_source_sha256": hashlib.sha256(function_source.encode("utf-8")).hexdigest(),
@@ -370,6 +449,7 @@ def build_fail_only_provenance(project_root: Path, *, status: str = "candidate")
             "checkpoint_sha256": world_sha,
             "manifest_path": _relative(project_root, model_manifest_path),
             "manifest_sha256": sha256_file(model_manifest_path),
+            "training_source_commit": model_manifest.get("training_source_commit"),
             "report_path": _relative(project_root, world_report_path),
             "report_sha256": world_report_sha,
             "selected_target_mode": model_manifest.get("world_model", {}).get("selected_target_mode"),
@@ -381,9 +461,18 @@ def build_fail_only_provenance(project_root: Path, *, status: str = "candidate")
     }
     if status == "final":
         payload["training_snapshot_binding"] = _bind_training_snapshot_candidate(
-            project_root, payload,
+            project_root, payload, mode,
         )
     return payload
+
+
+def build_fail_only_provenance(project_root: Path, *, status: str = "candidate") -> dict[str, Any]:
+    """Compatibility wrapper for existing Fail-Only callers."""
+    return build_reward_provenance(project_root, mode=RewardMode.FAIL_ONLY, status=status)
+
+
+def build_delay_only_provenance(project_root: Path, *, status: str = "candidate") -> dict[str, Any]:
+    return build_reward_provenance(project_root, mode=RewardMode.DELAY_ONLY, status=status)
 
 
 def write_immutable_sidecar(path: Path, payload: dict[str, Any]) -> str:
@@ -398,16 +487,16 @@ def write_immutable_sidecar(path: Path, payload: dict[str, Any]) -> str:
 
 def _validate_provenance(
     path: Path, *, project_root: Path, expected_sha256: str,
-    require_final: bool,
+    require_final: bool, mode: RewardMode,
 ) -> dict[str, Any]:
     path = Path(path); actual_sha = sha256_file(path)
     if actual_sha != expected_sha256:
         raise RuntimeError(
-            f"BLOCKED: Fail-Only provenance SHA mismatch: expected {expected_sha256}, got {actual_sha}"
+            f"BLOCKED: {mode.value} provenance SHA mismatch: expected {expected_sha256}, got {actual_sha}"
         )
-    payload = _load_json(path, "Fail-Only provenance sidecar")
+    payload = _load_json(path, f"{mode.value} provenance sidecar")
     _require_equal("provenance format", payload.get("format"), FORMAT)
-    _require_equal("provenance mode", payload.get("mode"), RewardMode.FAIL_ONLY.value)
+    _require_equal("provenance mode", payload.get("mode"), mode.value)
     _require_equal("formal_result_eligible", payload.get("formal_result_eligible"), False)
     _require_equal("test_seeds_used", payload.get("test_seeds_used"), False)
     if require_final:
@@ -428,9 +517,9 @@ def _validate_provenance(
                 "BLOCKED: provenance review commit is not an ancestor of current HEAD"
             )
         expected_binding = {
-            "candidate_path": CANDIDATE_PROVENANCE_PATH.as_posix(),
-            "candidate_sha256": CANDIDATE_FAIL_ONLY_PROVENANCE_SHA256,
-            "training_source_aggregate_sha256": CANDIDATE_TRAINING_SOURCE_AGGREGATE_SHA256,
+            "candidate_path": _candidate_path(mode).as_posix(),
+            "candidate_sha256": _candidate_sha(mode),
+            "training_source_aggregate_sha256": _candidate_source_aggregate(mode),
             "verified_sections": list(SNAPSHOT_MATCH_SECTIONS),
         }
         _require_equal(
@@ -438,7 +527,7 @@ def _validate_provenance(
             payload.get("training_snapshot_binding"),
             expected_binding,
         )
-    fresh = build_fail_only_provenance(Path(project_root), status="candidate")
+    fresh = build_reward_provenance(Path(project_root), mode=mode, status="candidate")
     for section in SNAPSHOT_MATCH_SECTIONS:
         _require_equal(f"provenance section {section}", payload.get(section), fresh.get(section))
     return payload
@@ -451,7 +540,18 @@ def validate_fail_only_provenance(path: Path, *, project_root: Path) -> dict[str
     return _validate_provenance(
         path, project_root=project_root,
         expected_sha256=APPROVED_FAIL_ONLY_PROVENANCE_SHA256,
-        require_final=True,
+        require_final=True, mode=RewardMode.FAIL_ONLY,
+    )
+
+
+def validate_delay_only_provenance(path: Path, *, project_root: Path) -> dict[str, Any]:
+    """Formal validator for the approved clean-commit Delay-Only sidecar."""
+    if APPROVED_DELAY_ONLY_PROVENANCE_SHA256 is None:
+        raise RuntimeError("BLOCKED: no clean-commit approved Delay-Only provenance sidecar")
+    return _validate_provenance(
+        path, project_root=project_root,
+        expected_sha256=APPROVED_DELAY_ONLY_PROVENANCE_SHA256,
+        require_final=True, mode=RewardMode.DELAY_ONLY,
     )
 
 
@@ -461,7 +561,17 @@ def validate_candidate_fail_only_provenance(
     """Review-only validator; never authorizes a formal consumer."""
     return _validate_provenance(
         path, project_root=project_root, expected_sha256=expected_sha256,
-        require_final=False,
+        require_final=False, mode=RewardMode.FAIL_ONLY,
+    )
+
+
+def validate_candidate_delay_only_provenance(
+    path: Path, *, project_root: Path, expected_sha256: str,
+) -> dict[str, Any]:
+    """Review-only validator; never authorizes a formal consumer."""
+    return _validate_provenance(
+        path, project_root=project_root, expected_sha256=expected_sha256,
+        require_final=False, mode=RewardMode.DELAY_ONLY,
     )
 
 
@@ -469,26 +579,30 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-root", type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument("--out", type=Path)
+    parser.add_argument("--mode", choices=(RewardMode.DELAY_ONLY.value, RewardMode.FAIL_ONLY.value),
+                        default=RewardMode.FAIL_ONLY.value)
     parser.add_argument("--status", choices=("candidate", "final"), default="candidate")
     parser.add_argument("--validate", action="store_true")
     parser.add_argument("--expected-sha256")
-    args = parser.parse_args(); root = args.project_root.resolve()
+    args = parser.parse_args(); root = args.project_root.resolve(); mode = RewardMode(args.mode)
     default_name = "provenance_candidate.json" if args.status == "candidate" else "provenance_sidecar.json"
     if args.out is None:
-        args.out = Path("outputs/formal_v3/table3_reward_models/fail_only") / default_name
+        args.out = Path("outputs/formal_v3/table3_reward_models") / _mode_slug(mode) / default_name
     out = args.out if args.out.is_absolute() else root / args.out
     if args.validate:
         if args.status == "candidate":
             if not args.expected_sha256:
                 parser.error("candidate validation requires --expected-sha256")
-            payload = validate_candidate_fail_only_provenance(
-                out, project_root=root, expected_sha256=args.expected_sha256,
-            )
+            validator = (validate_candidate_delay_only_provenance
+                         if mode == RewardMode.DELAY_ONLY else validate_candidate_fail_only_provenance)
+            payload = validator(out, project_root=root, expected_sha256=args.expected_sha256)
         else:
-            payload = validate_fail_only_provenance(out, project_root=root)
+            validator = (validate_delay_only_provenance
+                         if mode == RewardMode.DELAY_ONLY else validate_fail_only_provenance)
+            payload = validator(out, project_root=root)
         digest = sha256_file(out)
     else:
-        payload = build_fail_only_provenance(root, status=args.status)
+        payload = build_reward_provenance(root, mode=mode, status=args.status)
         digest = write_immutable_sidecar(out, payload)
     print(json.dumps({"path": str(out), "sha256": digest, "payload": payload}, indent=2))
     return 0
