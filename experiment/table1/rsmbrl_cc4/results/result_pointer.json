@@ -1,0 +1,870 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-22T10:27:32.1996059Z",
+  "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\dependencies\\backups\\rsmbrl_repeat1_pass_20260921T230914Z_v2",
+  "source_exists": true,
+  "status": "PROVISIONAL_REPEAT1_PASS",
+  "canonical": true,
+  "alias_of": "",
+  "note": "Immutable local backup of the external canonical repeat1 result.",
+  "file_count": 214,
+  "total_bytes": 299097769,
+  "files": [
+    {
+      "relative_path": "backup_manifest_v2.json",
+      "bytes": 37645
+    },
+    {
+      "relative_path": "backup_manifest_v2.sha256",
+      "bytes": 65
+    },
+    {
+      "relative_path": "backup_manifest.json",
+      "bytes": 37501
+    },
+    {
+      "relative_path": "backup_manifest.sha256",
+      "bytes": 65
+    },
+    {
+      "relative_path": "config.resolved.yaml",
+      "bytes": 1739
+    },
+    {
+      "relative_path": "decisions.jsonl",
+      "bytes": 112737403
+    },
+    {
+      "relative_path": "eligibility_report.json",
+      "bytes": 1557
+    },
+    {
+      "relative_path": "episodes.jsonl",
+      "bytes": 31242444
+    },
+    {
+      "relative_path": "manifest.json",
+      "bytes": 4877
+    },
+    {
+      "relative_path": "metrics.json",
+      "bytes": 580
+    },
+    {
+      "relative_path": "policy_spec.json",
+      "bytes": 55
+    },
+    {
+      "relative_path": "resume_index.json",
+      "bytes": 23125
+    },
+    {
+      "relative_path": "stdout.log",
+      "bytes": 0
+    },
+    {
+      "relative_path": "validation.json",
+      "bytes": 684
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4000.jsonl",
+      "bytes": 1166204
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4001.jsonl",
+      "bytes": 1198415
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4002.jsonl",
+      "bytes": 1179734
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4003.jsonl",
+      "bytes": 1123133
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4004.jsonl",
+      "bytes": 1102800
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4005.jsonl",
+      "bytes": 1150291
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4006.jsonl",
+      "bytes": 1104322
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4007.jsonl",
+      "bytes": 1130456
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4008.jsonl",
+      "bytes": 1127082
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4009.jsonl",
+      "bytes": 1167415
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4010.jsonl",
+      "bytes": 1177027
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4011.jsonl",
+      "bytes": 1117669
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4012.jsonl",
+      "bytes": 1094933
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4013.jsonl",
+      "bytes": 1134554
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4014.jsonl",
+      "bytes": 1118892
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4015.jsonl",
+      "bytes": 1127599
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4016.jsonl",
+      "bytes": 1125292
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4017.jsonl",
+      "bytes": 1144352
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4018.jsonl",
+      "bytes": 1173409
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4019.jsonl",
+      "bytes": 1097198
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4020.jsonl",
+      "bytes": 1021653
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4021.jsonl",
+      "bytes": 1168592
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4022.jsonl",
+      "bytes": 1113857
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4023.jsonl",
+      "bytes": 1182675
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4024.jsonl",
+      "bytes": 1169221
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4025.jsonl",
+      "bytes": 1163611
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4026.jsonl",
+      "bytes": 1123001
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4027.jsonl",
+      "bytes": 1099198
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4028.jsonl",
+      "bytes": 1178342
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4029.jsonl",
+      "bytes": 1133324
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4030.jsonl",
+      "bytes": 1123005
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4031.jsonl",
+      "bytes": 1185153
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4032.jsonl",
+      "bytes": 1195804
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4033.jsonl",
+      "bytes": 1078751
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4034.jsonl",
+      "bytes": 1068961
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4035.jsonl",
+      "bytes": 1118658
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4036.jsonl",
+      "bytes": 1116708
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4037.jsonl",
+      "bytes": 1128712
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4038.jsonl",
+      "bytes": 1054637
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4039.jsonl",
+      "bytes": 1119516
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4040.jsonl",
+      "bytes": 1172400
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4041.jsonl",
+      "bytes": 1125802
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4042.jsonl",
+      "bytes": 1104519
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4043.jsonl",
+      "bytes": 1114259
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4044.jsonl",
+      "bytes": 1100273
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4045.jsonl",
+      "bytes": 1170895
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4046.jsonl",
+      "bytes": 1162101
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4047.jsonl",
+      "bytes": 1095212
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4048.jsonl",
+      "bytes": 1049614
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4049.jsonl",
+      "bytes": 1152783
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4050.jsonl",
+      "bytes": 1131508
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4051.jsonl",
+      "bytes": 1105951
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4052.jsonl",
+      "bytes": 1194147
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4053.jsonl",
+      "bytes": 1078489
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4054.jsonl",
+      "bytes": 1183349
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4055.jsonl",
+      "bytes": 1160237
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4056.jsonl",
+      "bytes": 1132806
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4057.jsonl",
+      "bytes": 1050831
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4058.jsonl",
+      "bytes": 1187490
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4059.jsonl",
+      "bytes": 1128737
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4060.jsonl",
+      "bytes": 1062571
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4061.jsonl",
+      "bytes": 1059137
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4062.jsonl",
+      "bytes": 1183923
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4063.jsonl",
+      "bytes": 1110472
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4064.jsonl",
+      "bytes": 1126720
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4065.jsonl",
+      "bytes": 1088564
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4066.jsonl",
+      "bytes": 1178800
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4067.jsonl",
+      "bytes": 1109701
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4068.jsonl",
+      "bytes": 1060770
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4069.jsonl",
+      "bytes": 1059597
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4070.jsonl",
+      "bytes": 1107892
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4071.jsonl",
+      "bytes": 1170669
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4072.jsonl",
+      "bytes": 1096511
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4073.jsonl",
+      "bytes": 1076422
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4074.jsonl",
+      "bytes": 1116679
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4075.jsonl",
+      "bytes": 1174372
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4076.jsonl",
+      "bytes": 1175874
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4077.jsonl",
+      "bytes": 1035678
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4078.jsonl",
+      "bytes": 1128251
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4079.jsonl",
+      "bytes": 1203337
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4080.jsonl",
+      "bytes": 1125695
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4081.jsonl",
+      "bytes": 1140665
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4082.jsonl",
+      "bytes": 1155806
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4083.jsonl",
+      "bytes": 1128127
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4084.jsonl",
+      "bytes": 1165403
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4085.jsonl",
+      "bytes": 1178396
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4086.jsonl",
+      "bytes": 1075001
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4087.jsonl",
+      "bytes": 1099071
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4088.jsonl",
+      "bytes": 1168013
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4089.jsonl",
+      "bytes": 1011117
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4090.jsonl",
+      "bytes": 1046750
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4091.jsonl",
+      "bytes": 1150523
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4092.jsonl",
+      "bytes": 1050953
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4093.jsonl",
+      "bytes": 1162972
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4094.jsonl",
+      "bytes": 1187562
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4095.jsonl",
+      "bytes": 1181530
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4096.jsonl",
+      "bytes": 1121774
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4097.jsonl",
+      "bytes": 1118045
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4098.jsonl",
+      "bytes": 1134114
+    },
+    {
+      "relative_path": "episode_parts\\decisions_4099.jsonl",
+      "bytes": 1104387
+    },
+    {
+      "relative_path": "episode_parts\\episode_4000.json",
+      "bytes": 443678
+    },
+    {
+      "relative_path": "episode_parts\\episode_4001.json",
+      "bytes": 436811
+    },
+    {
+      "relative_path": "episode_parts\\episode_4002.json",
+      "bytes": 458228
+    },
+    {
+      "relative_path": "episode_parts\\episode_4003.json",
+      "bytes": 433664
+    },
+    {
+      "relative_path": "episode_parts\\episode_4004.json",
+      "bytes": 414331
+    },
+    {
+      "relative_path": "episode_parts\\episode_4005.json",
+      "bytes": 420283
+    },
+    {
+      "relative_path": "episode_parts\\episode_4006.json",
+      "bytes": 459899
+    },
+    {
+      "relative_path": "episode_parts\\episode_4007.json",
+      "bytes": 401370
+    },
+    {
+      "relative_path": "episode_parts\\episode_4008.json",
+      "bytes": 472173
+    },
+    {
+      "relative_path": "episode_parts\\episode_4009.json",
+      "bytes": 492976
+    },
+    {
+      "relative_path": "episode_parts\\episode_4010.json",
+      "bytes": 345566
+    },
+    {
+      "relative_path": "episode_parts\\episode_4011.json",
+      "bytes": 369829
+    },
+    {
+      "relative_path": "episode_parts\\episode_4012.json",
+      "bytes": 371097
+    },
+    {
+      "relative_path": "episode_parts\\episode_4013.json",
+      "bytes": 369411
+    },
+    {
+      "relative_path": "episode_parts\\episode_4014.json",
+      "bytes": 458501
+    },
+    {
+      "relative_path": "episode_parts\\episode_4015.json",
+      "bytes": 354461
+    },
+    {
+      "relative_path": "episode_parts\\episode_4016.json",
+      "bytes": 448698
+    },
+    {
+      "relative_path": "episode_parts\\episode_4017.json",
+      "bytes": 433411
+    },
+    {
+      "relative_path": "episode_parts\\episode_4018.json",
+      "bytes": 348571
+    },
+    {
+      "relative_path": "episode_parts\\episode_4019.json",
+      "bytes": 453037
+    },
+    {
+      "relative_path": "episode_parts\\episode_4020.json",
+      "bytes": 330062
+    },
+    {
+      "relative_path": "episode_parts\\episode_4021.json",
+      "bytes": 418309
+    },
+    {
+      "relative_path": "episode_parts\\episode_4022.json",
+      "bytes": 312689
+    },
+    {
+      "relative_path": "episode_parts\\episode_4023.json",
+      "bytes": 404282
+    },
+    {
+      "relative_path": "episode_parts\\episode_4024.json",
+      "bytes": 473514
+    },
+    {
+      "relative_path": "episode_parts\\episode_4025.json",
+      "bytes": 404673
+    },
+    {
+      "relative_path": "episode_parts\\episode_4026.json",
+      "bytes": 397645
+    },
+    {
+      "relative_path": "episode_parts\\episode_4027.json",
+      "bytes": 442768
+    },
+    {
+      "relative_path": "episode_parts\\episode_4028.json",
+      "bytes": 412443
+    },
+    {
+      "relative_path": "episode_parts\\episode_4029.json",
+      "bytes": 265654
+    },
+    {
+      "relative_path": "episode_parts\\episode_4030.json",
+      "bytes": 400001
+    },
+    {
+      "relative_path": "episode_parts\\episode_4031.json",
+      "bytes": 428532
+    },
+    {
+      "relative_path": "episode_parts\\episode_4032.json",
+      "bytes": 490545
+    },
+    {
+      "relative_path": "episode_parts\\episode_4033.json",
+      "bytes": 395853
+    },
+    {
+      "relative_path": "episode_parts\\episode_4034.json",
+      "bytes": 527123
+    },
+    {
+      "relative_path": "episode_parts\\episode_4035.json",
+      "bytes": 428572
+    },
+    {
+      "relative_path": "episode_parts\\episode_4036.json",
+      "bytes": 493295
+    },
+    {
+      "relative_path": "episode_parts\\episode_4037.json",
+      "bytes": 402653
+    },
+    {
+      "relative_path": "episode_parts\\episode_4038.json",
+      "bytes": 389884
+    },
+    {
+      "relative_path": "episode_parts\\episode_4039.json",
+      "bytes": 458352
+    },
+    {
+      "relative_path": "episode_parts\\episode_4040.json",
+      "bytes": 477495
+    },
+    {
+      "relative_path": "episode_parts\\episode_4041.json",
+      "bytes": 396534
+    },
+    {
+      "relative_path": "episode_parts\\episode_4042.json",
+      "bytes": 458146
+    },
+    {
+      "relative_path": "episode_parts\\episode_4043.json",
+      "bytes": 316290
+    },
+    {
+      "relative_path": "episode_parts\\episode_4044.json",
+      "bytes": 449742
+    },
+    {
+      "relative_path": "episode_parts\\episode_4045.json",
+      "bytes": 347385
+    },
+    {
+      "relative_path": "episode_parts\\episode_4046.json",
+      "bytes": 407919
+    },
+    {
+      "relative_path": "episode_parts\\episode_4047.json",
+      "bytes": 435347
+    },
+    {
+      "relative_path": "episode_parts\\episode_4048.json",
+      "bytes": 406070
+    },
+    {
+      "relative_path": "episode_parts\\episode_4049.json",
+      "bytes": 524021
+    },
+    {
+      "relative_path": "episode_parts\\episode_4050.json",
+      "bytes": 484322
+    },
+    {
+      "relative_path": "episode_parts\\episode_4051.json",
+      "bytes": 458604
+    },
+    {
+      "relative_path": "episode_parts\\episode_4052.json",
+      "bytes": 519357
+    },
+    {
+      "relative_path": "episode_parts\\episode_4053.json",
+      "bytes": 459029
+    },
+    {
+      "relative_path": "episode_parts\\episode_4054.json",
+      "bytes": 440573
+    },
+    {
+      "relative_path": "episode_parts\\episode_4055.json",
+      "bytes": 380145
+    },
+    {
+      "relative_path": "episode_parts\\episode_4056.json",
+      "bytes": 431098
+    },
+    {
+      "relative_path": "episode_parts\\episode_4057.json",
+      "bytes": 440086
+    },
+    {
+      "relative_path": "episode_parts\\episode_4058.json",
+      "bytes": 392954
+    },
+    {
+      "relative_path": "episode_parts\\episode_4059.json",
+      "bytes": 397951
+    },
+    {
+      "relative_path": "episode_parts\\episode_4060.json",
+      "bytes": 354876
+    },
+    {
+      "relative_path": "episode_parts\\episode_4061.json",
+      "bytes": 318175
+    },
+    {
+      "relative_path": "episode_parts\\episode_4062.json",
+      "bytes": 603964
+    },
+    {
+      "relative_path": "episode_parts\\episode_4063.json",
+      "bytes": 357444
+    },
+    {
+      "relative_path": "episode_parts\\episode_4064.json",
+      "bytes": 393279
+    },
+    {
+      "relative_path": "episode_parts\\episode_4065.json",
+      "bytes": 480536
+    },
+    {
+      "relative_path": "episode_parts\\episode_4066.json",
+      "bytes": 498855
+    },
+    {
+      "relative_path": "episode_parts\\episode_4067.json",
+      "bytes": 458126
+    },
+    {
+      "relative_path": "episode_parts\\episode_4068.json",
+      "bytes": 388843
+    },
+    {
+      "relative_path": "episode_parts\\episode_4069.json",
+      "bytes": 399300
+    },
+    {
+      "relative_path": "episode_parts\\episode_4070.json",
+      "bytes": 491034
+    },
+    {
+      "relative_path": "episode_parts\\episode_4071.json",
+      "bytes": 475545
+    },
+    {
+      "relative_path": "episode_parts\\episode_4072.json",
+      "bytes": 444541
+    },
+    {
+      "relative_path": "episode_parts\\episode_4073.json",
+      "bytes": 458693
+    },
+    {
+      "relative_path": "episode_parts\\episode_4074.json",
+      "bytes": 459852
+    },
+    {
+      "relative_path": "episode_parts\\episode_4075.json",
+      "bytes": 459490
+    },
+    {
+      "relative_path": "episode_parts\\episode_4076.json",
+      "bytes": 352508
+    },
+    {
+      "relative_path": "episode_parts\\episode_4077.json",
+      "bytes": 341327
+    },
+    {
+      "relative_path": "episode_parts\\episode_4078.json",
+      "bytes": 478442
+    },
+    {
+      "relative_path": "episode_parts\\episode_4079.json",
+      "bytes": 502947
+    },
+    {
+      "relative_path": "episode_parts\\episode_4080.json",
+      "bytes": 412585
+    },
+    {
+      "relative_path": "episode_parts\\episode_4081.json",
+      "bytes": 347067
+    },
+    {
+      "relative_path": "episode_parts\\episode_4082.json",
+      "bytes": 475405
+    },
+    {
+      "relative_path": "episode_parts\\episode_4083.json",
+      "bytes": 438821
+    },
+    {
+      "relative_path": "episode_parts\\episode_4084.json",
+      "bytes": 425094
+    },
+    {
+      "relative_path": "episode_parts\\episode_4085.json",
+      "bytes": 453937
+    },
+    {
+      "relative_path": "episode_parts\\episode_4086.json",
+      "bytes": 511363
+    },
+    {
+      "relative_path": "episode_parts\\episode_4087.json",
+      "bytes": 375126
+    },
+    {
+      "relative_path": "episode_parts\\episode_4088.json",
+      "bytes": 490982
+    },
+    {
+      "relative_path": "episode_parts\\episode_4089.json",
+      "bytes": 340707
+    },
+    {
+      "relative_path": "episode_parts\\episode_4090.json",
+      "bytes": 497436
+    },
+    {
+      "relative_path": "episode_parts\\episode_4091.json",
+      "bytes": 374459
+    },
+    {
+      "relative_path": "episode_parts\\episode_4092.json",
+      "bytes": 347545
+    },
+    {
+      "relative_path": "episode_parts\\episode_4093.json",
+      "bytes": 315325
+    },
+    {
+      "relative_path": "episode_parts\\episode_4094.json",
+      "bytes": 506941
+    },
+    {
+      "relative_path": "episode_parts\\episode_4095.json",
+      "bytes": 366372
+    },
+    {
+      "relative_path": "episode_parts\\episode_4096.json",
+      "bytes": 380373
+    },
+    {
+      "relative_path": "episode_parts\\episode_4097.json",
+      "bytes": 472634
+    },
+    {
+      "relative_path": "episode_parts\\episode_4098.json",
+      "bytes": 357200
+    },
+    {
+      "relative_path": "episode_parts\\episode_4099.json",
+      "bytes": 379565
+    }
+  ]
+}

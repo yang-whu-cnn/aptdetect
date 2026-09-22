@@ -1,0 +1,20 @@
+method: CARL-CC4 (adapted)
+status: formal_runtime_ready_training_required
+device: cpu
+observation: blue_visible_d27
+hidden_truth_policy_input: false
+actions: [Sleep, Analyse, Remove, Restore]
+checkpoint_pattern: outputs/formal_v3/training/carl_cc4/policy_{policy_seed}.pt
+policy_seeds: [51001, 51002, 51003, 51004, 51005]
+training_episode_seeds: {start: 1000, end_inclusive: 1031}
+validation_episode_seeds: {start: 2000, end_inclusive: 2007}
+forbidden_training_episode_seeds: {start: 4000, end_inclusive: 4099}
+training_augmentation: CAICS_Dyna_training_only
+synthetic_rollouts_per_real_rollout: 8
+shared_world_model: frozen
+requested_imagination_horizon: 256
+horizon_gate: fail_closed_or_explicit_ADAPTED_TRUNCATED
+reward: standard_caics_cc4_mapping_training_only
+evaluation_search: false
+evaluation: unified_cc4_v3_metrics
+formal: {repeats: 5, training_episodes_per_repeat: 32, test_episodes_per_repeat: 100, ticks_per_episode: 500}

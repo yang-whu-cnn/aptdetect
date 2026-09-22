@@ -1,0 +1,152 @@
+{
+  "artifact_hashes": {
+    "calibration_manifest_sha256": "8b16d4d4d903135cddd411f39f8824549e3dedef7372db675ffda1c924ac1d98",
+    "duration_tail_contract": {
+      "no_clamp": true,
+      "nominal_durations": [
+        1,
+        2,
+        3,
+        5
+      ],
+      "schema": "cc4_v3_terminal_tail_duration_v1",
+      "source_bundle_sha256": "59af85da80a1640209579116599da3822271d25a5d45c1b6704bbe9eb1e6f4f4",
+      "source_files": {
+        "formal_experiments/ours/formal_ppo_rollout.py": "3a690cc0427ed90db0bb139da174d67cd03f1eb0249c64ad5d3056798fa5458a",
+        "formal_experiments/ours/run_table23_true_ppo.py": "ec2de89ebb2e0894df4cf7d4194afdb502503e9f94bf121915cf114ed6282a6e"
+      },
+      "tail_fields": [
+        "elapsed_ticks",
+        "duration_truncated"
+      ],
+      "terminal_next_value": 0.0
+    },
+    "model_manifest_sha256": "0a8a2c5c196dee74eda94cca24e4904cf93badf9008bf6ddcc27e6b854503931",
+    "normalizer_sha256": "e50df37c17cf7c49d2c3127800144a948a1a709c5a8396e773d2fb71f8765025",
+    "replay_manifest_sha256": "b7aae1a9189afad9717be7ebfff97ef2016bb25634ae8e8c83c254987653f8ee",
+    "replay_provenance": {
+      "manifest_path": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\docs\\FINAL_REWARD_REPLAY_MANIFEST.json",
+      "manifest_sha256": "b7aae1a9189afad9717be7ebfff97ef2016bb25634ae8e8c83c254987653f8ee",
+      "train_jsonl": {
+        "bytes": 68292714,
+        "path": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_replay_final_20260917\\train.jsonl",
+        "seeds": [
+          1000,
+          1001,
+          1002,
+          1003,
+          1004,
+          1005,
+          1006,
+          1007,
+          1008,
+          1009,
+          1010,
+          1011,
+          1012,
+          1013,
+          1014,
+          1015,
+          1016,
+          1017,
+          1018,
+          1019,
+          1020,
+          1021,
+          1022,
+          1023,
+          1024,
+          1025,
+          1026,
+          1027,
+          1028,
+          1029,
+          1030,
+          1031
+        ],
+        "sha256": "ba608ed7bd63d6a6c28a259738ca35e6122bc2f0a6cf7f427df1f2b3252c8cee",
+        "transition_count": 43297
+      },
+      "validation_jsonl": {
+        "bytes": 16756934,
+        "path": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_replay_final_20260917\\validation.jsonl",
+        "seeds": [
+          2000,
+          2001,
+          2002,
+          2003,
+          2004,
+          2005,
+          2006,
+          2007
+        ],
+        "sha256": "7e23294678167078704c9603932b014d893fbd35e06b5a145259aef16c23588d",
+        "transition_count": 10796
+      }
+    },
+    "reward_model_sha256": "f333330510b5de8e78fb9e2dc4287dd87fee29695fe38cbec5e60700ee615624",
+    "world_model_sha256": "3b86593aa8adda3e0e173bfb700c543bd88641d23cf3e73ddc3992284c8f900f"
+  },
+  "cache_misses": 0,
+  "checkpoints": [
+    {
+      "decision_count": 11122,
+      "domain_sha256": "744329c707dcddea4d40026ef063395035bd5f5a12206e4f1fa49063c9e3817f",
+      "environment_steps": 4000,
+      "path": "training_checkpoints/checkpoint_0008.pt",
+      "policy_version": 8,
+      "seed_index": 8,
+      "sha256": "26208046843e2e01b9157d4527d0300736ef72500a3e43502ff4b3c6fe90528e",
+      "size": 525029
+    },
+    {
+      "decision_count": 22434,
+      "domain_sha256": "744329c707dcddea4d40026ef063395035bd5f5a12206e4f1fa49063c9e3817f",
+      "environment_steps": 8000,
+      "path": "training_checkpoints/checkpoint_0016.pt",
+      "policy_version": 16,
+      "seed_index": 16,
+      "sha256": "eb47ab5658aea8702b0a2947a7cbf535bc07bf03a1b5f2a5d5cfe56b929261cb",
+      "size": 525029
+    },
+    {
+      "decision_count": 33251,
+      "domain_sha256": "744329c707dcddea4d40026ef063395035bd5f5a12206e4f1fa49063c9e3817f",
+      "environment_steps": 12000,
+      "path": "training_checkpoints/checkpoint_0024.pt",
+      "policy_version": 24,
+      "seed_index": 24,
+      "sha256": "a6f4753abfc8474060139fa6f96809a2f2192ded7563d7631f2180c93c9f214b",
+      "size": 525029
+    },
+    {
+      "decision_count": 44382,
+      "domain_sha256": "744329c707dcddea4d40026ef063395035bd5f5a12206e4f1fa49063c9e3817f",
+      "environment_steps": 16000,
+      "path": "training_checkpoints/checkpoint_0032.pt",
+      "policy_version": 32,
+      "seed_index": 32,
+      "sha256": "0f55268e6b7dd9a3d5b9d8fa003b0a10b06e6fe0ee2ad7f0f29ca76af17b83a5",
+      "size": 525029
+    }
+  ],
+  "decision_count": 44382,
+  "domain_sha256": "744329c707dcddea4d40026ef063395035bd5f5a12206e4f1fa49063c9e3817f",
+  "environment_steps": 16000,
+  "journal_index_sha256": "30a8495463445192729bed90edc741786d01f297ee8134c90e5df9536bd69b61",
+  "offline_ppo_used": false,
+  "on_policy_ppo_used": true,
+  "online_training_environment_steps": 16000,
+  "ood_fallback_summary": {
+    "count": 0,
+    "events": [],
+    "events_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "max_distance": 0.0,
+    "rate": 0.0,
+    "transition_count": 44382
+  },
+  "policy_version": 32,
+  "provider_calls": 0,
+  "schema": "cc4_v3_true_ppo_train_v1",
+  "training_curve_sha256": "3b3cabe5a1562350fe570ab01dc2cc31394151e608e54ad98ecd516c3e6e60fe"
+}

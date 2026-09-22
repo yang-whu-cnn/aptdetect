@@ -1,0 +1,11 @@
+selection:
+  schema: formal_v3_primary_model_selection_v1
+  selected: true
+  model_alias: llm_h_gpt56_sol
+  exact_model_id: openai/gpt-5.6-sol
+  provider: ofox
+  registry_version: 1
+  registry_sha256: 002a73ec959270cd656a9a4eac66cddf5b257c401a8f2855d2e5bce9ed3f256b
+  authority: explicit_user_approval
+  approved_date: 2026-09-19
+  scope: final_offline_teacher_cache

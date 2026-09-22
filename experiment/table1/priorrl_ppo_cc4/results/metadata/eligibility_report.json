@@ -1,0 +1,30 @@
+{
+  "eligibility": "PASS",
+  "errors": [],
+  "formal": true,
+  "input_sha256": {
+    "checkpoint.pt": "6cbd471dd27cf87375248b866a6adc4ce3365c584cf1b6b04527770028b8406f",
+    "config.resolved.yaml": "479201b09133f2464cba26500674f7324d3db677d1429b2c09190dd95749f77a",
+    "decisions.jsonl": "655c844fd1720a701c4f869230f93a680202046c7c8a7c685e522e069c81fc44",
+    "episodes.jsonl": "0143e238063d74a16ab49e512e9a84ab2d824142398dfa6494481987e84e3df0",
+    "manifest.json": "3ff96ecd36cbc595841d44521b90b6c0e6a13222d4cd6b3adc749c126c8d9a1b",
+    "metrics.json": "66f0abb4a326ed8ad77708cb77031266906766ba4f96ec86d368b907fef99f5b",
+    "policy_spec.json": "84b4fdcfd5a9cd5217473ebb605ca6d095262a5fd3c31ed843e83e8c65440be0"
+  },
+  "passed": true,
+  "schema": "cc4_v3_eligibility_report_v1",
+  "schema_version": 1,
+  "status": "PASS",
+  "validated_input_sha256": {
+    "checkpoint.pt": "6cbd471dd27cf87375248b866a6adc4ce3365c584cf1b6b04527770028b8406f",
+    "config.resolved.yaml": "479201b09133f2464cba26500674f7324d3db677d1429b2c09190dd95749f77a",
+    "decisions.jsonl": "655c844fd1720a701c4f869230f93a680202046c7c8a7c685e522e069c81fc44",
+    "episodes.jsonl": "0143e238063d74a16ab49e512e9a84ab2d824142398dfa6494481987e84e3df0",
+    "manifest.json": "3ff96ecd36cbc595841d44521b90b6c0e6a13222d4cd6b3adc749c126c8d9a1b",
+    "metrics.json": "66f0abb4a326ed8ad77708cb77031266906766ba4f96ec86d368b907fef99f5b",
+    "policy_spec.json": "84b4fdcfd5a9cd5217473ebb605ca6d095262a5fd3c31ed843e83e8c65440be0"
+  },
+  "validator": "formal_experiments.evaluation.validate_formal_run",
+  "validator_version": "formal_integrity_v2",
+  "warnings": []
+}

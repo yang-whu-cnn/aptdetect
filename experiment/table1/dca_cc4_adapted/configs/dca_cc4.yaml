@@ -1,0 +1,17 @@
+method: DCA-CC4 (adapted)
+status: pilot
+policy_type: detector_to_fixed_response_adapter
+ppo: false
+observations: blue_visible_alerts_only
+alert_processing: {algorithm: DBSCAN, min_pts: 3, epsilon: 0.25, time_window: 10}
+attack_path_model: {type: finite_tabular_dyna_value_iteration, gamma: 0.95, dyna_steps: 20}
+response_mapping:
+  high_confidence: 0.75
+  multi_channel_threshold: 2
+  empty: no_op
+  low_or_single: analyse
+  high_removable: remove
+  persistent_or_nonremovable: restore
+attacker_path_reward: normalized_service_impact_plus_inverse_steps_plus_objective_bonus
+defender_training_reward: null
+pilot: {training_repeats: 2, episodes_per_repeat: 5, ticks_per_episode: 100}

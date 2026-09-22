@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-22T10:27:33.3092735Z",
+  "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table1\\terla_a4\\repeat_1",
+  "source_exists": true,
+  "status": "PARTIAL_BLOCKED_ADMISSION",
+  "canonical": false,
+  "alias_of": "",
+  "note": "Raw test exists; generic eligibility is blocked by adapted display-name compatibility.",
+  "file_count": 14,
+  "total_bytes": 145812022,
+  "files": [
+    {
+      "relative_path": "checkpoint.pt",
+      "bytes": 573847
+    },
+    {
+      "relative_path": "config.resolved.yaml",
+      "bytes": 2119
+    },
+    {
+      "relative_path": "decisions.jsonl",
+      "bytes": 112116409
+    },
+    {
+      "relative_path": "eligibility_report.json",
+      "bytes": 2077
+    },
+    {
+      "relative_path": "episodes.jsonl",
+      "bytes": 32359585
+    },
+    {
+      "relative_path": "evaluation_manifest.json",
+      "bytes": 5779
+    },
+    {
+      "relative_path": "manifest.json",
+      "bytes": 2927
+    },
+    {
+      "relative_path": "metrics.json",
+      "bytes": 507
+    },
+    {
+      "relative_path": "optimizer.pt",
+      "bytes": 735099
+    },
+    {
+      "relative_path": "stage_state.json",
+      "bytes": 5663
+    },
+    {
+      "relative_path": "stdout.log",
+      "bytes": 26
+    },
+    {
+      "relative_path": "training_manifest.json",
+      "bytes": 7887
+    },
+    {
+      "relative_path": "writer_lease.json",
+      "bytes": 96
+    },
+    {
+      "relative_path": "writer.lock",
+      "bytes": 1
+    }
+  ]
+}

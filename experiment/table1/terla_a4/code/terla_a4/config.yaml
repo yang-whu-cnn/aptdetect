@@ -1,0 +1,27 @@
+method_name: TERLA-A4
+formal_result_eligible: false
+graph:
+  node_types: [mission, subnet, host]
+  host_features: [malicious_process_event, malicious_network_event]
+  encoder: pure_torch_typed_attention
+  layers: 2
+  hidden: 60
+  pooling: global_host_sum
+policy:
+  shared_across_five_agents: true
+  context_isolated_per_agent: true
+  actions: [Sleep, Analyse, Remove, Restore]
+  mlp_hidden: [120, 120]
+ppo:
+  gamma: 0.97
+  learning_rate: 0.0001
+  entropy_coefficient: 0.01
+  rollout_fragment_length: 128
+durations: [1, 2, 3, 5]
+reward:
+  formula: negative_red_sessions_plus_service_unreliability_times_ot_multiplier
+  exact_environment_channel: verified_1x20_seed3199
+  probe_report_sha256: 88e952553ea3f01680685c5ab84d2daf5318b3fadfcdf461b58688df22ab0dd1
+  policy_reward_leakage_gate: passed_unit_and_1x20_train_eval_smoke
+training_runner: development_verified_not_formal
+development_smoke_summary_sha256: cad41bd9f4594baaf941ad9182287fe756f57145197a1123ac5753f8db7903cd

@@ -1,0 +1,28 @@
+{
+  "eligibility": "PASS",
+  "errors": [],
+  "formal": true,
+  "input_sha256": {
+    "config.resolved.yaml": "30efed03fb21a3dd516bec2a1e5143f5519049b89363a872a1bac256e59647f7",
+    "decisions.jsonl": "4f57b5df3bd442a1791aad76713aaba7f41873cd9d6eb5e15040e734da55e0f8",
+    "episodes.jsonl": "56b050e76b3ad1af5a96ffbf3cdd995a094a87331fa5dee2986c3a2b752da06d",
+    "manifest.json": "084724cb07bd5b5def42adec0962a61a1c6cb439d6e3c6f10261d92bb256b4dd",
+    "metrics.json": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b",
+    "policy_spec.json": "9b0259798dbb726903a177e1044250abb59aaa9c470a4a8ed6531ce33df33015"
+  },
+  "passed": true,
+  "schema": "cc4_v3_eligibility_report_v1",
+  "schema_version": 1,
+  "status": "PASS",
+  "validated_input_sha256": {
+    "config.resolved.yaml": "30efed03fb21a3dd516bec2a1e5143f5519049b89363a872a1bac256e59647f7",
+    "decisions.jsonl": "4f57b5df3bd442a1791aad76713aaba7f41873cd9d6eb5e15040e734da55e0f8",
+    "episodes.jsonl": "56b050e76b3ad1af5a96ffbf3cdd995a094a87331fa5dee2986c3a2b752da06d",
+    "manifest.json": "084724cb07bd5b5def42adec0962a61a1c6cb439d6e3c6f10261d92bb256b4dd",
+    "metrics.json": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b",
+    "policy_spec.json": "9b0259798dbb726903a177e1044250abb59aaa9c470a4a8ed6531ce33df33015"
+  },
+  "validator": "formal_experiments.evaluation.validate_formal_run",
+  "validator_version": "formal_integrity_v2",
+  "warnings": []
+}

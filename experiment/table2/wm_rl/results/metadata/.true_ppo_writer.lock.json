@@ -1,0 +1,11 @@
+{
+  "domain_sha256": "d916751307805205c59b5bbc744396e050ff05f3d8450f8978fc82c821e5ac5c",
+  "pid": 24708,
+  "policy_seed": 51001,
+  "reward_mode": "Full-Reward",
+  "schema": "cc4_v3_true_ppo_writer_lock_v1",
+  "stage": "test",
+  "started_at": "2026-09-22T07:50:14.230783Z",
+  "status": "ACTIVE",
+  "variant": "wm_rl"
+}

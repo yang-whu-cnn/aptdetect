@@ -1,0 +1,291 @@
+{
+  "checkpoint": "policy_51001.pt",
+  "checkpoint_sha256": "7c5e823f741ae805f751ccfa02444931f07e92f7687bcd39ca5000304c4ab783",
+  "code_commit": "2eb9ba7502182c3971cf880f46b14fbe76e60f37",
+  "controller_context_policy_input": false,
+  "formal_config_sha256": "bf1171d9153b10570e1153161fa8afac4211d72d0326194fd584cd5dfcbd54dd",
+  "formal_training_complete": true,
+  "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "git_dirty": false,
+  "hidden_truth_policy_input": false,
+  "method": "terla_a4",
+  "optimization_semantics": "sequential_transition_clipped_surrogate_batch_size_1_no_shuffle",
+  "optimizer_file": "policy_51001.optimizer.pt",
+  "optimizer_sha256": "5a153cf8f26ad1259f08743b6800f7576b88a25edb01dcc268e6801917e791f3",
+  "per_agent_history_isolated": true,
+  "policy_architecture": "graph_only_host_features_2_to_hidden_60",
+  "policy_seed": 51001,
+  "requirements_freeze_sha256": "0a235632b9b411e09bf1658fc433e5145be5d09244fe65482f2510529a6d9f6d",
+  "reward": "original_terla_cyber_reward",
+  "schema": "terla_a4_formal_checkpoint_v1",
+  "selected_checkpoint_sha256": "7d174dc2884baca8be146055d526a3396bd451abe320c6e21b1a7ab8b82dcf91",
+  "selected_training_episodes": 32,
+  "selected_validation_reward_mean": -97.9250000000002,
+  "shared_policy_across_agents": true,
+  "source_paper_sha256": "e2c53cc19c3647029870d9bd9438f9c20d50ab79e728374b8461852e729800ea",
+  "test_seeds_used": false,
+  "ticks_per_episode": 500,
+  "training_episode_seeds": [
+    1000,
+    1001,
+    1002,
+    1003,
+    1004,
+    1005,
+    1006,
+    1007,
+    1008,
+    1009,
+    1010,
+    1011,
+    1012,
+    1013,
+    1014,
+    1015,
+    1016,
+    1017,
+    1018,
+    1019,
+    1020,
+    1021,
+    1022,
+    1023,
+    1024,
+    1025,
+    1026,
+    1027,
+    1028,
+    1029,
+    1030,
+    1031
+  ],
+  "training_split": "train",
+  "validation_candidates": [
+    {
+      "checkpoint": "policy_51001.step_08.pt",
+      "checkpoint_sha256": "169fba50b253b3c62a279f0175cd09769261e3ffaa48d5a2d925033cc27c1efb",
+      "code_commit": "2eb9ba7502182c3971cf880f46b14fbe76e60f37",
+      "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_dirty": false,
+      "training_episodes": 8,
+      "training_seed": 1007,
+      "validation": [
+        {
+          "episode_seed": 2000,
+          "reward_sum": -102.60000000000018
+        },
+        {
+          "episode_seed": 2001,
+          "reward_sum": -84.80000000000013
+        },
+        {
+          "episode_seed": 2002,
+          "reward_sum": -97.40000000000015
+        },
+        {
+          "episode_seed": 2003,
+          "reward_sum": -89.00000000000014
+        },
+        {
+          "episode_seed": 2004,
+          "reward_sum": -95.60000000000018
+        },
+        {
+          "episode_seed": 2005,
+          "reward_sum": -122.8000000000003
+        },
+        {
+          "episode_seed": 2006,
+          "reward_sum": -102.00000000000021
+        },
+        {
+          "episode_seed": 2007,
+          "reward_sum": -102.60000000000032
+        }
+      ],
+      "validation_reward_mean": -99.60000000000022,
+      "validation_seeds": [
+        2000,
+        2001,
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007
+      ]
+    },
+    {
+      "checkpoint": "policy_51001.step_16.pt",
+      "checkpoint_sha256": "5aca65c44862298f60f43c93b1cf4b03ad0f88ee765ec89d7ecca8081e531864",
+      "code_commit": "2eb9ba7502182c3971cf880f46b14fbe76e60f37",
+      "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_dirty": false,
+      "training_episodes": 16,
+      "training_seed": 1015,
+      "validation": [
+        {
+          "episode_seed": 2000,
+          "reward_sum": -102.60000000000018
+        },
+        {
+          "episode_seed": 2001,
+          "reward_sum": -84.80000000000013
+        },
+        {
+          "episode_seed": 2002,
+          "reward_sum": -97.40000000000015
+        },
+        {
+          "episode_seed": 2003,
+          "reward_sum": -89.00000000000014
+        },
+        {
+          "episode_seed": 2004,
+          "reward_sum": -95.60000000000018
+        },
+        {
+          "episode_seed": 2005,
+          "reward_sum": -122.8000000000003
+        },
+        {
+          "episode_seed": 2006,
+          "reward_sum": -102.00000000000021
+        },
+        {
+          "episode_seed": 2007,
+          "reward_sum": -102.60000000000032
+        }
+      ],
+      "validation_reward_mean": -99.60000000000022,
+      "validation_seeds": [
+        2000,
+        2001,
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007
+      ]
+    },
+    {
+      "checkpoint": "policy_51001.step_24.pt",
+      "checkpoint_sha256": "4e7ff041c518a408da68b509f48b0ab77365d1b7984f398b95d1828212b31c58",
+      "code_commit": "2eb9ba7502182c3971cf880f46b14fbe76e60f37",
+      "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_dirty": false,
+      "training_episodes": 24,
+      "training_seed": 1023,
+      "validation": [
+        {
+          "episode_seed": 2000,
+          "reward_sum": -99.00000000000018
+        },
+        {
+          "episode_seed": 2001,
+          "reward_sum": -87.40000000000012
+        },
+        {
+          "episode_seed": 2002,
+          "reward_sum": -95.80000000000013
+        },
+        {
+          "episode_seed": 2003,
+          "reward_sum": -89.00000000000014
+        },
+        {
+          "episode_seed": 2004,
+          "reward_sum": -95.60000000000018
+        },
+        {
+          "episode_seed": 2005,
+          "reward_sum": -122.80000000000027
+        },
+        {
+          "episode_seed": 2006,
+          "reward_sum": -102.00000000000024
+        },
+        {
+          "episode_seed": 2007,
+          "reward_sum": -102.60000000000029
+        }
+      ],
+      "validation_reward_mean": -99.27500000000019,
+      "validation_seeds": [
+        2000,
+        2001,
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007
+      ]
+    },
+    {
+      "checkpoint": "policy_51001.step_32.pt",
+      "checkpoint_sha256": "7d174dc2884baca8be146055d526a3396bd451abe320c6e21b1a7ab8b82dcf91",
+      "code_commit": "2eb9ba7502182c3971cf880f46b14fbe76e60f37",
+      "git_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_dirty": false,
+      "training_episodes": 32,
+      "training_seed": 1031,
+      "validation": [
+        {
+          "episode_seed": 2000,
+          "reward_sum": -101.40000000000018
+        },
+        {
+          "episode_seed": 2001,
+          "reward_sum": -87.40000000000012
+        },
+        {
+          "episode_seed": 2002,
+          "reward_sum": -81.00000000000014
+        },
+        {
+          "episode_seed": 2003,
+          "reward_sum": -87.00000000000014
+        },
+        {
+          "episode_seed": 2004,
+          "reward_sum": -96.40000000000016
+        },
+        {
+          "episode_seed": 2005,
+          "reward_sum": -120.80000000000032
+        },
+        {
+          "episode_seed": 2006,
+          "reward_sum": -102.80000000000021
+        },
+        {
+          "episode_seed": 2007,
+          "reward_sum": -106.60000000000035
+        }
+      ],
+      "validation_reward_mean": -97.9250000000002,
+      "validation_seeds": [
+        2000,
+        2001,
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007
+      ]
+    }
+  ],
+  "validation_episode_seeds": [
+    2000,
+    2001,
+    2002,
+    2003,
+    2004,
+    2005,
+    2006,
+    2007
+  ]
+}

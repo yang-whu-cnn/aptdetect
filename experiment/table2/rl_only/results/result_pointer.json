@@ -1,0 +1,350 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-22T10:27:33.5099060Z",
+  "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table2\\rl_only_trueppo_v2\\repeat_1",
+  "source_exists": true,
+  "status": "PROVISIONAL_REPEAT1_PASS",
+  "canonical": true,
+  "alias_of": "",
+  "note": "True-PPO repeat1 source and aggregate PASS.",
+  "file_count": 84,
+  "total_bytes": 571406142,
+  "files": [
+    {
+      "relative_path": ".true_ppo_writer.lock.json",
+      "bytes": 387
+    },
+    {
+      "relative_path": "aggregate.json",
+      "bytes": 268
+    },
+    {
+      "relative_path": "calibration_manifest.json",
+      "bytes": 3137
+    },
+    {
+      "relative_path": "decisions.jsonl",
+      "bytes": 135987538
+    },
+    {
+      "relative_path": "eligibility_report.json",
+      "bytes": 7040
+    },
+    {
+      "relative_path": "episodes.jsonl",
+      "bytes": 47470462
+    },
+    {
+      "relative_path": "journal_index.json",
+      "bytes": 89580
+    },
+    {
+      "relative_path": "manifest.json",
+      "bytes": 7241
+    },
+    {
+      "relative_path": "metrics.json",
+      "bytes": 70026
+    },
+    {
+      "relative_path": "normalizer.json",
+      "bytes": 1686
+    },
+    {
+      "relative_path": "prepare_test_authorization.json",
+      "bytes": 3108
+    },
+    {
+      "relative_path": "resume_state.json",
+      "bytes": 69006
+    },
+    {
+      "relative_path": "test_summary.json",
+      "bytes": 352960603
+    },
+    {
+      "relative_path": "train_summary.json",
+      "bytes": 4120
+    },
+    {
+      "relative_path": "training_curve.jsonl",
+      "bytes": 21603
+    },
+    {
+      "relative_path": "validation_records.json",
+      "bytes": 3049
+    },
+    {
+      "relative_path": "pending\\seed_0001.pt",
+      "bytes": 182549
+    },
+    {
+      "relative_path": "pending\\seed_0002.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0003.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0004.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0005.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0006.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0007.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0008.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0009.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0010.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0011.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0012.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0013.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0014.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0015.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0016.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0017.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0018.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0019.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0020.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0021.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0022.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0023.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0024.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0025.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0026.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0027.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0028.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0029.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0030.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0031.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "pending\\seed_0032.pt",
+      "bytes": 505105
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0001.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0002.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0003.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0004.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0005.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0006.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0007.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0008.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0009.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0010.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0011.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0012.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0013.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0014.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0015.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0016.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0017.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0018.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0019.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0020.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0021.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0022.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0023.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0024.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0025.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0026.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0027.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0028.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0029.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0030.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0031.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "seed_journal\\checkpoint_0032.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "training_checkpoints\\checkpoint_0008.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "training_checkpoints\\checkpoint_0016.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "training_checkpoints\\checkpoint_0024.pt",
+      "bytes": 524069
+    },
+    {
+      "relative_path": "training_checkpoints\\checkpoint_0032.pt",
+      "bytes": 524069
+    }
+  ]
+}

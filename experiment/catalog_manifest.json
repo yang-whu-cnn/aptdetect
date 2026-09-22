@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-22T10:27:34.5353924Z",
+  "repository_root": "D:\\paper\\github-me\\aptdetect",
+  "git_head": "86a6a8f1bab30e9f2310a560d04f7d6cf1f9b05c",
+  "tables": {
+    "table1": [
+      "uamcts_cc4_adapted",
+      "rsmbrl_cc4",
+      "carl_cc4_adapted",
+      "dca_cc4_adapted",
+      "priorrl_ppo_cc4",
+      "terla_a4",
+      "lwm_rl"
+    ],
+    "table2": [
+      "rl_only",
+      "llm_rl",
+      "wm_rl",
+      "lwm_rl"
+    ],
+    "table3": [
+      "delay_only",
+      "fail_only",
+      "full_reward_alias"
+    ]
+  },
+  "policy": {
+    "repeat_scope": "repeat1 sprint; DCA immutable five-repeat exception",
+    "raw_results": "kept at canonical source paths; catalog stores metadata and pointers",
+    "admission": "only eligibility PASS outputs may enter final tables; all repeat1-only rows remain PROVISIONAL"
+  }
+}

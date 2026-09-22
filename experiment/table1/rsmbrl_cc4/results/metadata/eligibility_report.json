@@ -1,0 +1,30 @@
+{
+  "eligibility": "FAIL",
+  "errors": [
+    "method_artifacts.normalizer_sidecar_sha256 must be a lowercase SHA256"
+  ],
+  "formal": true,
+  "input_sha256": {
+    "config.resolved.yaml": "61ef011695d4559db6b811a48cde5b056a7889c2f78b42f067c42b06a417f414",
+    "decisions.jsonl": "8cfd2450de6a1e17a804beda4c4a6c19cf2e36103ded1c6fe144d127ad2fa891",
+    "episodes.jsonl": "a77a4d3089ded7c8ea96ea59b4deb0b7de8dce6803a9b871ed952fc6d1904d16",
+    "manifest.json": "475ad51b3c3c07b21cd7ceee0442a7c098690ceb1c5f763bc181caf43c62c3c7",
+    "metrics.json": "249ec6fb26089e35d8a5f8a3632db727532ed4ce230497fcbe996a5b3d0d63d5",
+    "policy_spec.json": "1e72ce81d4c1622289ab6fdcb554f35ea620f64f48404c95dcaffb0614b1e079"
+  },
+  "passed": false,
+  "schema": "cc4_v3_eligibility_report_v1",
+  "schema_version": 1,
+  "status": "FAIL",
+  "validated_input_sha256": {
+    "config.resolved.yaml": "61ef011695d4559db6b811a48cde5b056a7889c2f78b42f067c42b06a417f414",
+    "decisions.jsonl": "8cfd2450de6a1e17a804beda4c4a6c19cf2e36103ded1c6fe144d127ad2fa891",
+    "episodes.jsonl": "a77a4d3089ded7c8ea96ea59b4deb0b7de8dce6803a9b871ed952fc6d1904d16",
+    "manifest.json": "475ad51b3c3c07b21cd7ceee0442a7c098690ceb1c5f763bc181caf43c62c3c7",
+    "metrics.json": "249ec6fb26089e35d8a5f8a3632db727532ed4ce230497fcbe996a5b3d0d63d5",
+    "policy_spec.json": "1e72ce81d4c1622289ab6fdcb554f35ea620f64f48404c95dcaffb0614b1e079"
+  },
+  "validator": "formal_experiments.evaluation.validate_formal_run",
+  "validator_version": "formal_integrity_v2",
+  "warnings": []
+}
