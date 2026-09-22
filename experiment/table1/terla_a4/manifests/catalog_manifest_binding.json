@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "method": "terla_a4",
+  "source": "outputs\\formal_v3\\table1\\terla_a4\\repeat_1",
+  "status": "PARTIAL_BLOCKED_ADMISSION",
+  "canonical": false,
+  "alias_of": null,
+  "raw_artifacts": "retained at canonical source; only compact sidecars are copied here"
+}

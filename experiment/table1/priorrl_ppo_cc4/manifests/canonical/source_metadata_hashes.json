@@ -1,0 +1,43 @@
+{
+  "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table1\\priorrl_ppo_cc4\\repeat_1",
+  "source_exists": true,
+  "active_source": false,
+  "copied_files": [
+    {
+      "relative_path": "config.resolved.yaml",
+      "bytes": 1253,
+      "sha256": "479201b09133f2464cba26500674f7324d3db677d1429b2c09190dd95749f77a"
+    },
+    {
+      "relative_path": "eligibility_report.json",
+      "bytes": 1655,
+      "sha256": "c1d754fc7860e3e06a454dd9ae0a695c7c468a7b62e59efbc738f2609ea110a3"
+    },
+    {
+      "relative_path": "manifest.json",
+      "bytes": 3967,
+      "sha256": "3ff96ecd36cbc595841d44521b90b6c0e6a13222d4cd6b3adc749c126c8d9a1b"
+    },
+    {
+      "relative_path": "metrics.json",
+      "bytes": 578,
+      "sha256": "66f0abb4a326ed8ad77708cb77031266906766ba4f96ec86d368b907fef99f5b"
+    },
+    {
+      "relative_path": "policy_spec.json",
+      "bytes": 152,
+      "sha256": "84b4fdcfd5a9cd5217473ebb605ca6d095262a5fd3c31ed843e83e8c65440be0"
+    },
+    {
+      "relative_path": "resume_index.json",
+      "bytes": 22509,
+      "sha256": "c92780c0ad1260d280d019e0771e215bd05bbf3c520bf06af44a524fe29e72a6"
+    },
+    {
+      "relative_path": "validation.json",
+      "bytes": 682,
+      "sha256": "13a04d3bd199d2378d8a4d337c0151a804d914b78a3f09b44090d3dd42a1c624"
+    }
+  ],
+  "skipped_large_files": []
+}

@@ -1,0 +1,8 @@
+table_id,row_id,row_label,status,n,ddof,source,paper_row_eligible,cc4_official_reward_mean,cc4_official_reward_sample_sd,operation_failure_penalty_mean,operation_failure_penalty_sample_sd,recovery_precision_mean,recovery_precision_sample_sd,recovery_time_censored_mean_mean,recovery_time_censored_mean_sample_sd
+table1,uamcts_cc4,UAMCTS-CC4 (adapted),BLOCKED,0,,—,False,—,—,—,—,—,—,—,—
+table1,rsmbrl_cc4,RSMBRL-CC4,COMPLETE_PROVISIONAL,1,,table1/rsmbrl_cc4,False,-6227.94,—,5156.49,—,0.2161925601750547,—,330.90568539698324,—
+table1,carl_cc4,CARL-CC4 (adapted),BLOCKED,0,,—,False,—,—,—,—,—,—,—,—
+table1,dca_cc4,DCA-CC4 (adapted),COMPLETE_PROVISIONAL,5,1,table1/dca_cc4,False,-5157.51,0.0,4246.31,0.0,0.66854683093365,0.0,243.37762711864406,0.0
+table1,priorrl_ppo_cc4,PriorRL-PPO-CC4,COMPLETE_PROVISIONAL,1,,table1/priorrl_ppo_cc4,False,-309.63,—,18.18,—,0.28066537863437163,—,74.63995499437429,—
+table1,terla_a4,TERLA-A4,COMPLETE_PROVISIONAL,1,,table1/terla_a4,False,-6579.24,—,5428.7,—,0.368987480781902,—,298.9814518708027,—
+table1,lwm_rl,LWM-RL,COMPLETE_PROVISIONAL,1,,table2/lwm_rl,False,-6127.66,—,5068.45,—,0.8801775147928994,—,314.2144899904671,—

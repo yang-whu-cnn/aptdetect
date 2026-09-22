@@ -1,0 +1,72 @@
+{
+  "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table2\\lwm_rl_trueppo_v3\\repeat_1",
+  "source_exists": true,
+  "active_source": false,
+  "copied_files": [
+    {
+      "relative_path": ".true_ppo_writer.lock.json",
+      "bytes": 386,
+      "sha256": "f56e39be94457859972c166bb7c766a25684168c730b93b536e8443a86ead7b0"
+    },
+    {
+      "relative_path": "aggregate.json",
+      "bytes": 268,
+      "sha256": "dc3c5356499a015f4fbd72a46c4dba6df5321c393722fae84bbb0ce02496dc60"
+    },
+    {
+      "relative_path": "calibration_manifest.json",
+      "bytes": 3150,
+      "sha256": "8b16d4d4d903135cddd411f39f8824549e3dedef7372db675ffda1c924ac1d98"
+    },
+    {
+      "relative_path": "eligibility_report.json",
+      "bytes": 9236,
+      "sha256": "da1a184345d46a71d9f931bf07deba16910b8bec180ae4f2e718f21cc05310f0"
+    },
+    {
+      "relative_path": "manifest.json",
+      "bytes": 29857,
+      "sha256": "098cf0029f603c79d7e96a3d7328549b288181294a521bae3ac780f2dc938f74"
+    },
+    {
+      "relative_path": "metrics.json",
+      "bytes": 69878,
+      "sha256": "e031bd722e753ba8fc27af50b57f289d8595e641851dea4ffba9220db17e7dd5"
+    },
+    {
+      "relative_path": "normalizer.json",
+      "bytes": 1686,
+      "sha256": "e50df37c17cf7c49d2c3127800144a948a1a709c5a8396e773d2fb71f8765025"
+    },
+    {
+      "relative_path": "prepare_test_authorization.json",
+      "bytes": 3107,
+      "sha256": "f5f14a3915925ca56dde89e920cc5d7182a49ddc25aefded5a6ff3db53d12fed"
+    },
+    {
+      "relative_path": "resume_state.json",
+      "bytes": 950112,
+      "sha256": "45113490b232fd3b477989a66876fcf79fe7b18db70126e31a01f658478e0563"
+    },
+    {
+      "relative_path": "train_summary.json",
+      "bytes": 860925,
+      "sha256": "35ac168d5a23a0f080b8109ec6b094210ae9a0f768362ade775deec43c730aa6"
+    },
+    {
+      "relative_path": "validation_records.json",
+      "bytes": 3055,
+      "sha256": "98054670da7d8f6022e521b1da8cf6bde66d347de68645400f0f6ce5fa16dcf9"
+    }
+  ],
+  "skipped_large_files": [
+    {
+      "relative_path": "journal_index.json",
+      "bytes": 28410636
+    },
+    {
+      "relative_path": "test_summary.json",
+      "bytes": 414518657
+    }
+  ]
+}

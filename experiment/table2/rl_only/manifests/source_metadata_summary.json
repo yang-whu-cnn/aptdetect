@@ -1,0 +1,73 @@
+{
+  "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table2\\rl_only_trueppo_v2\\repeat_1",
+  "source_exists": true,
+  "active_source": false,
+  "copied_files": [
+    {
+      "relative_path": ".true_ppo_writer.lock.json",
+      "bytes": 387,
+      "sha256": "209e987d954466c4afc908d3dbbabeaabb721ca4aa7b7c8ee7c688fd182e16e6"
+    },
+    {
+      "relative_path": "aggregate.json",
+      "bytes": 268,
+      "sha256": "8758cbe891d307d7ff70d683524ab44b06047744b0ca3fde33a8c7f6810ecf47"
+    },
+    {
+      "relative_path": "calibration_manifest.json",
+      "bytes": 3137,
+      "sha256": "fe0a7eb95b1fc5ff02775b85b05135f3be8555118880d68a1d0dd1db14c356d9"
+    },
+    {
+      "relative_path": "eligibility_report.json",
+      "bytes": 7040,
+      "sha256": "62d6a18d3d08d4e20a351d73648152245245bccb3a929873e9aabc651621dd12"
+    },
+    {
+      "relative_path": "journal_index.json",
+      "bytes": 89580,
+      "sha256": "ae775f6cccb70d7457537ba2af89451ebf569971f34db639f3bdf7048eec9614"
+    },
+    {
+      "relative_path": "manifest.json",
+      "bytes": 7241,
+      "sha256": "7e1ddd80266aeb3461f83b7213226cb49e7873886ef160d3b31921a0fa020806"
+    },
+    {
+      "relative_path": "metrics.json",
+      "bytes": 70026,
+      "sha256": "c09bc89625e823516c5d6cf21f427fc0403580dd8f869340fd8386f04b2d35d0"
+    },
+    {
+      "relative_path": "normalizer.json",
+      "bytes": 1686,
+      "sha256": "5db617635c77ed0b08a5fd5d6c74425a301dee55d2e6929e734a77ccab4f1f4f"
+    },
+    {
+      "relative_path": "prepare_test_authorization.json",
+      "bytes": 3108,
+      "sha256": "2ed279e9a54c8bfed1982ebfbb5f60379a471aa48d5d8d76adace39f213bb823"
+    },
+    {
+      "relative_path": "resume_state.json",
+      "bytes": 69006,
+      "sha256": "c149fd0cb7786bef3037dd0491b9977847996bc6463cb392a4f63476507caa91"
+    },
+    {
+      "relative_path": "train_summary.json",
+      "bytes": 4120,
+      "sha256": "6bee019dd423dec80b0051922ca8d33b2ed713dfcc3bbbf21220f13b1b9fa112"
+    },
+    {
+      "relative_path": "validation_records.json",
+      "bytes": 3049,
+      "sha256": "8012822251d0b9b1a14b90176d991c776119245498bc611f6a8bc9f0b81f4b48"
+    }
+  ],
+  "skipped_large_files": [
+    {
+      "relative_path": "test_summary.json",
+      "bytes": 352960603
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "method": "dca_cc4_adapted",
+  "source": "outputs\\formal_v3\\table1\\dca_cc4",
+  "status": "FORMAL_FIVE_REPEAT_PASS_IMMUTABLE",
+  "canonical": true,
+  "alias_of": null,
+  "raw_artifacts": "retained at canonical source; only compact sidecars are copied here"
+}

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-22T10:27:32.4050205Z",
+  "generated_at": "2026-09-22T16:14:36.6679332Z",
   "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table1\\carl_cc4\\repeat_1_retry2_scientific_fix",
   "source_exists": true,
   "status": "PROVISIONAL_REPEAT1_PASS",
@@ -862,5 +862,6 @@
       "relative_path": "episode_parts\\episode_4099.json",
       "bytes": 657873
     }
-  ]
+  ],
+  "inventory_note": "Compact metadata copied; raw artifacts remain at source."
 }

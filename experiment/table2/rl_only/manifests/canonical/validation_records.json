@@ -1,0 +1,102 @@
+[
+  {
+    "checkpoint_path": "training_checkpoints/checkpoint_0008.pt",
+    "checkpoint_sha256": "8b474e05d5f5262ca6c8ffdab782cd863550cd03c177dfc20144016ea76653af",
+    "checkpoint_size": 524069,
+    "decision_count": 10353,
+    "domain_sha256": "4eea1cb8ef8a4a995e4ef7d63a876acb57c573ed3702966c15cf96121fc4001b",
+    "environment_steps": 4000,
+    "epoch": 8,
+    "policy_version": 8,
+    "selection_tie_break": "max_score_then_min_epoch_then_min_checkpoint_sha256",
+    "test_seeds_used": false,
+    "validation_episode_ticks": 500,
+    "validation_score": -4078292.75,
+    "validation_seed_count": 8,
+    "validation_seeds": [
+      2000,
+      2001,
+      2002,
+      2003,
+      2004,
+      2005,
+      2006,
+      2007
+    ]
+  },
+  {
+    "checkpoint_path": "training_checkpoints/checkpoint_0016.pt",
+    "checkpoint_sha256": "2e0ab3ab9668ffc2f07cc51ed96d1a86cae0dfd0272358b8cb71e36ee117f565",
+    "checkpoint_size": 524069,
+    "decision_count": 10353,
+    "domain_sha256": "4eea1cb8ef8a4a995e4ef7d63a876acb57c573ed3702966c15cf96121fc4001b",
+    "environment_steps": 8000,
+    "epoch": 16,
+    "policy_version": 16,
+    "selection_tie_break": "max_score_then_min_epoch_then_min_checkpoint_sha256",
+    "test_seeds_used": false,
+    "validation_episode_ticks": 500,
+    "validation_score": -4078292.75,
+    "validation_seed_count": 8,
+    "validation_seeds": [
+      2000,
+      2001,
+      2002,
+      2003,
+      2004,
+      2005,
+      2006,
+      2007
+    ]
+  },
+  {
+    "checkpoint_path": "training_checkpoints/checkpoint_0024.pt",
+    "checkpoint_sha256": "e672b75156efeaa082a380192814a593014c773ed38704314193c14d9065164d",
+    "checkpoint_size": 524069,
+    "decision_count": 13991,
+    "domain_sha256": "4eea1cb8ef8a4a995e4ef7d63a876acb57c573ed3702966c15cf96121fc4001b",
+    "environment_steps": 12000,
+    "epoch": 24,
+    "policy_version": 24,
+    "selection_tie_break": "max_score_then_min_epoch_then_min_checkpoint_sha256",
+    "test_seeds_used": false,
+    "validation_episode_ticks": 500,
+    "validation_score": -1527290.875,
+    "validation_seed_count": 8,
+    "validation_seeds": [
+      2000,
+      2001,
+      2002,
+      2003,
+      2004,
+      2005,
+      2006,
+      2007
+    ]
+  },
+  {
+    "checkpoint_path": "training_checkpoints/checkpoint_0032.pt",
+    "checkpoint_sha256": "f5a1e79a49cf488571dcde8e54454a89b637db462cddced84832e9dbeabe8225",
+    "checkpoint_size": 524069,
+    "decision_count": 13263,
+    "domain_sha256": "4eea1cb8ef8a4a995e4ef7d63a876acb57c573ed3702966c15cf96121fc4001b",
+    "environment_steps": 16000,
+    "epoch": 32,
+    "policy_version": 32,
+    "selection_tie_break": "max_score_then_min_epoch_then_min_checkpoint_sha256",
+    "test_seeds_used": false,
+    "validation_episode_ticks": 500,
+    "validation_score": -476262.25,
+    "validation_seed_count": 8,
+    "validation_seeds": [
+      2000,
+      2001,
+      2002,
+      2003,
+      2004,
+      2005,
+      2006,
+      2007
+    ]
+  }
+]

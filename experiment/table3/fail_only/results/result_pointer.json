@@ -1,18 +1,22 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-22T10:27:34.3902865Z",
+  "generated_at": "2026-09-22T16:14:38.9555200Z",
   "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table3\\fail_only_trueppo_20260922_repeat1",
   "source_exists": true,
   "status": "PROVISIONAL_REPEAT1_PASS",
   "canonical": true,
   "alias_of": "",
   "note": "True-PPO repeat1 completed with eligibility passed=true; remains provisional until the formal repeat requirement is met.",
-  "file_count": 83,
-  "total_bytes": 792213295,
+  "file_count": 84,
+  "total_bytes": 792213568,
   "files": [
     {
       "relative_path": ".true_ppo_writer.lock.json",
-      "bytes": 379
+      "bytes": 384
+    },
+    {
+      "relative_path": "aggregate.json",
+      "bytes": 268
     },
     {
       "relative_path": "calibration_manifest.json",
@@ -342,5 +346,6 @@
       "relative_path": "training_checkpoints\\checkpoint_0032.pt",
       "bytes": 1179941
     }
-  ]
+  ],
+  "inventory_note": "Compact metadata copied; raw artifacts remain at source."
 }

@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "method": "llm_rl",
+  "source_config": "shared formal runner configuration",
+  "canonical_result": "outputs\\formal_v3\\table2\\llm_rl_trueppo_20260922_repeat1\\repeat_1",
+  "status": "PROVISIONAL_REPEAT1_PASS",
+  "alias": false,
+  "note": "Catalog binding; do not edit to tune a result."
+}

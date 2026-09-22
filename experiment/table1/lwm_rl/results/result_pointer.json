@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-22T10:27:34.4650188Z",
+  "generated_at": "2026-09-22T16:14:39.1479295Z",
   "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table2\\lwm_rl_trueppo_v3\\repeat_1",
   "source_exists": true,
   "status": "PROVISIONAL_ALIAS",
@@ -346,5 +346,6 @@
       "relative_path": "training_checkpoints\\checkpoint_0032.pt",
       "bytes": 1179429
     }
-  ]
+  ],
+  "inventory_note": "Compact metadata copied; raw artifacts remain at source."
 }

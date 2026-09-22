@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "method": "rsmbrl_cc4",
+  "source_config": "chapter2_region_detection/configs/formal_v3/methods/rsmbrl_cc4.yaml",
+  "canonical_result": "outputs\\formal_v3\\dependencies\\backups\\rsmbrl_repeat1_pass_20260921T230914Z_v2",
+  "status": "PROVISIONAL_REPEAT1_PASS",
+  "alias": false,
+  "note": "Catalog binding; do not edit to tune a result."
+}

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-22T10:27:32.8165682Z",
+  "generated_at": "2026-09-22T16:14:37.1779973Z",
   "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table1\\dca_cc4",
   "source_exists": true,
   "status": "FORMAL_FIVE_REPEAT_PASS_IMMUTABLE",
@@ -4210,5 +4210,6 @@
       "relative_path": "repeat_5\\episode_parts\\episode_4099.json",
       "bytes": 366998
     }
-  ]
+  ],
+  "inventory_note": "Compact metadata copied; raw artifacts remain at source."
 }

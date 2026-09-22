@@ -1,0 +1,5 @@
+table_id,row_id,row_label,status,n,ddof,source,paper_row_eligible,cc4_official_reward_mean,cc4_official_reward_sample_sd,operation_failure_penalty_mean,operation_failure_penalty_sample_sd,recovery_precision_mean,recovery_precision_sample_sd,recovery_time_censored_mean_mean,recovery_time_censored_mean_sample_sd
+table2,rl_only,RL-Only,COMPLETE_PROVISIONAL,1,,table2/rl_only,False,-309.63,—,18.18,—,0.8582064935676924,—,74.63995499437429,—
+table2,llm_rl,LLM-RL,COMPLETE_PROVISIONAL,1,,table2/llm_rl,False,-5740.44,—,4774.51,—,0.9191983434403195,—,233.313819699077,—
+table2,wm_rl,WM-RL,BLOCKED,0,,—,False,—,—,—,—,—,—,—,—
+table2,lwm_rl,LWM-RL,COMPLETE_PROVISIONAL,1,,table2/lwm_rl,False,-6127.66,—,5068.45,—,0.8801775147928994,—,314.2144899904671,—

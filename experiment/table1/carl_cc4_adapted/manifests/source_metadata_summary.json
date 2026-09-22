@@ -1,0 +1,53 @@
+{
+  "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table1\\carl_cc4\\repeat_1_retry2_scientific_fix",
+  "source_exists": true,
+  "active_source": false,
+  "copied_files": [
+    {
+      "relative_path": "config.resolved.yaml",
+      "bytes": 1246,
+      "sha256": "ae15b8a65a3493e0de2b89b1e9e80639370324391a5129c8607f795945a99d86"
+    },
+    {
+      "relative_path": "eligibility_report.json",
+      "bytes": 2057,
+      "sha256": "e9204d25e05479a8a85556b429a3ec31f655dbd6f300bfd2db1fd3f05a8eb609"
+    },
+    {
+      "relative_path": "manifest.json",
+      "bytes": 18665,
+      "sha256": "87c7f809732da6a072f93fc6561a3f176548b403258b4e84c8f0e29b8b348e77"
+    },
+    {
+      "relative_path": "metrics.json",
+      "bytes": 585,
+      "sha256": "35fa2a2e131ef64286c536b5b93c913344b14f66a91f88498dcc926106bd65c5"
+    },
+    {
+      "relative_path": "policy_spec.json",
+      "bytes": 247,
+      "sha256": "b240626a735a17c5bb8754ff12e8941fc283903605682fa2d811f8b3b308a069"
+    },
+    {
+      "relative_path": "resume_index.json",
+      "bytes": 22502,
+      "sha256": "e0df4e8250980065cc7bf6baa747b82591502eb81525361db101e886b77a5c41"
+    },
+    {
+      "relative_path": "training_manifest.json",
+      "bytes": 5310,
+      "sha256": "4317e4eda27a820501fe39afecdc4fe236159f876e4ffb02f32da8ff89fa43de"
+    },
+    {
+      "relative_path": "validation_selection.json",
+      "bytes": 18214,
+      "sha256": "38ab430090a9de99cadc23eeacf094d551448e9842a0c19661656c6f6ae2ee21"
+    },
+    {
+      "relative_path": "validation.json",
+      "bytes": 689,
+      "sha256": "3dae80c104e9092f36d571748e77e4f9ba0537b82cfd8f3503a7203e0268ecb4"
+    }
+  ],
+  "skipped_large_files": []
+}

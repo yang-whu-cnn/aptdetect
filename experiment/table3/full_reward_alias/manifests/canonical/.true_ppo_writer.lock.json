@@ -1,0 +1,12 @@
+{
+  "domain_sha256": "bddc306c56eebb063fa99ed6f09ef3fd89d4950a2845d6c5ef3ee8663b425217",
+  "pid": 29584,
+  "policy_seed": 51001,
+  "released_at": "2026-09-22T02:39:57.315525Z",
+  "reward_mode": "Full-Reward",
+  "schema": "cc4_v3_true_ppo_writer_lock_v1",
+  "stage": "aggregate",
+  "started_at": "2026-09-22T02:39:49.376594Z",
+  "status": "RELEASED",
+  "variant": "lwm_rl"
+}

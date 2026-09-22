@@ -1,0 +1,5 @@
+{
+  "checkpoint_sha256": "6cbd471dd27cf87375248b866a6adc4ce3365c584cf1b6b04527770028b8406f",
+  "method": "priorrl_ppo_cc4",
+  "policy_seed": 51001
+}

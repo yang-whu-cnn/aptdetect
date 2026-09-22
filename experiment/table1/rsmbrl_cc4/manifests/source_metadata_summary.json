@@ -1,0 +1,63 @@
+{
+  "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\dependencies\\backups\\rsmbrl_repeat1_pass_20260921T230914Z_v2",
+  "source_exists": true,
+  "active_source": false,
+  "copied_files": [
+    {
+      "relative_path": "backup_manifest_v2.json",
+      "bytes": 37645,
+      "sha256": "c35fb2eb6b526cd0c0da8786cfe3f9652917326e32145ecc4fcc7c1a25828b36"
+    },
+    {
+      "relative_path": "backup_manifest_v2.sha256",
+      "bytes": 65,
+      "sha256": "9755413d5aebb77fa6f304753e9ad7aaf745d88f62f8e735874b40d53f447698"
+    },
+    {
+      "relative_path": "backup_manifest.json",
+      "bytes": 37501,
+      "sha256": "16c25910e9bee2c08adea9e00e77e3a61390ecb4b5449842dca768c9704aad78"
+    },
+    {
+      "relative_path": "backup_manifest.sha256",
+      "bytes": 65,
+      "sha256": "22c0cf286e45d9f5089c42c91105eafcce1b0003a3c0ff936f1f2468582d0b22"
+    },
+    {
+      "relative_path": "config.resolved.yaml",
+      "bytes": 1739,
+      "sha256": "61ef011695d4559db6b811a48cde5b056a7889c2f78b42f067c42b06a417f414"
+    },
+    {
+      "relative_path": "eligibility_report.json",
+      "bytes": 1557,
+      "sha256": "14cd387139544d098149265b9552e2138a8fc44b7d936259aa124b99d3129b8d"
+    },
+    {
+      "relative_path": "manifest.json",
+      "bytes": 4877,
+      "sha256": "475ad51b3c3c07b21cd7ceee0442a7c098690ceb1c5f763bc181caf43c62c3c7"
+    },
+    {
+      "relative_path": "metrics.json",
+      "bytes": 580,
+      "sha256": "249ec6fb26089e35d8a5f8a3632db727532ed4ce230497fcbe996a5b3d0d63d5"
+    },
+    {
+      "relative_path": "policy_spec.json",
+      "bytes": 55,
+      "sha256": "1e72ce81d4c1622289ab6fdcb554f35ea620f64f48404c95dcaffb0614b1e079"
+    },
+    {
+      "relative_path": "resume_index.json",
+      "bytes": 23125,
+      "sha256": "ff5b9d60ea36f3a3aed3f84c7fa909f8f5e4d98af2c5d6e1be7a7b33534dd4f8"
+    },
+    {
+      "relative_path": "validation.json",
+      "bytes": 684,
+      "sha256": "0ed8a7565a1419afb730c45659c2a60bd42a07406f76d4844d5061615db35939"
+    }
+  ],
+  "skipped_large_files": []
+}

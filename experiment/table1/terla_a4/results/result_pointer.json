@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-22T10:27:33.3092735Z",
+  "generated_at": "2026-09-22T16:14:37.5553632Z",
   "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table1\\terla_a4\\repeat_1",
   "source_exists": true,
   "status": "PARTIAL_BLOCKED_ADMISSION",
@@ -66,5 +66,6 @@
       "relative_path": "writer.lock",
       "bytes": 1
     }
-  ]
+  ],
+  "inventory_note": "Compact metadata copied; raw artifacts remain at source."
 }

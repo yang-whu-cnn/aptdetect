@@ -1,0 +1,49 @@
+method: TERLA-A4 (adapted)
+reproduction_claim: structural_adaptation_not_official_or_bit_identical_reproduction
+status: formal_runtime_ready_training_required
+device: cpu
+observation: blue_visible_heterogeneous_graph
+hidden_truth_policy_input: false
+shared_policy_across_agents: true
+per_agent_context_isolated: true
+controller_context_policy_input: false
+policy_architecture: graph_only_host_features_2_to_hidden_60
+actions: [Sleep, Analyse, Remove, Restore]
+checkpoint_pattern: outputs/formal_v3/training/terla_a4/policy_{policy_seed}.pt
+reward: original_terla_cyber_reward_training_only
+evaluation: unified_cc4_v3_metrics
+formal: {repeats: 5, episodes_per_repeat: 100, ticks_per_episode: 500}
+formal_training:
+  runner: baselines.terla_a4.formal_training
+  device: cpu
+  train_episode_seeds: {start: 1000, stop_inclusive: 1031}
+  validation_episode_seeds: {start: 2000, stop_inclusive: 2007}
+  forbidden_test_episode_seeds: {start: 4000, stop_inclusive: 4099}
+  policy_seeds: [51001, 51002, 51003, 51004, 51005]
+  ticks_per_episode: 500
+  checkpoint_interval_episodes: 8
+  selection_metric: original_terla_validation_reward_mean
+  selection_tie_break: earliest_training_checkpoint
+  resumable: true
+  optimization_semantics: sequential_transition_clipped_surrogate_batch_size_1_no_shuffle
+  optimization_batch_size: 1
+  optimization_shuffle: false
+staged_training:
+  runner: baselines.terla_a4.staged_training
+  stage_order: [preflight, train, validation, prepare-test, test, aggregate]
+  enabled_stage: train
+  stop_after: train
+  safe_stop_exit_code: 3
+  formal_result_eligible: false
+  versioned_output_pattern: outputs/formal_v3/table1/terla_a4/repeat_{repeat}_trainonly_v1
+staged_evaluation:
+  runner: baselines.terla_a4.staged_evaluation
+  stage_order: [preflight, validation, test]
+  validation_seeds: {start: 2000, stop_inclusive: 2007}
+  test_seeds: {start: 4000, stop_inclusive: 4099}
+  ticks_per_episode: 500
+  device: cpu
+  provider_calls: 0
+  policy_updates: false
+  normalizer_updates: false
+  validation_target_pattern: outputs/formal_v3/table1/terla_a4/repeat_{repeat}_eval_v1

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-22T10:27:33.0827592Z",
+  "generated_at": "2026-09-22T16:14:37.3918686Z",
   "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table1\\priorrl_ppo_cc4\\repeat_1",
   "source_exists": true,
   "status": "PROVISIONAL_REPEAT1_PASS",
@@ -854,5 +854,6 @@
       "relative_path": "episode_parts\\episode_4099.json",
       "bytes": 235110
     }
-  ]
+  ],
+  "inventory_note": "Compact metadata copied; raw artifacts remain at source."
 }

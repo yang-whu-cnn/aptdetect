@@ -1,0 +1,48 @@
+{
+  "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table1\\terla_a4\\repeat_1",
+  "source_exists": true,
+  "active_source": false,
+  "copied_files": [
+    {
+      "relative_path": "config.resolved.yaml",
+      "bytes": 2119,
+      "sha256": "b110d23e0f7fcd9e2d8dd98bd30f05f36a3c66705ea35b2f8f07a417c6de7620"
+    },
+    {
+      "relative_path": "eligibility_report.json",
+      "bytes": 2077,
+      "sha256": "907661a7a12013a720322c0ef4daa08026a9dcef65a211b9932c6bc3089cc79d"
+    },
+    {
+      "relative_path": "evaluation_manifest.json",
+      "bytes": 5779,
+      "sha256": "29a7d56e07e563d6ddadb4d260bb9c04abb7461a16e6a17ca3220025019f30de"
+    },
+    {
+      "relative_path": "manifest.json",
+      "bytes": 2927,
+      "sha256": "68ead04be527699af33a8f32214434979d3aa1ea78972353a63dbf5db67d5668"
+    },
+    {
+      "relative_path": "metrics.json",
+      "bytes": 507,
+      "sha256": "b30dd78fdd764aa1dc667bf51003bdea17ea0a5f5d1c14c121b1bd5410516465"
+    },
+    {
+      "relative_path": "stage_state.json",
+      "bytes": 5663,
+      "sha256": "505f462fa43fefd47e56c6e7c3ae7e75fa27c397ad4f611a7e5b8a762ac540d1"
+    },
+    {
+      "relative_path": "training_manifest.json",
+      "bytes": 7887,
+      "sha256": "a54ba4e6df63a7f7b03e78044e192240d77242fc239fc0db1cb8f38eaf915921"
+    },
+    {
+      "relative_path": "writer_lease.json",
+      "bytes": 96,
+      "sha256": "23b0d08e6e03e809b07f77ddf077d2b98a1209c031fa1c589f0a614a8b3d639f"
+    }
+  ],
+  "skipped_large_files": []
+}

@@ -1,0 +1,1069 @@
+{
+  "schema": "cc4_v3_immutable_backup_manifest_v2",
+  "status": "PASS",
+  "supersedes": "backup_manifest.json (aggregate total_bytes field only was invalid; payload files and per-file hashes were correct)",
+  "paper_result_scope": "Table1 RSMBRL-CC4 repeat_1 only",
+  "result_label": "PROVISIONAL_SINGLE_REPEAT",
+  "source": "D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1",
+  "backup": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\dependencies\\backups\\rsmbrl_repeat1_pass_20260921T230914Z_v2",
+  "created_utc": "2026-09-21T15:15:01.7782891Z",
+  "source_head": "c9e0f57137274669da05e8dcd3d54f2c1e12bbd5",
+  "eligibility_report_passed": true,
+  "episode_count": 100,
+  "episode_seeds": "4000..4099",
+  "ticks": 500,
+  "file_count": 210,
+  "total_bytes": 299022411,
+  "files": [
+    {
+      "path": "config.resolved.yaml",
+      "bytes": 1739,
+      "sha256": "61ef011695d4559db6b811a48cde5b056a7889c2f78b42f067c42b06a417f414"
+    },
+    {
+      "path": "decisions.jsonl",
+      "bytes": 112737403,
+      "sha256": "8cfd2450de6a1e17a804beda4c4a6c19cf2e36103ded1c6fe144d127ad2fa891"
+    },
+    {
+      "path": "eligibility_report.json",
+      "bytes": 1475,
+      "sha256": "6b320ad9d363162ff51a177fa522f8159a4c548de785022039fbd1574348d0b7"
+    },
+    {
+      "path": "episode_parts\\decisions_4000.jsonl",
+      "bytes": 1166204,
+      "sha256": "5c476cafefddf56447619b5a7b455662351749340c2959cc9484d3c0721f603d"
+    },
+    {
+      "path": "episode_parts\\decisions_4001.jsonl",
+      "bytes": 1198415,
+      "sha256": "458b3b19cd829e0f8dfe484dab74a9d8d8ca8732ed25e0e946e96c19abadb192"
+    },
+    {
+      "path": "episode_parts\\decisions_4002.jsonl",
+      "bytes": 1179734,
+      "sha256": "87e954ab2405e411bd1e122bd12650808a1a61c854e04c352bfcf87fceec780c"
+    },
+    {
+      "path": "episode_parts\\decisions_4003.jsonl",
+      "bytes": 1123133,
+      "sha256": "fcf11e8443608ae910e2313500112b3207890daffd10b3e907ede521d0cdbe12"
+    },
+    {
+      "path": "episode_parts\\decisions_4004.jsonl",
+      "bytes": 1102800,
+      "sha256": "39e7582c102dc76bea555329913bedbfd952369f250110d2da8590f0870766e9"
+    },
+    {
+      "path": "episode_parts\\decisions_4005.jsonl",
+      "bytes": 1150291,
+      "sha256": "d8c0024c86015349035ae6b1a1fbd49833ec895cddc7d34ec22a59b9f64781ac"
+    },
+    {
+      "path": "episode_parts\\decisions_4006.jsonl",
+      "bytes": 1104322,
+      "sha256": "b6060de0de8ef95fb8b3c0113ae0adfaeea6135256b07b85c31eaaa31c74f450"
+    },
+    {
+      "path": "episode_parts\\decisions_4007.jsonl",
+      "bytes": 1130456,
+      "sha256": "ebd03a341d40115d7ec9381c4f01a078caeea4458e2e8882fdbca71fd1adfb4d"
+    },
+    {
+      "path": "episode_parts\\decisions_4008.jsonl",
+      "bytes": 1127082,
+      "sha256": "c792e4cf5a6728e6d8fc09faca2d7ace8a02374acfd92cf9f6b8d87d5e437b24"
+    },
+    {
+      "path": "episode_parts\\decisions_4009.jsonl",
+      "bytes": 1167415,
+      "sha256": "8f20f254221ff17bd96eeca9a868b62a51759aa446e7c2b1cc8b0ce0fee5bbc4"
+    },
+    {
+      "path": "episode_parts\\decisions_4010.jsonl",
+      "bytes": 1177027,
+      "sha256": "5c79429d4a10ce5950b67ffeb60e2326a7f829aa2a7ba6b5619a35ff08e0dc88"
+    },
+    {
+      "path": "episode_parts\\decisions_4011.jsonl",
+      "bytes": 1117669,
+      "sha256": "c19560945dce3b8e32db51e94e9c3fb581c660d795b5023437304073d492bb90"
+    },
+    {
+      "path": "episode_parts\\decisions_4012.jsonl",
+      "bytes": 1094933,
+      "sha256": "dc05d852a53cb1555061dad6e6edaa010ba7f2f29b77c147806b8c66c9232964"
+    },
+    {
+      "path": "episode_parts\\decisions_4013.jsonl",
+      "bytes": 1134554,
+      "sha256": "3edf06e743542cbdd246d8097e3adca8ff2f7ec485a6c7350944df17dcfdc30e"
+    },
+    {
+      "path": "episode_parts\\decisions_4014.jsonl",
+      "bytes": 1118892,
+      "sha256": "51fb98f1a79f39d4180de59c5b956e7495bcfccf93161a2d294b03ad548c040d"
+    },
+    {
+      "path": "episode_parts\\decisions_4015.jsonl",
+      "bytes": 1127599,
+      "sha256": "1046fa6d318c4016cd838c1ca5e595cb4079ffe50ecd7448b4eff01cf99535a1"
+    },
+    {
+      "path": "episode_parts\\decisions_4016.jsonl",
+      "bytes": 1125292,
+      "sha256": "8bb5a4049788e5dd61ff476c837751e4954c14eb6cdd4ef3a84ec051bc77cdff"
+    },
+    {
+      "path": "episode_parts\\decisions_4017.jsonl",
+      "bytes": 1144352,
+      "sha256": "33a69fab4d4aef6d39e7de420abaf44beed2217664ebb6e03bf9e84b5609ea2c"
+    },
+    {
+      "path": "episode_parts\\decisions_4018.jsonl",
+      "bytes": 1173409,
+      "sha256": "1b88fead7b6bded63ea5eaf18f478f9a393e1d8111d416ca40312d9923a2600d"
+    },
+    {
+      "path": "episode_parts\\decisions_4019.jsonl",
+      "bytes": 1097198,
+      "sha256": "4011bd59432aa8b034a3bb0e16ec3f2a9a3caa849848c011cd49e09c340c8063"
+    },
+    {
+      "path": "episode_parts\\decisions_4020.jsonl",
+      "bytes": 1021653,
+      "sha256": "28549e3543f4876fe4cd256ca43e56cf74b506f472dcf648d029eb24dc0b16df"
+    },
+    {
+      "path": "episode_parts\\decisions_4021.jsonl",
+      "bytes": 1168592,
+      "sha256": "08adf48573e2936f21ca01c7cd19a0e37b7647053da8b5e3f371f8d36ce1c317"
+    },
+    {
+      "path": "episode_parts\\decisions_4022.jsonl",
+      "bytes": 1113857,
+      "sha256": "7c2d4c20be9beb3fb75ac4609cb5275bba40d0c4ab1a94683e3693bb1f5bdf99"
+    },
+    {
+      "path": "episode_parts\\decisions_4023.jsonl",
+      "bytes": 1182675,
+      "sha256": "f3568385a4b50aea3a898077076ab4b4ca60552e70829d283fb64c638b22953a"
+    },
+    {
+      "path": "episode_parts\\decisions_4024.jsonl",
+      "bytes": 1169221,
+      "sha256": "d81a535f37b6b7157d9a332289fcfebf1d34781d418a744553b78d7965af54c9"
+    },
+    {
+      "path": "episode_parts\\decisions_4025.jsonl",
+      "bytes": 1163611,
+      "sha256": "4a1bdcbfd2aa6738b4b09591717d7876b4e15e2e5b9be0cd573e2e94c316f360"
+    },
+    {
+      "path": "episode_parts\\decisions_4026.jsonl",
+      "bytes": 1123001,
+      "sha256": "728a86bb9994ce042a9e7ed5acfbab9480b5cb46933b98b585ed0c3b1d197493"
+    },
+    {
+      "path": "episode_parts\\decisions_4027.jsonl",
+      "bytes": 1099198,
+      "sha256": "b87d96f918d8dac64d9771fec615b5c8dbef3d2d45c826094eca18476bca1689"
+    },
+    {
+      "path": "episode_parts\\decisions_4028.jsonl",
+      "bytes": 1178342,
+      "sha256": "b916b9d0e852470f0707dc0941099bcbdb8d9c3525450afba654873df4333270"
+    },
+    {
+      "path": "episode_parts\\decisions_4029.jsonl",
+      "bytes": 1133324,
+      "sha256": "fa000f1b040d2acedc8b961c89621c6ae08a19b177abe38d1e6ba5a3d7047fa0"
+    },
+    {
+      "path": "episode_parts\\decisions_4030.jsonl",
+      "bytes": 1123005,
+      "sha256": "b924c4cc457353cd1417346f41a46da678307f060df4249f0962d2c7459c8261"
+    },
+    {
+      "path": "episode_parts\\decisions_4031.jsonl",
+      "bytes": 1185153,
+      "sha256": "8c04bd70b4c6fe98e21c7bcd2e0afddc35cfc634590ab4b3d4b3c9f4a9457bd8"
+    },
+    {
+      "path": "episode_parts\\decisions_4032.jsonl",
+      "bytes": 1195804,
+      "sha256": "f8e069d0de4170504c8effb85112d1cdf51e6984852064090b44f05af3f710a1"
+    },
+    {
+      "path": "episode_parts\\decisions_4033.jsonl",
+      "bytes": 1078751,
+      "sha256": "09e4dc3d5e138ba53a1c930c75178efbca2608805c1982f492a5815e8c9114d8"
+    },
+    {
+      "path": "episode_parts\\decisions_4034.jsonl",
+      "bytes": 1068961,
+      "sha256": "2c2327d14d55b143ad4d51eeb3d76848466c5e59e956a5464e37ff3e57454527"
+    },
+    {
+      "path": "episode_parts\\decisions_4035.jsonl",
+      "bytes": 1118658,
+      "sha256": "361d318f580d596c2a5ad0b803baddcd9ad9683dab6c8c2159c8b6cfe7b7096d"
+    },
+    {
+      "path": "episode_parts\\decisions_4036.jsonl",
+      "bytes": 1116708,
+      "sha256": "db91f2451bff501994159d1fc3c7a65e4f514daf37a88b47c21b3651dab88064"
+    },
+    {
+      "path": "episode_parts\\decisions_4037.jsonl",
+      "bytes": 1128712,
+      "sha256": "2fa41501504f12eb7aeaba3578c8c7c13370fef6ae5269e1419d3110038d1344"
+    },
+    {
+      "path": "episode_parts\\decisions_4038.jsonl",
+      "bytes": 1054637,
+      "sha256": "8e8385e352f8b6d837e06f8d84971206908825878d847665b855157ed76b5e1b"
+    },
+    {
+      "path": "episode_parts\\decisions_4039.jsonl",
+      "bytes": 1119516,
+      "sha256": "b3ac8ee5a105386ebfa5d55c01a1c8e10275752e7afdaeab4b0c83c57713a53f"
+    },
+    {
+      "path": "episode_parts\\decisions_4040.jsonl",
+      "bytes": 1172400,
+      "sha256": "6855f898c9361dfa5683d6383904f9968be3fa76ef96724097844e8164910773"
+    },
+    {
+      "path": "episode_parts\\decisions_4041.jsonl",
+      "bytes": 1125802,
+      "sha256": "7d191ccdd8ae75fdeeedfb88e77cc84049671ab8ef45ba4ef82265d250c25dd9"
+    },
+    {
+      "path": "episode_parts\\decisions_4042.jsonl",
+      "bytes": 1104519,
+      "sha256": "abf19bb60eefbe258cc0637aef2773c29f9c0be8b28cdbb626bbcbd9659d7f03"
+    },
+    {
+      "path": "episode_parts\\decisions_4043.jsonl",
+      "bytes": 1114259,
+      "sha256": "a24e9b118fdb8be7677ea591fdc268b247b7643f0db5145647e3fea071190f75"
+    },
+    {
+      "path": "episode_parts\\decisions_4044.jsonl",
+      "bytes": 1100273,
+      "sha256": "08b96c451e1182baa0089e970b5ac6f586a6d68bada7abd23951002d7226230f"
+    },
+    {
+      "path": "episode_parts\\decisions_4045.jsonl",
+      "bytes": 1170895,
+      "sha256": "c875e628de250080fec58a56812b5eb9c7e19ebc4a7566ed8c7d57ad4684382f"
+    },
+    {
+      "path": "episode_parts\\decisions_4046.jsonl",
+      "bytes": 1162101,
+      "sha256": "c6de5e9ce55715536dc1efa529f09a66306082529006688073b06c558238841d"
+    },
+    {
+      "path": "episode_parts\\decisions_4047.jsonl",
+      "bytes": 1095212,
+      "sha256": "2f3b53147b7f9bedbe77dade952128b9092168246c04bd0c664f6c4411ae100b"
+    },
+    {
+      "path": "episode_parts\\decisions_4048.jsonl",
+      "bytes": 1049614,
+      "sha256": "5cd8f61e751a4adb85c1360405f199a18ee75b7bd3eba1cd0768a668aa4b154c"
+    },
+    {
+      "path": "episode_parts\\decisions_4049.jsonl",
+      "bytes": 1152783,
+      "sha256": "7dbf59b8efc84d9f88832244b5bc5de8cdaa6e799e438f7bd54571e4e186a44f"
+    },
+    {
+      "path": "episode_parts\\decisions_4050.jsonl",
+      "bytes": 1131508,
+      "sha256": "d4cbe9e37b9621aec044143b55da192476c0d928763d021e06c505575217ee04"
+    },
+    {
+      "path": "episode_parts\\decisions_4051.jsonl",
+      "bytes": 1105951,
+      "sha256": "c07149bdd1e49c59015ec717a8f9c2bea316a6f4d44a9313376ee82dadfe97f8"
+    },
+    {
+      "path": "episode_parts\\decisions_4052.jsonl",
+      "bytes": 1194147,
+      "sha256": "1f0e180a1be85e7713912c65388a003711c6303aff3e162555243bb74ee297ac"
+    },
+    {
+      "path": "episode_parts\\decisions_4053.jsonl",
+      "bytes": 1078489,
+      "sha256": "dd37ff4c9a90c6787228a65f955af3b62a1c782fac79bb26262cbb461adac15f"
+    },
+    {
+      "path": "episode_parts\\decisions_4054.jsonl",
+      "bytes": 1183349,
+      "sha256": "e7c50ed6469e8f7f645a00b9df93c8d6ae9d4de321033d9b12e473a81824fb0a"
+    },
+    {
+      "path": "episode_parts\\decisions_4055.jsonl",
+      "bytes": 1160237,
+      "sha256": "817dd10e316ddcdb9fea4901a1893d9d9e85c554a662c46f69d7aa81611cf672"
+    },
+    {
+      "path": "episode_parts\\decisions_4056.jsonl",
+      "bytes": 1132806,
+      "sha256": "049762355e63a5093264be4fc21310d8da572bef7df32d49acbf54a90a833df7"
+    },
+    {
+      "path": "episode_parts\\decisions_4057.jsonl",
+      "bytes": 1050831,
+      "sha256": "a7f693c88c93b66b5da0072d3443405de057f9caedc5949ad80a0cec0287efa6"
+    },
+    {
+      "path": "episode_parts\\decisions_4058.jsonl",
+      "bytes": 1187490,
+      "sha256": "7914fa313d94dc335a8ef12ed0e99ecf6f11aebdaadc730862f96de8740c3cc7"
+    },
+    {
+      "path": "episode_parts\\decisions_4059.jsonl",
+      "bytes": 1128737,
+      "sha256": "353e0c584a314cf1e401f5a4c89a475dfa086032406164eede3a377bea20082d"
+    },
+    {
+      "path": "episode_parts\\decisions_4060.jsonl",
+      "bytes": 1062571,
+      "sha256": "b372e5f9804149b7f08ac5c5d568ab7aa2c378e3198eaf7c606eff81973bc78c"
+    },
+    {
+      "path": "episode_parts\\decisions_4061.jsonl",
+      "bytes": 1059137,
+      "sha256": "1632618cbd2b52d011ab2eb63f06197d7f6783cdbeadd051b872bdc89eb32855"
+    },
+    {
+      "path": "episode_parts\\decisions_4062.jsonl",
+      "bytes": 1183923,
+      "sha256": "e75936a5b3a0191c0dc1cb33525adc1c86abb9136061c76cbe1a0b2bc8f45c11"
+    },
+    {
+      "path": "episode_parts\\decisions_4063.jsonl",
+      "bytes": 1110472,
+      "sha256": "fde4100c8c66dbc9b5204a768094ce488e058fef42f13a604164a95db619082f"
+    },
+    {
+      "path": "episode_parts\\decisions_4064.jsonl",
+      "bytes": 1126720,
+      "sha256": "c879ca1ee138a6fb1e4b2d53727f0243f3dd370694f2b8c2c98aa22ca77c8bd2"
+    },
+    {
+      "path": "episode_parts\\decisions_4065.jsonl",
+      "bytes": 1088564,
+      "sha256": "5cee246982a13fd2a3d9587118d0010500d954681a5fc5d184c208bf08458491"
+    },
+    {
+      "path": "episode_parts\\decisions_4066.jsonl",
+      "bytes": 1178800,
+      "sha256": "844d8a9dab2c21aa1e1550d910e8dc16a31089f3cb99396dfd32fcf4497c4c6c"
+    },
+    {
+      "path": "episode_parts\\decisions_4067.jsonl",
+      "bytes": 1109701,
+      "sha256": "6343c2c4db2a2dae7e447d1856272fb6dbe6b2ddb0cec1dfad01940b95f2e319"
+    },
+    {
+      "path": "episode_parts\\decisions_4068.jsonl",
+      "bytes": 1060770,
+      "sha256": "18e8d1946f03fcb71178480a157c6665a662cdbcd579735b1590106f7da0f8fe"
+    },
+    {
+      "path": "episode_parts\\decisions_4069.jsonl",
+      "bytes": 1059597,
+      "sha256": "072cda16cc690c9a420c4b48684d76c6f67225d32d4fcaaafcf3fc485b7e79c9"
+    },
+    {
+      "path": "episode_parts\\decisions_4070.jsonl",
+      "bytes": 1107892,
+      "sha256": "3cd2d981836dd902a859a4bb4777b9fbf8169f9bbb06106af107ade0dfd05024"
+    },
+    {
+      "path": "episode_parts\\decisions_4071.jsonl",
+      "bytes": 1170669,
+      "sha256": "0ed0335a2f7b38e767b1372239bd68399a5970064fb0086a71feda6839ba0a94"
+    },
+    {
+      "path": "episode_parts\\decisions_4072.jsonl",
+      "bytes": 1096511,
+      "sha256": "2ec8bf776336ab94283961f0a669b1bdfd7bbd8f5893a6aa8102f71c5dcd629e"
+    },
+    {
+      "path": "episode_parts\\decisions_4073.jsonl",
+      "bytes": 1076422,
+      "sha256": "cedf2f55a61db9036113e85949162f540c2fe2c696f64bad936915c2e50e688e"
+    },
+    {
+      "path": "episode_parts\\decisions_4074.jsonl",
+      "bytes": 1116679,
+      "sha256": "4b33673a0c693f6c6bda0771703f715f0e22cc22c9459fdaf707cb5ddbe828c8"
+    },
+    {
+      "path": "episode_parts\\decisions_4075.jsonl",
+      "bytes": 1174372,
+      "sha256": "ca1077059f693b801f11229dfcdff694707b6f289695e38c852084125f6ae76c"
+    },
+    {
+      "path": "episode_parts\\decisions_4076.jsonl",
+      "bytes": 1175874,
+      "sha256": "b5e5d6461d44a940e51a405e72d57b7a06c276af344a31e215bcbf09ab3b6dc0"
+    },
+    {
+      "path": "episode_parts\\decisions_4077.jsonl",
+      "bytes": 1035678,
+      "sha256": "8b1cc4e9f36c4326843b27f09f2eb08ecc3707c7b38119a452ad1c9a39ab9136"
+    },
+    {
+      "path": "episode_parts\\decisions_4078.jsonl",
+      "bytes": 1128251,
+      "sha256": "895a75457b29c8f4a5c4ad7b02eb96359d072a94b12b372bb38897f926813690"
+    },
+    {
+      "path": "episode_parts\\decisions_4079.jsonl",
+      "bytes": 1203337,
+      "sha256": "b210e306e2e2ef23bea01fd92e0cb170bdd06d0ceb0e3c49b13dbf3da2844788"
+    },
+    {
+      "path": "episode_parts\\decisions_4080.jsonl",
+      "bytes": 1125695,
+      "sha256": "706036b8f238d4d2c3ae7611ab39ec1748dfd1ff860116f49447dcba988b80d3"
+    },
+    {
+      "path": "episode_parts\\decisions_4081.jsonl",
+      "bytes": 1140665,
+      "sha256": "269cd335d826e07d79a32f91c007a616c9551a314e9644841f231c8a1f44aae5"
+    },
+    {
+      "path": "episode_parts\\decisions_4082.jsonl",
+      "bytes": 1155806,
+      "sha256": "b011252b422e96ee44a2d6ac95900a3ba1afa4a980388c88367de3afccc9893d"
+    },
+    {
+      "path": "episode_parts\\decisions_4083.jsonl",
+      "bytes": 1128127,
+      "sha256": "a2ab640f46854852c9a6f1ef1b1b0cf7c1ebb90ec1adad24c9f555b9450b3ed7"
+    },
+    {
+      "path": "episode_parts\\decisions_4084.jsonl",
+      "bytes": 1165403,
+      "sha256": "d0562d1a2235c4d84e5e5a002688c7d6bb01a97fc62ea479e836a4f98d465371"
+    },
+    {
+      "path": "episode_parts\\decisions_4085.jsonl",
+      "bytes": 1178396,
+      "sha256": "58443b4de9c0c7ef6762ba6e2a1709f1301e054f170bce2b572aa19a9162716a"
+    },
+    {
+      "path": "episode_parts\\decisions_4086.jsonl",
+      "bytes": 1075001,
+      "sha256": "199c57dc017c57bb3be74b9bd15a4e75cd6806f46200110bfc0bbaef6c1dd993"
+    },
+    {
+      "path": "episode_parts\\decisions_4087.jsonl",
+      "bytes": 1099071,
+      "sha256": "6c2a160712fe00c99224ce8457ba9ed41f06a67f2ddca3460edd0be07f8a46da"
+    },
+    {
+      "path": "episode_parts\\decisions_4088.jsonl",
+      "bytes": 1168013,
+      "sha256": "d39a8656ece8a8749be4fded3c6b1807ed3b138109902bed6a0ec39ec9f77a4d"
+    },
+    {
+      "path": "episode_parts\\decisions_4089.jsonl",
+      "bytes": 1011117,
+      "sha256": "4b5047891da2f8ad15b0d1168880d1b23316334bb9ec988a4ca08a8125b594cb"
+    },
+    {
+      "path": "episode_parts\\decisions_4090.jsonl",
+      "bytes": 1046750,
+      "sha256": "8e8ef5b774aa6ba442b75f88f0ee0a6048fd2a419bdd102b8aa848d3660b0c09"
+    },
+    {
+      "path": "episode_parts\\decisions_4091.jsonl",
+      "bytes": 1150523,
+      "sha256": "0fbf02f39fc24be1bd615e9cdb3c01120397767e17dd7f288df6791d05a72f68"
+    },
+    {
+      "path": "episode_parts\\decisions_4092.jsonl",
+      "bytes": 1050953,
+      "sha256": "e6c6a717c45d5e6affaae1e7f7443e6bc8cfe203ae62cde7f02732c2f9330746"
+    },
+    {
+      "path": "episode_parts\\decisions_4093.jsonl",
+      "bytes": 1162972,
+      "sha256": "a6a6282875e8bb38f4e5f42e8836e3ee56ca348d68bc0f276e0da1b515f74c7a"
+    },
+    {
+      "path": "episode_parts\\decisions_4094.jsonl",
+      "bytes": 1187562,
+      "sha256": "a988d07030236996d2db4f5b6f336fdc00b84c44e305d0469fb267756e6cfd2a"
+    },
+    {
+      "path": "episode_parts\\decisions_4095.jsonl",
+      "bytes": 1181530,
+      "sha256": "01444847c889406ca14d2f70eb598f1a6bd099c02906794e7e74fc3f0507df17"
+    },
+    {
+      "path": "episode_parts\\decisions_4096.jsonl",
+      "bytes": 1121774,
+      "sha256": "0f13e412a29b06faa6c52430880eafa63a1032d4b4f204722abbc79d2bcfdd61"
+    },
+    {
+      "path": "episode_parts\\decisions_4097.jsonl",
+      "bytes": 1118045,
+      "sha256": "35f5d02ab5fbfbcd2e1c3ef953d87963fd4f1059d97e69e86f30aa6c771be441"
+    },
+    {
+      "path": "episode_parts\\decisions_4098.jsonl",
+      "bytes": 1134114,
+      "sha256": "dc80dbc98374b06c13d4affe7181f5fc7c7c563e22ec3030fd833c69755e3057"
+    },
+    {
+      "path": "episode_parts\\decisions_4099.jsonl",
+      "bytes": 1104387,
+      "sha256": "919760b6cbfa881f28137798d45866c06aec8762762fe743d10590d330b969a5"
+    },
+    {
+      "path": "episode_parts\\episode_4000.json",
+      "bytes": 443678,
+      "sha256": "c90e08a95af1a6df23874cc6be603fc17525e6877542382b12bc84516f3b5f54"
+    },
+    {
+      "path": "episode_parts\\episode_4001.json",
+      "bytes": 436811,
+      "sha256": "431a33d9b852d2607e538531152ad6cfb38cdc1bf802c1d34c42aacafedbdd1e"
+    },
+    {
+      "path": "episode_parts\\episode_4002.json",
+      "bytes": 458228,
+      "sha256": "527e6f7339fc01fa85c81175553f074412ca1bf1da8237bc99839158ed82fcd2"
+    },
+    {
+      "path": "episode_parts\\episode_4003.json",
+      "bytes": 433664,
+      "sha256": "ea29dcf775fc9ec5055ae39a84629c804af047547525796114e8d831822b8755"
+    },
+    {
+      "path": "episode_parts\\episode_4004.json",
+      "bytes": 414331,
+      "sha256": "75a0b39fe10e1269e722055218387168dbae4207f46b5c9c9502f02ff3020e7b"
+    },
+    {
+      "path": "episode_parts\\episode_4005.json",
+      "bytes": 420283,
+      "sha256": "f97a9b8a45c575051658269f89eafb8f5d95cbe072039b2afa4a504b4d679213"
+    },
+    {
+      "path": "episode_parts\\episode_4006.json",
+      "bytes": 459899,
+      "sha256": "6527ffd3dc48848620399f1b0253311648de498d6ff3f8acd63e04faea0bb9af"
+    },
+    {
+      "path": "episode_parts\\episode_4007.json",
+      "bytes": 401370,
+      "sha256": "35abae655262e92981dce19822c7814fe530b93719c3b420207c51172040efe0"
+    },
+    {
+      "path": "episode_parts\\episode_4008.json",
+      "bytes": 472173,
+      "sha256": "70652863d258e2a16c3f888da53c725b96c4b237b732a1363a2ff442ba72906a"
+    },
+    {
+      "path": "episode_parts\\episode_4009.json",
+      "bytes": 492976,
+      "sha256": "003159cead70038f4fd29c9e2a6999f6c1f7e7a8d5ed9d803fa1cc608dc77b19"
+    },
+    {
+      "path": "episode_parts\\episode_4010.json",
+      "bytes": 345566,
+      "sha256": "f8d73930dc0092a556b58f55c8d97b6ca4d429a89d0ae4591e3b6fafd6f53915"
+    },
+    {
+      "path": "episode_parts\\episode_4011.json",
+      "bytes": 369829,
+      "sha256": "75c95e0242dbd859682eafae563b11fe8286caf9391fe073c5a6eb9a25a5c6c6"
+    },
+    {
+      "path": "episode_parts\\episode_4012.json",
+      "bytes": 371097,
+      "sha256": "86e5a3d857e72eeeb317657710d2d7966f737fd0d6de0d48e32f79a5210fef08"
+    },
+    {
+      "path": "episode_parts\\episode_4013.json",
+      "bytes": 369411,
+      "sha256": "3be1859d1945ff1a1f849486a56fe3f0a9a99af3563693da49b897991dc7ccd9"
+    },
+    {
+      "path": "episode_parts\\episode_4014.json",
+      "bytes": 458501,
+      "sha256": "e779316d681dd4e5981028994e00fec4492da0eec5e977d1341e7d2d851d0e26"
+    },
+    {
+      "path": "episode_parts\\episode_4015.json",
+      "bytes": 354461,
+      "sha256": "32795d139ee0d8ddaa054003ffbcef545b6a11f7fd7884a8eca8c35135f57fd7"
+    },
+    {
+      "path": "episode_parts\\episode_4016.json",
+      "bytes": 448698,
+      "sha256": "01c891ecad1c31023f7ea2989e086b5904fa11ea508c8a6c583674e3b2dd4f89"
+    },
+    {
+      "path": "episode_parts\\episode_4017.json",
+      "bytes": 433411,
+      "sha256": "28e9fa09ce9f1d5667fbed79b776c2cbbb2bc41d2f1f5f74a3a122540e5d951a"
+    },
+    {
+      "path": "episode_parts\\episode_4018.json",
+      "bytes": 348571,
+      "sha256": "5bb47029fd9d29d985fd91ca815d91400b7d8784f59e91f0100636e10400052b"
+    },
+    {
+      "path": "episode_parts\\episode_4019.json",
+      "bytes": 453037,
+      "sha256": "0bb10517fc242a8e5ac0e2ae3151842ab88dc7298b3800060d3077677f69f156"
+    },
+    {
+      "path": "episode_parts\\episode_4020.json",
+      "bytes": 330062,
+      "sha256": "0f9b83a2bd2025a4425457b1e079b98cf70c5d28b2d6be29c340579654e580d2"
+    },
+    {
+      "path": "episode_parts\\episode_4021.json",
+      "bytes": 418309,
+      "sha256": "999efa9cd45ee79bdcaa5773052692f9ddf51bec49fddca2e1b8be92df823243"
+    },
+    {
+      "path": "episode_parts\\episode_4022.json",
+      "bytes": 312689,
+      "sha256": "783389c88186e8d81a3575daa9c4f5d02bdc3bfc10933cce2e05e48cf8c4fa3c"
+    },
+    {
+      "path": "episode_parts\\episode_4023.json",
+      "bytes": 404282,
+      "sha256": "76f08f9745773ea47a418044a9f41bd2b4f4f23122852c5fcb3b7a7ecc07267c"
+    },
+    {
+      "path": "episode_parts\\episode_4024.json",
+      "bytes": 473514,
+      "sha256": "80ad490c3a0210248a3d17f4f0a74817496d34a945985c87e38b6e22da99c7b4"
+    },
+    {
+      "path": "episode_parts\\episode_4025.json",
+      "bytes": 404673,
+      "sha256": "b616417b20096fbb72f7ca1286d173f2950d37e94336ebd3f4dc3705bc8826a9"
+    },
+    {
+      "path": "episode_parts\\episode_4026.json",
+      "bytes": 397645,
+      "sha256": "4119c2d022323639577a95e53ec6e87b09691749312eefb67efc3beefcdf3920"
+    },
+    {
+      "path": "episode_parts\\episode_4027.json",
+      "bytes": 442768,
+      "sha256": "8d1bf962be3595434f75e017ec8c59378e42953a3adbb2081d7fc1e81699d7a4"
+    },
+    {
+      "path": "episode_parts\\episode_4028.json",
+      "bytes": 412443,
+      "sha256": "5634d5a63e504b916489a46a5223e69db2cfbfbf6afdc716a29c55c15624f901"
+    },
+    {
+      "path": "episode_parts\\episode_4029.json",
+      "bytes": 265654,
+      "sha256": "3d73dca1106e2f39bd91ea82f7e68cb19d3f50c0d1cd9be356d25d8535f9a8fb"
+    },
+    {
+      "path": "episode_parts\\episode_4030.json",
+      "bytes": 400001,
+      "sha256": "83ff6135a3d282f82b3239a131043e90841fc7e9b90dac32c57d3f9fa6f5b34b"
+    },
+    {
+      "path": "episode_parts\\episode_4031.json",
+      "bytes": 428532,
+      "sha256": "7930ed89ba71829f146567e689a042a19d521e97b7b49f265eb474142e143335"
+    },
+    {
+      "path": "episode_parts\\episode_4032.json",
+      "bytes": 490545,
+      "sha256": "6371a19f7f7e8ceceaa6a265288b383e002393d3b740726797e3b5398496eded"
+    },
+    {
+      "path": "episode_parts\\episode_4033.json",
+      "bytes": 395853,
+      "sha256": "109ad89973c20164bdabb7eeac7cef94bb6e1b87c1f466c318ff64df21e596f5"
+    },
+    {
+      "path": "episode_parts\\episode_4034.json",
+      "bytes": 527123,
+      "sha256": "43e1df3fa59eefb1736de1585927355ab6d16a4dcc0657754be71e774c3610be"
+    },
+    {
+      "path": "episode_parts\\episode_4035.json",
+      "bytes": 428572,
+      "sha256": "4d460bf756bc1fa5e9de9bf8c4ce401a0b56ffb0114a8a5c1c1880762fca3480"
+    },
+    {
+      "path": "episode_parts\\episode_4036.json",
+      "bytes": 493295,
+      "sha256": "1416e2bafcdebb1159c37de112f81c140e92d76e7359e44f835a25a7950fd2d2"
+    },
+    {
+      "path": "episode_parts\\episode_4037.json",
+      "bytes": 402653,
+      "sha256": "f2e854ff64f2e7a4548311380246b6973db61bd75dc18dd395b2161d69dced37"
+    },
+    {
+      "path": "episode_parts\\episode_4038.json",
+      "bytes": 389884,
+      "sha256": "f9306b146175ddfb7c77e0960e5a9632ebe2203501f2a52790f1bd7c846dcc19"
+    },
+    {
+      "path": "episode_parts\\episode_4039.json",
+      "bytes": 458352,
+      "sha256": "0c0927f5b6b3583f182f13a131e3b35d6ad73e01704ce32800f9e7180d05b633"
+    },
+    {
+      "path": "episode_parts\\episode_4040.json",
+      "bytes": 477495,
+      "sha256": "f37bf413f3633a49c9d8fc997e6994070875d8a32d17fba84f76b977759cd0fe"
+    },
+    {
+      "path": "episode_parts\\episode_4041.json",
+      "bytes": 396534,
+      "sha256": "5500bc52ce4d7695b9fb2191285702a424a18f08a89184444fb5c9396d6c09a8"
+    },
+    {
+      "path": "episode_parts\\episode_4042.json",
+      "bytes": 458146,
+      "sha256": "402d14e70e8fe0ba800c636c88c97e71b5fdbe9539ef7eaecd88aad6ba2c9e71"
+    },
+    {
+      "path": "episode_parts\\episode_4043.json",
+      "bytes": 316290,
+      "sha256": "d1ced3707c7b6b9cf0ede276a878e54225897a8d1f852cd71984d8cba73058ce"
+    },
+    {
+      "path": "episode_parts\\episode_4044.json",
+      "bytes": 449742,
+      "sha256": "edc00451edc8d40831d58bef0e71a22c66a8ce7a50d5de6694e9c39f4c76754f"
+    },
+    {
+      "path": "episode_parts\\episode_4045.json",
+      "bytes": 347385,
+      "sha256": "edb5cf6698b4746d1cb56a79a2a2e14ba8710450094d98425175885d29aab3a3"
+    },
+    {
+      "path": "episode_parts\\episode_4046.json",
+      "bytes": 407919,
+      "sha256": "f68905734366ff5013e5c69d98c06920e6555d770d8151420347e6470cd33bfb"
+    },
+    {
+      "path": "episode_parts\\episode_4047.json",
+      "bytes": 435347,
+      "sha256": "e95ae293f26ed4426d95f4a7505ef4272e8b86e3784af129b42a6cf028ecee9e"
+    },
+    {
+      "path": "episode_parts\\episode_4048.json",
+      "bytes": 406070,
+      "sha256": "323d39691503a5e52dd4fc2079cca560ea5a2025c7834ab2cb216a2d2ccfa743"
+    },
+    {
+      "path": "episode_parts\\episode_4049.json",
+      "bytes": 524021,
+      "sha256": "b6724883d6b13ff133825ae71291a3d2331d3d597776a59982e4f5ab5004e919"
+    },
+    {
+      "path": "episode_parts\\episode_4050.json",
+      "bytes": 484322,
+      "sha256": "ad8f2f19d0cb1904e4e5e07495818b74816549d3cc56d0234a299c53d5345e7b"
+    },
+    {
+      "path": "episode_parts\\episode_4051.json",
+      "bytes": 458604,
+      "sha256": "627ea562eb9e02636c5465ae390f19935032c91f9483e9b96e08f137bd41382e"
+    },
+    {
+      "path": "episode_parts\\episode_4052.json",
+      "bytes": 519357,
+      "sha256": "eae830fa8149ba5fd381d3020bd2ab1b621b6664f243c09ffad68891466af5b7"
+    },
+    {
+      "path": "episode_parts\\episode_4053.json",
+      "bytes": 459029,
+      "sha256": "22af2317557821e6aab9de91edd2f885cc5aac3f233c5764b8b7bc1002ab462d"
+    },
+    {
+      "path": "episode_parts\\episode_4054.json",
+      "bytes": 440573,
+      "sha256": "07f28b6da762736b67178129a3ec95ef9398a16c4e13c91a05721e0bf5e70259"
+    },
+    {
+      "path": "episode_parts\\episode_4055.json",
+      "bytes": 380145,
+      "sha256": "469f6a2800c724cef5528e411c57df0e5fbf68e19df27a0265c3aec0a074715c"
+    },
+    {
+      "path": "episode_parts\\episode_4056.json",
+      "bytes": 431098,
+      "sha256": "a792ff433ceacee46f1d5cbbf9381b788a5b3c49e4ace19678977d1770a85a66"
+    },
+    {
+      "path": "episode_parts\\episode_4057.json",
+      "bytes": 440086,
+      "sha256": "dbd0acab648acf775ab0ebdbaca93f793298d933976353a6fa6441dd92df8dc9"
+    },
+    {
+      "path": "episode_parts\\episode_4058.json",
+      "bytes": 392954,
+      "sha256": "ff3cd6d6cc651a922c762780a01ebbc89bd5f683d50be9e38f7d626cc6d47d0e"
+    },
+    {
+      "path": "episode_parts\\episode_4059.json",
+      "bytes": 397951,
+      "sha256": "9f0cce81281e0394d671eb040dd358f1e09baca88c5fa65fc3998fffa2126520"
+    },
+    {
+      "path": "episode_parts\\episode_4060.json",
+      "bytes": 354876,
+      "sha256": "5ba4ff24d95ac195cbe5989e2ed06aacb578bc3310f9df733878e64a8bd4324e"
+    },
+    {
+      "path": "episode_parts\\episode_4061.json",
+      "bytes": 318175,
+      "sha256": "419a92bdc2cdbd928c67b821f9133ea1ff05f5ddced6b35ed293b57d877ee173"
+    },
+    {
+      "path": "episode_parts\\episode_4062.json",
+      "bytes": 603964,
+      "sha256": "bc7a5be927f24be3f369446a92cb99e9ed8a21fd603c553b68a39925745bab8a"
+    },
+    {
+      "path": "episode_parts\\episode_4063.json",
+      "bytes": 357444,
+      "sha256": "d3f29e38e1f5cb3a5ce99e45b548325064a7aa55704b11daefc7199e71c759f6"
+    },
+    {
+      "path": "episode_parts\\episode_4064.json",
+      "bytes": 393279,
+      "sha256": "010e342b0f680dec3fe772d1ac5913ab7f6be867da7e85093f557c8aaa4f7630"
+    },
+    {
+      "path": "episode_parts\\episode_4065.json",
+      "bytes": 480536,
+      "sha256": "7ec371549c601faf76267463626442a293bc8bcc94a9e5ce2690f0f58eea9c59"
+    },
+    {
+      "path": "episode_parts\\episode_4066.json",
+      "bytes": 498855,
+      "sha256": "8124d3b911e9932526fb63fa35349f8ca8c599b75534716a8fd96a342cbd656e"
+    },
+    {
+      "path": "episode_parts\\episode_4067.json",
+      "bytes": 458126,
+      "sha256": "cf7109f5e50cd4211d5fc5c3d72a108c3b54744c28d76f5b9cea1f7bb4675f01"
+    },
+    {
+      "path": "episode_parts\\episode_4068.json",
+      "bytes": 388843,
+      "sha256": "14ed1f9560dfdb17188cdd5acbb674b807ca993526ff78df617f442d84defc8c"
+    },
+    {
+      "path": "episode_parts\\episode_4069.json",
+      "bytes": 399300,
+      "sha256": "fb4385c1159c8cf3d35f590fa585285d799e8d1a907806aa8f950857bea201b4"
+    },
+    {
+      "path": "episode_parts\\episode_4070.json",
+      "bytes": 491034,
+      "sha256": "63a52e4ed73c05cb61d5a6aa912d6780cf28dc877dd6462bc32fe1b8fb4c5b30"
+    },
+    {
+      "path": "episode_parts\\episode_4071.json",
+      "bytes": 475545,
+      "sha256": "fe8c90146a43cc0342ab57d11549ed656d600d5ff9dee0ac705f84c290c5cf52"
+    },
+    {
+      "path": "episode_parts\\episode_4072.json",
+      "bytes": 444541,
+      "sha256": "fe7e418fed0fe8b11209476555bbbabb962683270e995d226958e1da41ab1fcb"
+    },
+    {
+      "path": "episode_parts\\episode_4073.json",
+      "bytes": 458693,
+      "sha256": "d3cdf358981115b3907e440e98c805af434b593a144281f9e73a1fe5d8532ce9"
+    },
+    {
+      "path": "episode_parts\\episode_4074.json",
+      "bytes": 459852,
+      "sha256": "918f84e03b9a524737a3adefc535e0085f8688102a4c4fdacb48bf21a410f83a"
+    },
+    {
+      "path": "episode_parts\\episode_4075.json",
+      "bytes": 459490,
+      "sha256": "7e8acad2392c399efb91d3b500b2ec1ac0fba1791bb6275cc4edfdcc5022eb5c"
+    },
+    {
+      "path": "episode_parts\\episode_4076.json",
+      "bytes": 352508,
+      "sha256": "6055d7fb10a67c8b1daffc3832470141fe28e7fe5504522bfc536d37f43201fa"
+    },
+    {
+      "path": "episode_parts\\episode_4077.json",
+      "bytes": 341327,
+      "sha256": "c66da1a6542fd641e9d109fcd781582bfe74bc6810f3576693edfbf0600fa449"
+    },
+    {
+      "path": "episode_parts\\episode_4078.json",
+      "bytes": 478442,
+      "sha256": "58b3944b17ab035ef84efa64001a126a46f67d2b82456609c9842673d12c4e01"
+    },
+    {
+      "path": "episode_parts\\episode_4079.json",
+      "bytes": 502947,
+      "sha256": "6b7f6fc3080b687158045de978e047b7d038be2c0df9aec1c1f506122291c716"
+    },
+    {
+      "path": "episode_parts\\episode_4080.json",
+      "bytes": 412585,
+      "sha256": "5732e4389235c35275e4205a2b2e55a97251071e7382c89b40f40f6486106850"
+    },
+    {
+      "path": "episode_parts\\episode_4081.json",
+      "bytes": 347067,
+      "sha256": "392066856000329bed5c07853720d7808499bd9532e2e169da4db50c8921de0d"
+    },
+    {
+      "path": "episode_parts\\episode_4082.json",
+      "bytes": 475405,
+      "sha256": "51ce3e8d3bd86d33603a4ec44d3adaf9b14ad5fa2d08ea9f0c38ea32f072692e"
+    },
+    {
+      "path": "episode_parts\\episode_4083.json",
+      "bytes": 438821,
+      "sha256": "114fe15aba6111e866bf7583f564ac86aca327f230ad2d70d8bfbb954423b1ab"
+    },
+    {
+      "path": "episode_parts\\episode_4084.json",
+      "bytes": 425094,
+      "sha256": "6ecb4ed7f3c92d1e0186ea71e3ea48c3935590a9e38124b21c08442908b3959e"
+    },
+    {
+      "path": "episode_parts\\episode_4085.json",
+      "bytes": 453937,
+      "sha256": "701c7d5357cb6e4373cc41aeda832032ab391b5d952ae5a986c2195e4303ff8f"
+    },
+    {
+      "path": "episode_parts\\episode_4086.json",
+      "bytes": 511363,
+      "sha256": "0aaa3a57f828e4ff111ff9950e013937940c3773b17e0aa096f87d105480a390"
+    },
+    {
+      "path": "episode_parts\\episode_4087.json",
+      "bytes": 375126,
+      "sha256": "fbf0e8cbe82fef9479ce8a68285e296e459e95a6c6c7d05224d4ff086cecd72f"
+    },
+    {
+      "path": "episode_parts\\episode_4088.json",
+      "bytes": 490982,
+      "sha256": "d59bc2c3135d66b5ae8afdd83cf8c7425c9e62f898f4025f24e0fcb3b8cf0df4"
+    },
+    {
+      "path": "episode_parts\\episode_4089.json",
+      "bytes": 340707,
+      "sha256": "20fffdf41f397e762923c3faf706bac9f5dbf37d00c800696d64a6111af00cc7"
+    },
+    {
+      "path": "episode_parts\\episode_4090.json",
+      "bytes": 497436,
+      "sha256": "8ec262a029e27d058b0a9a35ff17c24601a72097ab82fca39f230033234e2c72"
+    },
+    {
+      "path": "episode_parts\\episode_4091.json",
+      "bytes": 374459,
+      "sha256": "c19be5732f3671ecc5ddcfa56dc969e6680355c43077cf8be7ecdd289b152a37"
+    },
+    {
+      "path": "episode_parts\\episode_4092.json",
+      "bytes": 347545,
+      "sha256": "45bad94e5e67b5e9dfc17b72342e77256808e35af6adc7796c536cefcaf73cff"
+    },
+    {
+      "path": "episode_parts\\episode_4093.json",
+      "bytes": 315325,
+      "sha256": "aa157f7023dc641204085dbf5964f2b1ce0f78250685c09b98a235199b445d77"
+    },
+    {
+      "path": "episode_parts\\episode_4094.json",
+      "bytes": 506941,
+      "sha256": "496c539c89444542e54d3ccfa9c52775517407599ded6062f16c37497e44529e"
+    },
+    {
+      "path": "episode_parts\\episode_4095.json",
+      "bytes": 366372,
+      "sha256": "3627da3a5f3b75949002e0bd81ee2dbb4677d19f6eb569d8fc47de7f11ce10c7"
+    },
+    {
+      "path": "episode_parts\\episode_4096.json",
+      "bytes": 380373,
+      "sha256": "1f958cccdf9c448263f8eaf878e5eab6d43426cfd5c9ebe9e4131c7208d63e79"
+    },
+    {
+      "path": "episode_parts\\episode_4097.json",
+      "bytes": 472634,
+      "sha256": "bda3d9b157e34f6a37ad92cb03d7230f326230d6e0f0001718ecf8d4aab18736"
+    },
+    {
+      "path": "episode_parts\\episode_4098.json",
+      "bytes": 357200,
+      "sha256": "b3742710b308df71325b8ff3b2600129208e3d0823c14d724564ab44b71ca54f"
+    },
+    {
+      "path": "episode_parts\\episode_4099.json",
+      "bytes": 379565,
+      "sha256": "7b152eb375b5a2648efff9380b08358835d51401829bbad33cca5fb573ecbd93"
+    },
+    {
+      "path": "episodes.jsonl",
+      "bytes": 31242444,
+      "sha256": "a77a4d3089ded7c8ea96ea59b4deb0b7de8dce6803a9b871ed952fc6d1904d16"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 4877,
+      "sha256": "475ad51b3c3c07b21cd7ceee0442a7c098690ceb1c5f763bc181caf43c62c3c7"
+    },
+    {
+      "path": "metrics.json",
+      "bytes": 580,
+      "sha256": "249ec6fb26089e35d8a5f8a3632db727532ed4ce230497fcbe996a5b3d0d63d5"
+    },
+    {
+      "path": "policy_spec.json",
+      "bytes": 55,
+      "sha256": "1e72ce81d4c1622289ab6fdcb554f35ea620f64f48404c95dcaffb0614b1e079"
+    },
+    {
+      "path": "resume_index.json",
+      "bytes": 23125,
+      "sha256": "ff5b9d60ea36f3a3aed3f84c7fa909f8f5e4d98af2c5d6e1be7a7b33534dd4f8"
+    },
+    {
+      "path": "stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "validation.json",
+      "bytes": 684,
+      "sha256": "0ed8a7565a1419afb730c45659c2a60bd42a07406f76d4844d5061615db35939"
+    }
+  ]
+}

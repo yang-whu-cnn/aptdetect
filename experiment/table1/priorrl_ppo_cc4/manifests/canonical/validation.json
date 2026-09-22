@@ -1,0 +1,21 @@
+{
+  "errors": [],
+  "metrics": {
+    "cc4_official_reward": -309.63,
+    "episode_count": 100,
+    "operation_failure_count": 1365,
+    "operation_failure_penalty": 18.18,
+    "operation_failure_signed_sum": -18.18,
+    "recovery_completed_count": 6209,
+    "recovery_false_positives": 15265,
+    "recovery_incident_count": 7999,
+    "recovery_precision": 0.28066537863437163,
+    "recovery_time_censored_mean": 74.63995499437429,
+    "recovery_time_completed_only_mean": 54.37284586889999,
+    "recovery_true_positives": 5956,
+    "recovery_unrecovered_count": 1790,
+    "recovery_unrecovered_rate": 0.22377797224653082
+  },
+  "passed": true,
+  "warnings": []
+}

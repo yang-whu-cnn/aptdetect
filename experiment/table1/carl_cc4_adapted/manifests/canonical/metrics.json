@@ -1,0 +1,16 @@
+{
+  "cc4_official_reward": -5580.63,
+  "episode_count": 100,
+  "operation_failure_count": 143029,
+  "operation_failure_penalty": 4638.58,
+  "operation_failure_signed_sum": -4638.58,
+  "recovery_completed_count": 2527,
+  "recovery_false_positives": 56352,
+  "recovery_incident_count": 7954,
+  "recovery_precision": 0.2975668129238133,
+  "recovery_time_censored_mean": 227.5149610258989,
+  "recovery_time_completed_only_mean": 3.9133359715077165,
+  "recovery_true_positives": 23872,
+  "recovery_unrecovered_count": 5427,
+  "recovery_unrecovered_rate": 0.6822982147347246
+}

@@ -1,0 +1,1237 @@
+{
+  "aliases": {
+    "table1/lwm_rl": "table2/lwm_rl",
+    "table3/full_reward": "table2/lwm_rl"
+  },
+  "banner": "PROVISIONAL / NOT PAPER ELIGIBLE",
+  "completeness": "PARTIAL",
+  "eligibility_status": "PROVISIONAL / NOT PAPER ELIGIBLE",
+  "formal_contract": {
+    "dca_repeats": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "protocol_version": "cc4_v3_20260917",
+    "repeat1_policy_seed": 51001,
+    "sample_sd_ddof": 1
+  },
+  "input_root": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3",
+  "input_sha256": {
+    "admission_derived\\table1\\rsmbrl_cc4\\repeat_1\\admission_report.json": "4f2735e6e27fc4c8444b6ea3163c5b6caa881b5adf73b74dd0696dc178cf480f",
+    "admission_derived\\table1\\rsmbrl_cc4\\repeat_1\\manifest.json": "b67038ad540e933886d3095f498fe6b35072f782435132aa41b4e532f84b58a6",
+    "admission_derived\\table2\\llm_rl\\repeat_1\\admission_report.json": "6c623ac4dbd276057ade1c39547077ac169b6fabe102654f12442212dfa958ca",
+    "admission_derived\\table2\\llm_rl\\repeat_1\\manifest.json": "3e73ee3e7bdbe8f658f8dc7cb489b163c0dd5280e6570bd378681d54b31b5c8e",
+    "admission_derived\\table2\\lwm_rl\\repeat_1\\admission_report.json": "153e384c49d735cea94db0327358d73cc535957b284c759bbce649ecfc05bb2e",
+    "admission_derived\\table2\\lwm_rl\\repeat_1\\manifest.json": "464757896ace2c3a8b112aba95868d1c233c4c0cf680ab27243219e7996e5145",
+    "admission_derived\\table2\\rl_only\\repeat_1\\admission_report.json": "4301336e25b06a6a2f5de9793c2be97f324e5c6318238504264f9c0ec54d8400",
+    "admission_derived\\table2\\rl_only\\repeat_1\\manifest.json": "a0d9876d3282831ef702c0c8e80fb1ff8db6034e75535c8accb8ec129223fd80",
+    "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\config.resolved.yaml": "61ef011695d4559db6b811a48cde5b056a7889c2f78b42f067c42b06a417f414",
+    "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\decisions.jsonl": "8cfd2450de6a1e17a804beda4c4a6c19cf2e36103ded1c6fe144d127ad2fa891",
+    "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\eligibility_report.json": "14cd387139544d098149265b9552e2138a8fc44b7d936259aa124b99d3129b8d",
+    "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\episodes.jsonl": "a77a4d3089ded7c8ea96ea59b4deb0b7de8dce6803a9b871ed952fc6d1904d16",
+    "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\manifest.json": "475ad51b3c3c07b21cd7ceee0442a7c098690ceb1c5f763bc181caf43c62c3c7",
+    "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\metrics.json": "249ec6fb26089e35d8a5f8a3632db727532ed4ce230497fcbe996a5b3d0d63d5",
+    "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\policy_spec.json": "1e72ce81d4c1622289ab6fdcb554f35ea620f64f48404c95dcaffb0614b1e079",
+    "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\resume_index.json": "ff5b9d60ea36f3a3aed3f84c7fa909f8f5e4d98af2c5d6e1be7a7b33534dd4f8",
+    "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\validation.json": "0ed8a7565a1419afb730c45659c2a60bd42a07406f76d4844d5061615db35939",
+    "table1\\carl_cc4\\repeat_1_retry2_scientific_fix\\eligibility_report.json": "e9204d25e05479a8a85556b429a3ec31f655dbd6f300bfd2db1fd3f05a8eb609",
+    "table1\\carl_cc4\\repeat_1_retry2_scientific_fix\\episodes.jsonl": "f1add132f9c6ecd3778b5f96324a73a0567e8d05ee97542fee89a6a12ac373b4",
+    "table1\\carl_cc4\\repeat_1_retry2_scientific_fix\\manifest.json": "87c7f809732da6a072f93fc6561a3f176548b403258b4e84c8f0e29b8b348e77",
+    "table1\\carl_cc4\\repeat_1_retry2_scientific_fix\\metrics.json": "35fa2a2e131ef64286c536b5b93c913344b14f66a91f88498dcc926106bd65c5",
+    "table1\\dca_cc4\\repeat_1\\eligibility_report.json": "5f3bf244dfe03193fff5ff4376abc94bb642ec6044b98d7c4a23ae087a7965dd",
+    "table1\\dca_cc4\\repeat_1\\episodes.jsonl": "48f2add34f922ae359cb85a025760a2a13350bb91e99fed73b34d9971b51ce3d",
+    "table1\\dca_cc4\\repeat_1\\manifest.json": "7dfea71a239e217db16e2908ff2482133f4c23125c22750e40aa66ac972d90a2",
+    "table1\\dca_cc4\\repeat_1\\metrics.json": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b",
+    "table1\\dca_cc4\\repeat_2\\eligibility_report.json": "86e2507b420256f628b1a3638c31faa3f12cc4e843df48293b1eff93fb6d2179",
+    "table1\\dca_cc4\\repeat_2\\episodes.jsonl": "40b13040f04bde0dcc1882014e98ab5b606f6b78ee42dd21de3de26fbd482bb3",
+    "table1\\dca_cc4\\repeat_2\\manifest.json": "49c9a67e574b3a2a8ea36329baa1350c8a0af6401467f60c8f4d8611d60f112f",
+    "table1\\dca_cc4\\repeat_2\\metrics.json": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b",
+    "table1\\dca_cc4\\repeat_3\\eligibility_report.json": "65001a2ac662ac054df16c09bfd55b1ac8054ef11648391a5daac1a8c3be8a73",
+    "table1\\dca_cc4\\repeat_3\\episodes.jsonl": "56b050e76b3ad1af5a96ffbf3cdd995a094a87331fa5dee2986c3a2b752da06d",
+    "table1\\dca_cc4\\repeat_3\\manifest.json": "084724cb07bd5b5def42adec0962a61a1c6cb439d6e3c6f10261d92bb256b4dd",
+    "table1\\dca_cc4\\repeat_3\\metrics.json": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b",
+    "table1\\dca_cc4\\repeat_4\\eligibility_report.json": "ba717c5f6d02d1cd41de31553ac304fff63d9be2a4b4b42365427ca101546ee8",
+    "table1\\dca_cc4\\repeat_4\\episodes.jsonl": "f7012a9f6b1a2ba1e5f2b53f2047a171fbde6082407201cc276c2a80078983be",
+    "table1\\dca_cc4\\repeat_4\\manifest.json": "8ddf427b6e63afae9ef3e5724ab05de43b1fc857efbab28d001dac40c9d20ecd",
+    "table1\\dca_cc4\\repeat_4\\metrics.json": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b",
+    "table1\\dca_cc4\\repeat_5\\eligibility_report.json": "56267ae1d998db5533c6cc8beb4c427d60ba0dd7a582150196a259562545abbc",
+    "table1\\dca_cc4\\repeat_5\\episodes.jsonl": "904135dabcf3ae261b88f2f17507767d64cd9226c7b6e44d4e6dc86caf35ac41",
+    "table1\\dca_cc4\\repeat_5\\manifest.json": "eb46c3b147e8986d370fe371537a5b4178f06a4eaa2d4b27c59bac34f445c8bb",
+    "table1\\dca_cc4\\repeat_5\\metrics.json": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b",
+    "table1\\priorrl_ppo_cc4\\repeat_1\\eligibility_report.json": "c1d754fc7860e3e06a454dd9ae0a695c7c468a7b62e59efbc738f2609ea110a3",
+    "table1\\priorrl_ppo_cc4\\repeat_1\\episodes.jsonl": "0143e238063d74a16ab49e512e9a84ab2d824142398dfa6494481987e84e3df0",
+    "table1\\priorrl_ppo_cc4\\repeat_1\\manifest.json": "3ff96ecd36cbc595841d44521b90b6c0e6a13222d4cd6b3adc749c126c8d9a1b",
+    "table1\\priorrl_ppo_cc4\\repeat_1\\metrics.json": "66f0abb4a326ed8ad77708cb77031266906766ba4f96ec86d368b907fef99f5b",
+    "table1\\terla_a4\\repeat_1\\checkpoint.pt": "7c5e823f741ae805f751ccfa02444931f07e92f7687bcd39ca5000304c4ab783",
+    "table1\\terla_a4\\repeat_1\\config.resolved.yaml": "b110d23e0f7fcd9e2d8dd98bd30f05f36a3c66705ea35b2f8f07a417c6de7620",
+    "table1\\terla_a4\\repeat_1\\decisions.jsonl": "1905c1bb075de1bedf412824ea73802195dfd820184f3739d79796ff21a6ea01",
+    "table1\\terla_a4\\repeat_1\\episodes.jsonl": "9766e354538df19a01b590af020cfd9e103cf2d689ef35ff823c747764e75893",
+    "table1\\terla_a4\\repeat_1\\evaluation_manifest.json": "29a7d56e07e563d6ddadb4d260bb9c04abb7461a16e6a17ca3220025019f30de",
+    "table1\\terla_a4\\repeat_1\\manifest.json": "68ead04be527699af33a8f32214434979d3aa1ea78972353a63dbf5db67d5668",
+    "table1\\terla_a4\\repeat_1\\metrics.json": "b30dd78fdd764aa1dc667bf51003bdea17ea0a5f5d1c14c121b1bd5410516465",
+    "table1\\terla_a4\\repeat_1\\optimizer.pt": "5a153cf8f26ad1259f08743b6800f7576b88a25edb01dcc268e6801917e791f3",
+    "table1\\terla_a4\\repeat_1\\stdout.log": "4d3d89c1bad0a12856c70d895d22e7b5d8ee53d0e55b85911c886c1ad4ec5076",
+    "table1\\terla_a4\\repeat_1\\training_manifest.json": "a54ba4e6df63a7f7b03e78044e192240d77242fc239fc0db1cb8f38eaf915921",
+    "table2\\llm_rl_trueppo_20260922_repeat1\\repeat_1\\aggregate.json": "0d8655afc639379b3f55a485637135b9f5a5ca008ed546619e9683d082e62d8d",
+    "table2\\llm_rl_trueppo_20260922_repeat1\\repeat_1\\decisions.jsonl": "6f81bf41953952e3849727225c7b8b7d060bfc7ac5e597616b968f7b5f29989b",
+    "table2\\llm_rl_trueppo_20260922_repeat1\\repeat_1\\eligibility_report.json": "5a76940b24cb1cd0056173375f993afc714f6bb82ead92cde1a7faef5b00cb76",
+    "table2\\llm_rl_trueppo_20260922_repeat1\\repeat_1\\episodes.jsonl": "301d80f6dda2326ee32cef37a37ecdfd1664d779636934f6b7d6ad6238ae2cdf",
+    "table2\\llm_rl_trueppo_20260922_repeat1\\repeat_1\\manifest.json": "574c04a6ae5cdc76cd52587eb4d637bedfb1bc85da7cb15182f3da296ace2dcc",
+    "table2\\llm_rl_trueppo_20260922_repeat1\\repeat_1\\metrics.json": "f8317ba006566a79f2c67f74e93756dcbc04486629d54b8201fa13ea4438005d",
+    "table2\\lwm_rl_trueppo_v3\\repeat_1\\aggregate.json": "dc3c5356499a015f4fbd72a46c4dba6df5321c393722fae84bbb0ce02496dc60",
+    "table2\\lwm_rl_trueppo_v3\\repeat_1\\decisions.jsonl": "7bc33d3340fe80ababb6609c5e88986ff97c2ab0bd374508909f19d8241f8076",
+    "table2\\lwm_rl_trueppo_v3\\repeat_1\\eligibility_report.json": "da1a184345d46a71d9f931bf07deba16910b8bec180ae4f2e718f21cc05310f0",
+    "table2\\lwm_rl_trueppo_v3\\repeat_1\\episodes.jsonl": "45613c7afc4c8f083e534a9f27f1a9b377d64e1549c4844dbbfddb619a199946",
+    "table2\\lwm_rl_trueppo_v3\\repeat_1\\manifest.json": "098cf0029f603c79d7e96a3d7328549b288181294a521bae3ac780f2dc938f74",
+    "table2\\lwm_rl_trueppo_v3\\repeat_1\\metrics.json": "e031bd722e753ba8fc27af50b57f289d8595e641851dea4ffba9220db17e7dd5",
+    "table2\\rl_only_trueppo_v2\\repeat_1\\aggregate.json": "8758cbe891d307d7ff70d683524ab44b06047744b0ca3fde33a8c7f6810ecf47",
+    "table2\\rl_only_trueppo_v2\\repeat_1\\decisions.jsonl": "bab804497dffda5b532457904ed4c198fd4804b31c37891df8698e0b2e234c86",
+    "table2\\rl_only_trueppo_v2\\repeat_1\\eligibility_report.json": "62d6a18d3d08d4e20a351d73648152245245bccb3a929873e9aabc651621dd12",
+    "table2\\rl_only_trueppo_v2\\repeat_1\\episodes.jsonl": "d59cad0630209e32e28d6b46e81f41ad0eb394fa3bcc346665ba84298c837598",
+    "table2\\rl_only_trueppo_v2\\repeat_1\\manifest.json": "7e1ddd80266aeb3461f83b7213226cb49e7873886ef160d3b31921a0fa020806",
+    "table2\\rl_only_trueppo_v2\\repeat_1\\metrics.json": "c09bc89625e823516c5d6cf21f427fc0403580dd8f869340fd8386f04b2d35d0"
+  },
+  "logical_rows_complete": 9,
+  "logical_rows_total": 14,
+  "output_sha256": {
+    "provisional_tables.md": "1e6a5e8512c5474124f759fd3c96262f56be25bfc98612ebd12f4b342e7a37d5",
+    "table1.csv": "333d5c4acb921c42df11ba1a28b2cb2b5da1202957b3d370aad13434d384ab56",
+    "table2.csv": "1596ebdfb81c8e6433aa2f43ab7933e49477d79cd12b00282e2d1d6f5bb61e3b",
+    "table3.csv": "2cc3820984fee80a122603f7cdca8a1c11a44bafff09bffe2b8e2f744abac629"
+  },
+  "paper_row_eligible": false,
+  "physical_rows_complete": 7,
+  "physical_rows_total": 12,
+  "provisional_status": "PROVISIONAL / NOT PAPER ELIGIBLE",
+  "rejected_inputs": [
+    {
+      "bound_by_bridge": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\admission_derived\\table1\\rsmbrl_cc4\\repeat_1",
+      "claimed_formal": true,
+      "claimed_identity": "table1/rsmbrl_cc4",
+      "manifest": "dependencies\\backups\\rsmbrl_repeat1_pass_20260921T230914Z_v2\\manifest.json",
+      "reason": "validator eligibility status must be PASS",
+      "reason_code": "BOUND_SOURCE_DUPLICATE"
+    },
+    {
+      "claimed_formal": true,
+      "claimed_identity": "table1/carl_cc4",
+      "manifest": "table1\\carl_cc4\\repeat_1_retry1\\manifest.json",
+      "reason": "validator eligibility status must be PASS",
+      "reason_code": "TAINTED"
+    },
+    {
+      "claimed_formal": false,
+      "claimed_identity": null,
+      "manifest": "table1\\uamcts_cc4_fallback_v3\\repeat_1\\merge_preflight\\merged_a\\manifest.json",
+      "reason": "manifest is development or formal_result_eligible is not true",
+      "reason_code": "REJECTED"
+    },
+    {
+      "claimed_formal": false,
+      "claimed_identity": null,
+      "manifest": "table1\\uamcts_cc4_fallback_v3\\repeat_1\\merge_preflight\\merged_b\\manifest.json",
+      "reason": "manifest is development or formal_result_eligible is not true",
+      "reason_code": "REJECTED"
+    },
+    {
+      "claimed_formal": false,
+      "claimed_identity": null,
+      "manifest": "table1\\uamcts_cc4_fallback_v3\\repeat_1\\merge_preflight\\rejection_cases\\duplicate_writer\\cal0\\manifest.json",
+      "reason": "manifest is development or formal_result_eligible is not true",
+      "reason_code": "REJECTED"
+    },
+    {
+      "claimed_formal": false,
+      "claimed_identity": null,
+      "manifest": "table1\\uamcts_cc4_fallback_v3\\repeat_1\\merge_preflight\\rejection_cases\\duplicate_writer\\cal1\\manifest.json",
+      "reason": "manifest is development or formal_result_eligible is not true",
+      "reason_code": "REJECTED"
+    },
+    {
+      "claimed_formal": false,
+      "claimed_identity": null,
+      "manifest": "table1\\uamcts_cc4_fallback_v3\\repeat_1\\merge_preflight\\rejection_cases\\gap\\cal0\\manifest.json",
+      "reason": "manifest is development or formal_result_eligible is not true",
+      "reason_code": "REJECTED"
+    },
+    {
+      "claimed_formal": false,
+      "claimed_identity": null,
+      "manifest": "table1\\uamcts_cc4_fallback_v3\\repeat_1\\merge_preflight\\rejection_cases\\gap\\cal1\\manifest.json",
+      "reason": "manifest is development or formal_result_eligible is not true",
+      "reason_code": "REJECTED"
+    },
+    {
+      "claimed_formal": false,
+      "claimed_identity": null,
+      "manifest": "table1\\uamcts_cc4_fallback_v3\\repeat_1\\merge_preflight\\rejection_cases\\identity_drift\\cal0\\manifest.json",
+      "reason": "manifest is development or formal_result_eligible is not true",
+      "reason_code": "REJECTED"
+    },
+    {
+      "claimed_formal": false,
+      "claimed_identity": null,
+      "manifest": "table1\\uamcts_cc4_fallback_v3\\repeat_1\\merge_preflight\\rejection_cases\\identity_drift\\cal1\\manifest.json",
+      "reason": "manifest is development or formal_result_eligible is not true",
+      "reason_code": "REJECTED"
+    },
+    {
+      "claimed_formal": false,
+      "claimed_identity": null,
+      "manifest": "table1\\uamcts_cc4_fallback_v3\\repeat_1\\merge_preflight\\rejection_cases\\overlap\\cal0\\manifest.json",
+      "reason": "manifest is development or formal_result_eligible is not true",
+      "reason_code": "REJECTED"
+    },
+    {
+      "claimed_formal": false,
+      "claimed_identity": null,
+      "manifest": "table1\\uamcts_cc4_fallback_v3\\repeat_1\\merge_preflight\\rejection_cases\\overlap\\cal1\\manifest.json",
+      "reason": "manifest is development or formal_result_eligible is not true",
+      "reason_code": "REJECTED"
+    },
+    {
+      "claimed_formal": false,
+      "claimed_identity": null,
+      "manifest": "table1\\uamcts_cc4_fallback_v3\\repeat_1\\merge_preflight\\synthetic_shards\\calibration_3000\\manifest.json",
+      "reason": "manifest is development or formal_result_eligible is not true",
+      "reason_code": "REJECTED"
+    },
+    {
+      "claimed_formal": false,
+      "claimed_identity": null,
+      "manifest": "table1\\uamcts_cc4_fallback_v3\\repeat_1\\merge_preflight\\synthetic_shards\\calibration_3001\\manifest.json",
+      "reason": "manifest is development or formal_result_eligible is not true",
+      "reason_code": "REJECTED"
+    },
+    {
+      "claimed_formal": false,
+      "claimed_identity": null,
+      "manifest": "table1\\uamcts_cc4_fallback_v3\\repeat_1\\merge_preflight\\synthetic_shards_second\\calibration_3000\\manifest.json",
+      "reason": "manifest is development or formal_result_eligible is not true",
+      "reason_code": "REJECTED"
+    },
+    {
+      "claimed_formal": false,
+      "claimed_identity": null,
+      "manifest": "table1\\uamcts_cc4_fallback_v3\\repeat_1\\merge_preflight\\synthetic_shards_second\\calibration_3001\\manifest.json",
+      "reason": "manifest is development or formal_result_eligible is not true",
+      "reason_code": "REJECTED"
+    },
+    {
+      "claimed_formal": false,
+      "claimed_identity": null,
+      "manifest": "table2\\llm_rl_trueppo_20260922_repeat1\\repeat_1\\manifest.json",
+      "reason": "raw true-PPO source is read-only; admission_derived bridge required",
+      "reason_code": "SOURCE_ONLY",
+      "source_only": true
+    },
+    {
+      "claimed_formal": false,
+      "claimed_identity": null,
+      "manifest": "table2\\lwm_rl_trueppo_v3\\repeat_1\\manifest.json",
+      "reason": "raw true-PPO source is read-only; admission_derived bridge required",
+      "reason_code": "SOURCE_ONLY",
+      "source_only": true
+    },
+    {
+      "claimed_formal": false,
+      "claimed_identity": null,
+      "manifest": "table2\\rl_only_trueppo_v2\\repeat_1\\manifest.json",
+      "reason": "raw true-PPO source is read-only; admission_derived bridge required",
+      "reason_code": "SOURCE_ONLY",
+      "source_only": true
+    },
+    {
+      "claimed_formal": false,
+      "claimed_identity": null,
+      "manifest": "table3\\fail_only_trueppo_20260922_repeat1\\manifest.json",
+      "reason": "raw true-PPO source is read-only; admission_derived bridge required",
+      "reason_code": "SOURCE_ONLY",
+      "source_only": true
+    }
+  ],
+  "rows": {
+    "table1/carl_cc4": {
+      "ddof": null,
+      "input_sha256": {},
+      "metrics": {
+        "cc4_official_reward": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "operation_failure_penalty": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_precision": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_time_censored_mean": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_time_completed_only_mean": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_unrecovered_rate": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        }
+      },
+      "n": 0,
+      "paper_row_eligible": false,
+      "policy_seeds": [],
+      "reason": "TAINTED: discover_formal_runs rejected a formal candidate for this identity",
+      "repeat_indices": [],
+      "row_id": "carl_cc4",
+      "row_label": "CARL-CC4 (adapted)",
+      "source": null,
+      "source_paths": [],
+      "status": "BLOCKED",
+      "table_id": "table1"
+    },
+    "table1/dca_cc4": {
+      "ddof": 1,
+      "input_sha256": {
+        "table1\\dca_cc4\\repeat_1\\eligibility_report.json": "5f3bf244dfe03193fff5ff4376abc94bb642ec6044b98d7c4a23ae087a7965dd",
+        "table1\\dca_cc4\\repeat_1\\episodes.jsonl": "48f2add34f922ae359cb85a025760a2a13350bb91e99fed73b34d9971b51ce3d",
+        "table1\\dca_cc4\\repeat_1\\manifest.json": "7dfea71a239e217db16e2908ff2482133f4c23125c22750e40aa66ac972d90a2",
+        "table1\\dca_cc4\\repeat_1\\metrics.json": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b",
+        "table1\\dca_cc4\\repeat_2\\eligibility_report.json": "86e2507b420256f628b1a3638c31faa3f12cc4e843df48293b1eff93fb6d2179",
+        "table1\\dca_cc4\\repeat_2\\episodes.jsonl": "40b13040f04bde0dcc1882014e98ab5b606f6b78ee42dd21de3de26fbd482bb3",
+        "table1\\dca_cc4\\repeat_2\\manifest.json": "49c9a67e574b3a2a8ea36329baa1350c8a0af6401467f60c8f4d8611d60f112f",
+        "table1\\dca_cc4\\repeat_2\\metrics.json": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b",
+        "table1\\dca_cc4\\repeat_3\\eligibility_report.json": "65001a2ac662ac054df16c09bfd55b1ac8054ef11648391a5daac1a8c3be8a73",
+        "table1\\dca_cc4\\repeat_3\\episodes.jsonl": "56b050e76b3ad1af5a96ffbf3cdd995a094a87331fa5dee2986c3a2b752da06d",
+        "table1\\dca_cc4\\repeat_3\\manifest.json": "084724cb07bd5b5def42adec0962a61a1c6cb439d6e3c6f10261d92bb256b4dd",
+        "table1\\dca_cc4\\repeat_3\\metrics.json": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b",
+        "table1\\dca_cc4\\repeat_4\\eligibility_report.json": "ba717c5f6d02d1cd41de31553ac304fff63d9be2a4b4b42365427ca101546ee8",
+        "table1\\dca_cc4\\repeat_4\\episodes.jsonl": "f7012a9f6b1a2ba1e5f2b53f2047a171fbde6082407201cc276c2a80078983be",
+        "table1\\dca_cc4\\repeat_4\\manifest.json": "8ddf427b6e63afae9ef3e5724ab05de43b1fc857efbab28d001dac40c9d20ecd",
+        "table1\\dca_cc4\\repeat_4\\metrics.json": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b",
+        "table1\\dca_cc4\\repeat_5\\eligibility_report.json": "56267ae1d998db5533c6cc8beb4c427d60ba0dd7a582150196a259562545abbc",
+        "table1\\dca_cc4\\repeat_5\\episodes.jsonl": "904135dabcf3ae261b88f2f17507767d64cd9226c7b6e44d4e6dc86caf35ac41",
+        "table1\\dca_cc4\\repeat_5\\manifest.json": "eb46c3b147e8986d370fe371537a5b4178f06a4eaa2d4b27c59bac34f445c8bb",
+        "table1\\dca_cc4\\repeat_5\\metrics.json": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b"
+      },
+      "metrics": {
+        "cc4_official_reward": {
+          "mean": -5157.51,
+          "sample_sd": 0.0,
+          "values": [
+            -5157.51,
+            -5157.51,
+            -5157.51,
+            -5157.51,
+            -5157.51
+          ]
+        },
+        "operation_failure_penalty": {
+          "mean": 4246.31,
+          "sample_sd": 0.0,
+          "values": [
+            4246.31,
+            4246.31,
+            4246.31,
+            4246.31,
+            4246.31
+          ]
+        },
+        "recovery_precision": {
+          "mean": 0.66854683093365,
+          "sample_sd": 0.0,
+          "values": [
+            0.66854683093365,
+            0.66854683093365,
+            0.66854683093365,
+            0.66854683093365,
+            0.66854683093365
+          ]
+        },
+        "recovery_time_censored_mean": {
+          "mean": 243.37762711864406,
+          "sample_sd": 0.0,
+          "values": [
+            243.37762711864406,
+            243.37762711864406,
+            243.37762711864406,
+            243.37762711864406,
+            243.37762711864406
+          ]
+        },
+        "recovery_time_completed_only_mean": {
+          "mean": 71.11926605504587,
+          "sample_sd": 0.0,
+          "values": [
+            71.11926605504587,
+            71.11926605504587,
+            71.11926605504587,
+            71.11926605504587,
+            71.11926605504587
+          ]
+        },
+        "recovery_unrecovered_rate": {
+          "mean": 0.704406779661017,
+          "sample_sd": 0.0,
+          "values": [
+            0.704406779661017,
+            0.704406779661017,
+            0.704406779661017,
+            0.704406779661017,
+            0.704406779661017
+          ]
+        }
+      },
+      "n": 5,
+      "paper_row_eligible": false,
+      "policy_seeds": [
+        51001,
+        51002,
+        51003,
+        51004,
+        51005
+      ],
+      "reason": null,
+      "repeat_indices": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "row_id": "dca_cc4",
+      "row_label": "DCA-CC4 (adapted)",
+      "source": "table1/dca_cc4",
+      "source_paths": [
+        "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table1\\dca_cc4\\repeat_1",
+        "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table1\\dca_cc4\\repeat_2",
+        "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table1\\dca_cc4\\repeat_3",
+        "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table1\\dca_cc4\\repeat_4",
+        "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table1\\dca_cc4\\repeat_5"
+      ],
+      "status": "COMPLETE_PROVISIONAL",
+      "table_id": "table1"
+    },
+    "table1/lwm_rl": {
+      "alias_of": "table2/lwm_rl",
+      "ddof": null,
+      "input_sha256": {
+        "admission_derived\\table2\\lwm_rl\\repeat_1\\admission_report.json": "153e384c49d735cea94db0327358d73cc535957b284c759bbce649ecfc05bb2e",
+        "admission_derived\\table2\\lwm_rl\\repeat_1\\manifest.json": "464757896ace2c3a8b112aba95868d1c233c4c0cf680ab27243219e7996e5145",
+        "table2\\lwm_rl_trueppo_v3\\repeat_1\\aggregate.json": "dc3c5356499a015f4fbd72a46c4dba6df5321c393722fae84bbb0ce02496dc60",
+        "table2\\lwm_rl_trueppo_v3\\repeat_1\\decisions.jsonl": "7bc33d3340fe80ababb6609c5e88986ff97c2ab0bd374508909f19d8241f8076",
+        "table2\\lwm_rl_trueppo_v3\\repeat_1\\eligibility_report.json": "da1a184345d46a71d9f931bf07deba16910b8bec180ae4f2e718f21cc05310f0",
+        "table2\\lwm_rl_trueppo_v3\\repeat_1\\episodes.jsonl": "45613c7afc4c8f083e534a9f27f1a9b377d64e1549c4844dbbfddb619a199946",
+        "table2\\lwm_rl_trueppo_v3\\repeat_1\\manifest.json": "098cf0029f603c79d7e96a3d7328549b288181294a521bae3ac780f2dc938f74",
+        "table2\\lwm_rl_trueppo_v3\\repeat_1\\metrics.json": "e031bd722e753ba8fc27af50b57f289d8595e641851dea4ffba9220db17e7dd5"
+      },
+      "metrics": {
+        "cc4_official_reward": {
+          "mean": -6127.66,
+          "sample_sd": null,
+          "values": [
+            -6127.66
+          ]
+        },
+        "operation_failure_penalty": {
+          "mean": 5068.45,
+          "sample_sd": null,
+          "values": [
+            5068.45
+          ]
+        },
+        "recovery_precision": {
+          "mean": 0.8801775147928994,
+          "sample_sd": null,
+          "values": [
+            0.8801775147928994
+          ]
+        },
+        "recovery_time_censored_mean": {
+          "mean": 314.2144899904671,
+          "sample_sd": null,
+          "values": [
+            314.2144899904671
+          ]
+        },
+        "recovery_time_completed_only_mean": {
+          "mean": 6.684684684684685,
+          "sample_sd": null,
+          "values": [
+            6.684684684684685
+          ]
+        },
+        "recovery_unrecovered_rate": {
+          "mean": 0.9118207816968541,
+          "sample_sd": null,
+          "values": [
+            0.9118207816968541
+          ]
+        }
+      },
+      "n": 1,
+      "paper_row_eligible": false,
+      "policy_seeds": [
+        51001
+      ],
+      "reason": "read-only logical alias of table2/lwm_rl",
+      "repeat_indices": [
+        1
+      ],
+      "row_id": "lwm_rl",
+      "row_label": "LWM-RL",
+      "source": "table2/lwm_rl",
+      "source_paths": [
+        "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\admission_derived\\table2\\lwm_rl\\repeat_1"
+      ],
+      "status": "COMPLETE_PROVISIONAL",
+      "table_id": "table1"
+    },
+    "table1/priorrl_ppo_cc4": {
+      "ddof": null,
+      "input_sha256": {
+        "table1\\priorrl_ppo_cc4\\repeat_1\\eligibility_report.json": "c1d754fc7860e3e06a454dd9ae0a695c7c468a7b62e59efbc738f2609ea110a3",
+        "table1\\priorrl_ppo_cc4\\repeat_1\\episodes.jsonl": "0143e238063d74a16ab49e512e9a84ab2d824142398dfa6494481987e84e3df0",
+        "table1\\priorrl_ppo_cc4\\repeat_1\\manifest.json": "3ff96ecd36cbc595841d44521b90b6c0e6a13222d4cd6b3adc749c126c8d9a1b",
+        "table1\\priorrl_ppo_cc4\\repeat_1\\metrics.json": "66f0abb4a326ed8ad77708cb77031266906766ba4f96ec86d368b907fef99f5b"
+      },
+      "metrics": {
+        "cc4_official_reward": {
+          "mean": -309.63,
+          "sample_sd": null,
+          "values": [
+            -309.63
+          ]
+        },
+        "operation_failure_penalty": {
+          "mean": 18.18,
+          "sample_sd": null,
+          "values": [
+            18.18
+          ]
+        },
+        "recovery_precision": {
+          "mean": 0.28066537863437163,
+          "sample_sd": null,
+          "values": [
+            0.28066537863437163
+          ]
+        },
+        "recovery_time_censored_mean": {
+          "mean": 74.63995499437429,
+          "sample_sd": null,
+          "values": [
+            74.63995499437429
+          ]
+        },
+        "recovery_time_completed_only_mean": {
+          "mean": 54.37284586889999,
+          "sample_sd": null,
+          "values": [
+            54.37284586889999
+          ]
+        },
+        "recovery_unrecovered_rate": {
+          "mean": 0.22377797224653082,
+          "sample_sd": null,
+          "values": [
+            0.22377797224653082
+          ]
+        }
+      },
+      "n": 1,
+      "paper_row_eligible": false,
+      "policy_seeds": [
+        51001
+      ],
+      "reason": null,
+      "repeat_indices": [
+        1
+      ],
+      "row_id": "priorrl_ppo_cc4",
+      "row_label": "PriorRL-PPO-CC4",
+      "source": "table1/priorrl_ppo_cc4",
+      "source_paths": [
+        "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table1\\priorrl_ppo_cc4\\repeat_1"
+      ],
+      "status": "COMPLETE_PROVISIONAL",
+      "table_id": "table1"
+    },
+    "table1/rsmbrl_cc4": {
+      "ddof": null,
+      "input_sha256": {
+        "admission_derived\\table1\\rsmbrl_cc4\\repeat_1\\admission_report.json": "4f2735e6e27fc4c8444b6ea3163c5b6caa881b5adf73b74dd0696dc178cf480f",
+        "admission_derived\\table1\\rsmbrl_cc4\\repeat_1\\manifest.json": "b67038ad540e933886d3095f498fe6b35072f782435132aa41b4e532f84b58a6",
+        "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\config.resolved.yaml": "61ef011695d4559db6b811a48cde5b056a7889c2f78b42f067c42b06a417f414",
+        "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\decisions.jsonl": "8cfd2450de6a1e17a804beda4c4a6c19cf2e36103ded1c6fe144d127ad2fa891",
+        "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\eligibility_report.json": "14cd387139544d098149265b9552e2138a8fc44b7d936259aa124b99d3129b8d",
+        "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\episodes.jsonl": "a77a4d3089ded7c8ea96ea59b4deb0b7de8dce6803a9b871ed952fc6d1904d16",
+        "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\manifest.json": "475ad51b3c3c07b21cd7ceee0442a7c098690ceb1c5f763bc181caf43c62c3c7",
+        "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\metrics.json": "249ec6fb26089e35d8a5f8a3632db727532ed4ce230497fcbe996a5b3d0d63d5",
+        "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\policy_spec.json": "1e72ce81d4c1622289ab6fdcb554f35ea620f64f48404c95dcaffb0614b1e079",
+        "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\resume_index.json": "ff5b9d60ea36f3a3aed3f84c7fa909f8f5e4d98af2c5d6e1be7a7b33534dd4f8",
+        "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "external:D:\\w\\rsmbrl_v32\\chapter2_region_detection\\outputs\\formal_v3\\table1\\rsmbrl_cc4\\repeat_1\\validation.json": "0ed8a7565a1419afb730c45659c2a60bd42a07406f76d4844d5061615db35939"
+      },
+      "metrics": {
+        "cc4_official_reward": {
+          "mean": -6227.94,
+          "sample_sd": null,
+          "values": [
+            -6227.94
+          ]
+        },
+        "operation_failure_penalty": {
+          "mean": 5156.49,
+          "sample_sd": null,
+          "values": [
+            5156.49
+          ]
+        },
+        "recovery_precision": {
+          "mean": 0.2161925601750547,
+          "sample_sd": null,
+          "values": [
+            0.2161925601750547
+          ]
+        },
+        "recovery_time_censored_mean": {
+          "mean": 330.90568539698324,
+          "sample_sd": null,
+          "values": [
+            330.90568539698324
+          ]
+        },
+        "recovery_time_completed_only_mean": {
+          "mean": 6.855633802816901,
+          "sample_sd": null,
+          "values": [
+            6.855633802816901
+          ]
+        },
+        "recovery_unrecovered_rate": {
+          "mean": 0.952925575998674,
+          "sample_sd": null,
+          "values": [
+            0.952925575998674
+          ]
+        }
+      },
+      "n": 1,
+      "paper_row_eligible": false,
+      "policy_seeds": [
+        51001
+      ],
+      "reason": null,
+      "repeat_indices": [
+        1
+      ],
+      "row_id": "rsmbrl_cc4",
+      "row_label": "RSMBRL-CC4",
+      "source": "table1/rsmbrl_cc4",
+      "source_paths": [
+        "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\admission_derived\\table1\\rsmbrl_cc4\\repeat_1"
+      ],
+      "status": "COMPLETE_PROVISIONAL",
+      "table_id": "table1"
+    },
+    "table1/terla_a4": {
+      "ddof": null,
+      "input_sha256": {
+        "table1\\terla_a4\\repeat_1\\checkpoint.pt": "7c5e823f741ae805f751ccfa02444931f07e92f7687bcd39ca5000304c4ab783",
+        "table1\\terla_a4\\repeat_1\\config.resolved.yaml": "b110d23e0f7fcd9e2d8dd98bd30f05f36a3c66705ea35b2f8f07a417c6de7620",
+        "table1\\terla_a4\\repeat_1\\decisions.jsonl": "1905c1bb075de1bedf412824ea73802195dfd820184f3739d79796ff21a6ea01",
+        "table1\\terla_a4\\repeat_1\\episodes.jsonl": "9766e354538df19a01b590af020cfd9e103cf2d689ef35ff823c747764e75893",
+        "table1\\terla_a4\\repeat_1\\evaluation_manifest.json": "29a7d56e07e563d6ddadb4d260bb9c04abb7461a16e6a17ca3220025019f30de",
+        "table1\\terla_a4\\repeat_1\\manifest.json": "68ead04be527699af33a8f32214434979d3aa1ea78972353a63dbf5db67d5668",
+        "table1\\terla_a4\\repeat_1\\metrics.json": "b30dd78fdd764aa1dc667bf51003bdea17ea0a5f5d1c14c121b1bd5410516465",
+        "table1\\terla_a4\\repeat_1\\optimizer.pt": "5a153cf8f26ad1259f08743b6800f7576b88a25edb01dcc268e6801917e791f3",
+        "table1\\terla_a4\\repeat_1\\stdout.log": "4d3d89c1bad0a12856c70d895d22e7b5d8ee53d0e55b85911c886c1ad4ec5076",
+        "table1\\terla_a4\\repeat_1\\training_manifest.json": "a54ba4e6df63a7f7b03e78044e192240d77242fc239fc0db1cb8f38eaf915921"
+      },
+      "metrics": {
+        "cc4_official_reward": {
+          "mean": -6579.24,
+          "sample_sd": null,
+          "values": [
+            -6579.24
+          ]
+        },
+        "operation_failure_penalty": {
+          "mean": 5428.7,
+          "sample_sd": null,
+          "values": [
+            5428.7
+          ]
+        },
+        "recovery_precision": {
+          "mean": 0.368987480781902,
+          "sample_sd": null,
+          "values": [
+            0.368987480781902
+          ]
+        },
+        "recovery_time_censored_mean": {
+          "mean": 298.9814518708027,
+          "sample_sd": null,
+          "values": [
+            298.9814518708027
+          ]
+        },
+        "recovery_time_completed_only_mean": {
+          "mean": 196.8165191740413,
+          "sample_sd": null,
+          "values": [
+            196.8165191740413
+          ]
+        },
+        "recovery_unrecovered_rate": {
+          "mean": 0.728973456987528,
+          "sample_sd": null,
+          "values": [
+            0.728973456987528
+          ]
+        }
+      },
+      "n": 1,
+      "paper_row_eligible": false,
+      "policy_seeds": [
+        51001
+      ],
+      "reason": null,
+      "repeat_indices": [
+        1
+      ],
+      "row_id": "terla_a4",
+      "row_label": "TERLA-A4",
+      "source": "table1/terla_a4",
+      "source_paths": [
+        "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table1\\terla_a4\\repeat_1"
+      ],
+      "status": "COMPLETE_PROVISIONAL",
+      "table_id": "table1"
+    },
+    "table1/uamcts_cc4": {
+      "ddof": null,
+      "input_sha256": {},
+      "metrics": {
+        "cc4_official_reward": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "operation_failure_penalty": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_precision": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_time_censored_mean": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_time_completed_only_mean": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_unrecovered_rate": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        }
+      },
+      "n": 0,
+      "paper_row_eligible": false,
+      "policy_seeds": [],
+      "reason": "repeat-1 candidate must be unique; got 0",
+      "repeat_indices": [],
+      "row_id": "uamcts_cc4",
+      "row_label": "UAMCTS-CC4 (adapted)",
+      "source": null,
+      "source_paths": [],
+      "status": "BLOCKED",
+      "table_id": "table1"
+    },
+    "table2/llm_rl": {
+      "ddof": null,
+      "input_sha256": {
+        "admission_derived\\table2\\llm_rl\\repeat_1\\admission_report.json": "6c623ac4dbd276057ade1c39547077ac169b6fabe102654f12442212dfa958ca",
+        "admission_derived\\table2\\llm_rl\\repeat_1\\manifest.json": "3e73ee3e7bdbe8f658f8dc7cb489b163c0dd5280e6570bd378681d54b31b5c8e",
+        "table2\\llm_rl_trueppo_20260922_repeat1\\repeat_1\\aggregate.json": "0d8655afc639379b3f55a485637135b9f5a5ca008ed546619e9683d082e62d8d",
+        "table2\\llm_rl_trueppo_20260922_repeat1\\repeat_1\\decisions.jsonl": "6f81bf41953952e3849727225c7b8b7d060bfc7ac5e597616b968f7b5f29989b",
+        "table2\\llm_rl_trueppo_20260922_repeat1\\repeat_1\\eligibility_report.json": "5a76940b24cb1cd0056173375f993afc714f6bb82ead92cde1a7faef5b00cb76",
+        "table2\\llm_rl_trueppo_20260922_repeat1\\repeat_1\\episodes.jsonl": "301d80f6dda2326ee32cef37a37ecdfd1664d779636934f6b7d6ad6238ae2cdf",
+        "table2\\llm_rl_trueppo_20260922_repeat1\\repeat_1\\manifest.json": "574c04a6ae5cdc76cd52587eb4d637bedfb1bc85da7cb15182f3da296ace2dcc",
+        "table2\\llm_rl_trueppo_20260922_repeat1\\repeat_1\\metrics.json": "f8317ba006566a79f2c67f74e93756dcbc04486629d54b8201fa13ea4438005d"
+      },
+      "metrics": {
+        "cc4_official_reward": {
+          "mean": -5740.44,
+          "sample_sd": null,
+          "values": [
+            -5740.44
+          ]
+        },
+        "operation_failure_penalty": {
+          "mean": 4774.51,
+          "sample_sd": null,
+          "values": [
+            4774.51
+          ]
+        },
+        "recovery_precision": {
+          "mean": 0.9191983434403195,
+          "sample_sd": null,
+          "values": [
+            0.9191983434403195
+          ]
+        },
+        "recovery_time_censored_mean": {
+          "mean": 233.313819699077,
+          "sample_sd": null,
+          "values": [
+            233.313819699077
+          ]
+        },
+        "recovery_time_completed_only_mean": {
+          "mean": 8.245752175714879,
+          "sample_sd": null,
+          "values": [
+            8.245752175714879
+          ]
+        },
+        "recovery_unrecovered_rate": {
+          "mean": 0.6949045391326337,
+          "sample_sd": null,
+          "values": [
+            0.6949045391326337
+          ]
+        }
+      },
+      "n": 1,
+      "paper_row_eligible": false,
+      "policy_seeds": [
+        51001
+      ],
+      "reason": null,
+      "repeat_indices": [
+        1
+      ],
+      "row_id": "llm_rl",
+      "row_label": "LLM-RL",
+      "source": "table2/llm_rl",
+      "source_paths": [
+        "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\admission_derived\\table2\\llm_rl\\repeat_1"
+      ],
+      "status": "COMPLETE_PROVISIONAL",
+      "table_id": "table2"
+    },
+    "table2/lwm_rl": {
+      "ddof": null,
+      "input_sha256": {
+        "admission_derived\\table2\\lwm_rl\\repeat_1\\admission_report.json": "153e384c49d735cea94db0327358d73cc535957b284c759bbce649ecfc05bb2e",
+        "admission_derived\\table2\\lwm_rl\\repeat_1\\manifest.json": "464757896ace2c3a8b112aba95868d1c233c4c0cf680ab27243219e7996e5145",
+        "table2\\lwm_rl_trueppo_v3\\repeat_1\\aggregate.json": "dc3c5356499a015f4fbd72a46c4dba6df5321c393722fae84bbb0ce02496dc60",
+        "table2\\lwm_rl_trueppo_v3\\repeat_1\\decisions.jsonl": "7bc33d3340fe80ababb6609c5e88986ff97c2ab0bd374508909f19d8241f8076",
+        "table2\\lwm_rl_trueppo_v3\\repeat_1\\eligibility_report.json": "da1a184345d46a71d9f931bf07deba16910b8bec180ae4f2e718f21cc05310f0",
+        "table2\\lwm_rl_trueppo_v3\\repeat_1\\episodes.jsonl": "45613c7afc4c8f083e534a9f27f1a9b377d64e1549c4844dbbfddb619a199946",
+        "table2\\lwm_rl_trueppo_v3\\repeat_1\\manifest.json": "098cf0029f603c79d7e96a3d7328549b288181294a521bae3ac780f2dc938f74",
+        "table2\\lwm_rl_trueppo_v3\\repeat_1\\metrics.json": "e031bd722e753ba8fc27af50b57f289d8595e641851dea4ffba9220db17e7dd5"
+      },
+      "metrics": {
+        "cc4_official_reward": {
+          "mean": -6127.66,
+          "sample_sd": null,
+          "values": [
+            -6127.66
+          ]
+        },
+        "operation_failure_penalty": {
+          "mean": 5068.45,
+          "sample_sd": null,
+          "values": [
+            5068.45
+          ]
+        },
+        "recovery_precision": {
+          "mean": 0.8801775147928994,
+          "sample_sd": null,
+          "values": [
+            0.8801775147928994
+          ]
+        },
+        "recovery_time_censored_mean": {
+          "mean": 314.2144899904671,
+          "sample_sd": null,
+          "values": [
+            314.2144899904671
+          ]
+        },
+        "recovery_time_completed_only_mean": {
+          "mean": 6.684684684684685,
+          "sample_sd": null,
+          "values": [
+            6.684684684684685
+          ]
+        },
+        "recovery_unrecovered_rate": {
+          "mean": 0.9118207816968541,
+          "sample_sd": null,
+          "values": [
+            0.9118207816968541
+          ]
+        }
+      },
+      "n": 1,
+      "paper_row_eligible": false,
+      "policy_seeds": [
+        51001
+      ],
+      "reason": null,
+      "repeat_indices": [
+        1
+      ],
+      "row_id": "lwm_rl",
+      "row_label": "LWM-RL",
+      "source": "table2/lwm_rl",
+      "source_paths": [
+        "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\admission_derived\\table2\\lwm_rl\\repeat_1"
+      ],
+      "status": "COMPLETE_PROVISIONAL",
+      "table_id": "table2"
+    },
+    "table2/rl_only": {
+      "ddof": null,
+      "input_sha256": {
+        "admission_derived\\table2\\rl_only\\repeat_1\\admission_report.json": "4301336e25b06a6a2f5de9793c2be97f324e5c6318238504264f9c0ec54d8400",
+        "admission_derived\\table2\\rl_only\\repeat_1\\manifest.json": "a0d9876d3282831ef702c0c8e80fb1ff8db6034e75535c8accb8ec129223fd80",
+        "table2\\rl_only_trueppo_v2\\repeat_1\\aggregate.json": "8758cbe891d307d7ff70d683524ab44b06047744b0ca3fde33a8c7f6810ecf47",
+        "table2\\rl_only_trueppo_v2\\repeat_1\\decisions.jsonl": "bab804497dffda5b532457904ed4c198fd4804b31c37891df8698e0b2e234c86",
+        "table2\\rl_only_trueppo_v2\\repeat_1\\eligibility_report.json": "62d6a18d3d08d4e20a351d73648152245245bccb3a929873e9aabc651621dd12",
+        "table2\\rl_only_trueppo_v2\\repeat_1\\episodes.jsonl": "d59cad0630209e32e28d6b46e81f41ad0eb394fa3bcc346665ba84298c837598",
+        "table2\\rl_only_trueppo_v2\\repeat_1\\manifest.json": "7e1ddd80266aeb3461f83b7213226cb49e7873886ef160d3b31921a0fa020806",
+        "table2\\rl_only_trueppo_v2\\repeat_1\\metrics.json": "c09bc89625e823516c5d6cf21f427fc0403580dd8f869340fd8386f04b2d35d0"
+      },
+      "metrics": {
+        "cc4_official_reward": {
+          "mean": -309.63,
+          "sample_sd": null,
+          "values": [
+            -309.63
+          ]
+        },
+        "operation_failure_penalty": {
+          "mean": 18.18,
+          "sample_sd": null,
+          "values": [
+            18.18
+          ]
+        },
+        "recovery_precision": {
+          "mean": 0.8582064935676924,
+          "sample_sd": null,
+          "values": [
+            0.8582064935676924
+          ]
+        },
+        "recovery_time_censored_mean": {
+          "mean": 74.63995499437429,
+          "sample_sd": null,
+          "values": [
+            74.63995499437429
+          ]
+        },
+        "recovery_time_completed_only_mean": {
+          "mean": 54.37284586889999,
+          "sample_sd": null,
+          "values": [
+            54.37284586889999
+          ]
+        },
+        "recovery_unrecovered_rate": {
+          "mean": 0.22377797224653082,
+          "sample_sd": null,
+          "values": [
+            0.22377797224653082
+          ]
+        }
+      },
+      "n": 1,
+      "paper_row_eligible": false,
+      "policy_seeds": [
+        51001
+      ],
+      "reason": null,
+      "repeat_indices": [
+        1
+      ],
+      "row_id": "rl_only",
+      "row_label": "RL-Only",
+      "source": "table2/rl_only",
+      "source_paths": [
+        "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\admission_derived\\table2\\rl_only\\repeat_1"
+      ],
+      "status": "COMPLETE_PROVISIONAL",
+      "table_id": "table2"
+    },
+    "table2/wm_rl": {
+      "ddof": null,
+      "input_sha256": {},
+      "metrics": {
+        "cc4_official_reward": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "operation_failure_penalty": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_precision": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_time_censored_mean": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_time_completed_only_mean": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_unrecovered_rate": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        }
+      },
+      "n": 0,
+      "paper_row_eligible": false,
+      "policy_seeds": [],
+      "reason": "repeat-1 candidate must be unique; got 0",
+      "repeat_indices": [],
+      "row_id": "wm_rl",
+      "row_label": "WM-RL",
+      "source": null,
+      "source_paths": [],
+      "status": "BLOCKED",
+      "table_id": "table2"
+    },
+    "table3/delay_only": {
+      "ddof": null,
+      "input_sha256": {},
+      "metrics": {
+        "cc4_official_reward": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "operation_failure_penalty": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_precision": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_time_censored_mean": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_time_completed_only_mean": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_unrecovered_rate": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        }
+      },
+      "n": 0,
+      "paper_row_eligible": false,
+      "policy_seeds": [],
+      "reason": "repeat-1 candidate must be unique; got 0",
+      "repeat_indices": [],
+      "row_id": "delay_only",
+      "row_label": "Delay-Only",
+      "source": null,
+      "source_paths": [],
+      "status": "BLOCKED",
+      "table_id": "table3"
+    },
+    "table3/fail_only": {
+      "ddof": null,
+      "input_sha256": {},
+      "metrics": {
+        "cc4_official_reward": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "operation_failure_penalty": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_precision": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_time_censored_mean": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_time_completed_only_mean": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        },
+        "recovery_unrecovered_rate": {
+          "mean": null,
+          "sample_sd": null,
+          "values": []
+        }
+      },
+      "n": 0,
+      "paper_row_eligible": false,
+      "policy_seeds": [],
+      "reason": "repeat-1 candidate must be unique; got 0",
+      "repeat_indices": [],
+      "row_id": "fail_only",
+      "row_label": "Fail-Only",
+      "source": null,
+      "source_paths": [],
+      "status": "BLOCKED",
+      "table_id": "table3"
+    },
+    "table3/full_reward": {
+      "alias_of": "table2/lwm_rl",
+      "ddof": null,
+      "input_sha256": {
+        "admission_derived\\table2\\lwm_rl\\repeat_1\\admission_report.json": "153e384c49d735cea94db0327358d73cc535957b284c759bbce649ecfc05bb2e",
+        "admission_derived\\table2\\lwm_rl\\repeat_1\\manifest.json": "464757896ace2c3a8b112aba95868d1c233c4c0cf680ab27243219e7996e5145",
+        "table2\\lwm_rl_trueppo_v3\\repeat_1\\aggregate.json": "dc3c5356499a015f4fbd72a46c4dba6df5321c393722fae84bbb0ce02496dc60",
+        "table2\\lwm_rl_trueppo_v3\\repeat_1\\decisions.jsonl": "7bc33d3340fe80ababb6609c5e88986ff97c2ab0bd374508909f19d8241f8076",
+        "table2\\lwm_rl_trueppo_v3\\repeat_1\\eligibility_report.json": "da1a184345d46a71d9f931bf07deba16910b8bec180ae4f2e718f21cc05310f0",
+        "table2\\lwm_rl_trueppo_v3\\repeat_1\\episodes.jsonl": "45613c7afc4c8f083e534a9f27f1a9b377d64e1549c4844dbbfddb619a199946",
+        "table2\\lwm_rl_trueppo_v3\\repeat_1\\manifest.json": "098cf0029f603c79d7e96a3d7328549b288181294a521bae3ac780f2dc938f74",
+        "table2\\lwm_rl_trueppo_v3\\repeat_1\\metrics.json": "e031bd722e753ba8fc27af50b57f289d8595e641851dea4ffba9220db17e7dd5"
+      },
+      "metrics": {
+        "cc4_official_reward": {
+          "mean": -6127.66,
+          "sample_sd": null,
+          "values": [
+            -6127.66
+          ]
+        },
+        "operation_failure_penalty": {
+          "mean": 5068.45,
+          "sample_sd": null,
+          "values": [
+            5068.45
+          ]
+        },
+        "recovery_precision": {
+          "mean": 0.8801775147928994,
+          "sample_sd": null,
+          "values": [
+            0.8801775147928994
+          ]
+        },
+        "recovery_time_censored_mean": {
+          "mean": 314.2144899904671,
+          "sample_sd": null,
+          "values": [
+            314.2144899904671
+          ]
+        },
+        "recovery_time_completed_only_mean": {
+          "mean": 6.684684684684685,
+          "sample_sd": null,
+          "values": [
+            6.684684684684685
+          ]
+        },
+        "recovery_unrecovered_rate": {
+          "mean": 0.9118207816968541,
+          "sample_sd": null,
+          "values": [
+            0.9118207816968541
+          ]
+        }
+      },
+      "n": 1,
+      "paper_row_eligible": false,
+      "policy_seeds": [
+        51001
+      ],
+      "reason": "read-only logical alias of table2/lwm_rl",
+      "repeat_indices": [
+        1
+      ],
+      "row_id": "full_reward",
+      "row_label": "Full-Reward",
+      "source": "table2/lwm_rl",
+      "source_paths": [
+        "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\admission_derived\\table2\\lwm_rl\\repeat_1"
+      ],
+      "status": "COMPLETE_PROVISIONAL",
+      "table_id": "table3"
+    }
+  },
+  "schema": "cc4_v3_repeat1_provisional_tables_v1",
+  "status": "PARTIAL",
+  "tables": {
+    "table1": {
+      "logical_rows_complete": 5,
+      "logical_rows_total": 7,
+      "physical_rows_complete": 4,
+      "physical_rows_total": 6,
+      "status": "PARTIAL"
+    },
+    "table2": {
+      "logical_rows_complete": 3,
+      "logical_rows_total": 4,
+      "physical_rows_complete": 3,
+      "physical_rows_total": 4,
+      "status": "PARTIAL"
+    },
+    "table3": {
+      "logical_rows_complete": 1,
+      "logical_rows_total": 3,
+      "physical_rows_complete": 0,
+      "physical_rows_total": 2,
+      "status": "PARTIAL"
+    }
+  }
+}

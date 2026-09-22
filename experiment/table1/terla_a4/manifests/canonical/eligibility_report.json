@@ -1,0 +1,36 @@
+{
+  "eligibility": "FAIL",
+  "errors": [
+    "method does not match formal method_slug name"
+  ],
+  "formal": true,
+  "input_sha256": {
+    "checkpoint.pt": "7c5e823f741ae805f751ccfa02444931f07e92f7687bcd39ca5000304c4ab783",
+    "config.resolved.yaml": "b110d23e0f7fcd9e2d8dd98bd30f05f36a3c66705ea35b2f8f07a417c6de7620",
+    "decisions.jsonl": "1905c1bb075de1bedf412824ea73802195dfd820184f3739d79796ff21a6ea01",
+    "episodes.jsonl": "9766e354538df19a01b590af020cfd9e103cf2d689ef35ff823c747764e75893",
+    "manifest.json": "68ead04be527699af33a8f32214434979d3aa1ea78972353a63dbf5db67d5668",
+    "metrics.json": "b30dd78fdd764aa1dc667bf51003bdea17ea0a5f5d1c14c121b1bd5410516465",
+    "optimizer.pt": "5a153cf8f26ad1259f08743b6800f7576b88a25edb01dcc268e6801917e791f3",
+    "stdout.log": "4d3d89c1bad0a12856c70d895d22e7b5d8ee53d0e55b85911c886c1ad4ec5076",
+    "training_manifest.json": "a54ba4e6df63a7f7b03e78044e192240d77242fc239fc0db1cb8f38eaf915921"
+  },
+  "passed": false,
+  "schema": "cc4_v3_eligibility_report_v1",
+  "schema_version": 1,
+  "status": "FAIL",
+  "validated_input_sha256": {
+    "checkpoint.pt": "7c5e823f741ae805f751ccfa02444931f07e92f7687bcd39ca5000304c4ab783",
+    "config.resolved.yaml": "b110d23e0f7fcd9e2d8dd98bd30f05f36a3c66705ea35b2f8f07a417c6de7620",
+    "decisions.jsonl": "1905c1bb075de1bedf412824ea73802195dfd820184f3739d79796ff21a6ea01",
+    "episodes.jsonl": "9766e354538df19a01b590af020cfd9e103cf2d689ef35ff823c747764e75893",
+    "manifest.json": "68ead04be527699af33a8f32214434979d3aa1ea78972353a63dbf5db67d5668",
+    "metrics.json": "b30dd78fdd764aa1dc667bf51003bdea17ea0a5f5d1c14c121b1bd5410516465",
+    "optimizer.pt": "5a153cf8f26ad1259f08743b6800f7576b88a25edb01dcc268e6801917e791f3",
+    "stdout.log": "4d3d89c1bad0a12856c70d895d22e7b5d8ee53d0e55b85911c886c1ad4ec5076",
+    "training_manifest.json": "a54ba4e6df63a7f7b03e78044e192240d77242fc239fc0db1cb8f38eaf915921"
+  },
+  "validator": "formal_experiments.evaluation.validate_formal_run",
+  "validator_version": "formal_integrity_v2",
+  "warnings": []
+}

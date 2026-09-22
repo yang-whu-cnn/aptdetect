@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-22T10:27:32.1996059Z",
+  "generated_at": "2026-09-22T16:14:36.4576121Z",
   "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\dependencies\\backups\\rsmbrl_repeat1_pass_20260921T230914Z_v2",
   "source_exists": true,
   "status": "PROVISIONAL_REPEAT1_PASS",
@@ -866,5 +866,6 @@
       "relative_path": "episode_parts\\episode_4099.json",
       "bytes": 379565
     }
-  ]
+  ],
+  "inventory_note": "Compact metadata copied; raw artifacts remain at source."
 }

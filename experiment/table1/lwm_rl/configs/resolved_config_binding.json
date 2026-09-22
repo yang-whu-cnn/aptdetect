@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "method": "lwm_rl",
+  "source_config": "shared formal runner configuration",
+  "canonical_result": "outputs\\formal_v3\\table2\\lwm_rl_trueppo_v3\\repeat_1",
+  "status": "PROVISIONAL_ALIAS",
+  "alias": true,
+  "note": "Non-executing alias; configuration is inherited from the physical Table 2 LWM-RL entry."
+}

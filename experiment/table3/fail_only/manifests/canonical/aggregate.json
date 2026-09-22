@@ -1,0 +1,6 @@
+{
+  "schema": "cc4_v3_true_ppo_aggregate_v1",
+  "source_eligibility_sha256": "3e9e31b79cfb6d5ea20ef7a4dc16eaa0dd2d80f5491c2a847fe3459165bd5c70",
+  "source_manifest_sha256": "7990eac2e54497eefcf0cde714460cf3a11c8ae9f495fb3d5147e7085f14ef22",
+  "status": "PASS"
+}

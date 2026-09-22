@@ -1,0 +1,183 @@
+{
+  "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table1\\dca_cc4",
+  "source_exists": true,
+  "active_source": false,
+  "copied_files": [
+    {
+      "relative_path": "repeat_1\\config.resolved.yaml",
+      "bytes": 1245,
+      "sha256": "c525a2e5115bd6f514f27f459e7bb464b7254dacb95a13f9ce8f1fe1ff9fa871"
+    },
+    {
+      "relative_path": "repeat_1\\eligibility_report.json",
+      "bytes": 1475,
+      "sha256": "5f3bf244dfe03193fff5ff4376abc94bb642ec6044b98d7c4a23ae087a7965dd"
+    },
+    {
+      "relative_path": "repeat_1\\manifest.json",
+      "bytes": 3382,
+      "sha256": "7dfea71a239e217db16e2908ff2482133f4c23125c22750e40aa66ac972d90a2"
+    },
+    {
+      "relative_path": "repeat_1\\metrics.json",
+      "bytes": 580,
+      "sha256": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b"
+    },
+    {
+      "relative_path": "repeat_1\\policy_spec.json",
+      "bytes": 52,
+      "sha256": "6227a092ca4a5f2ebbb9946fefb828c630a71f8a0c78336e7f989bfef02708e4"
+    },
+    {
+      "relative_path": "repeat_1\\resume_index.json",
+      "bytes": 22501,
+      "sha256": "0e7642ea521defcccf6c3a808226fe2ac4ad4cbc6ddebfacdb90bd7d3aaa0367"
+    },
+    {
+      "relative_path": "repeat_1\\validation.json",
+      "bytes": 684,
+      "sha256": "665b16103a022745d9fd24095dfa044fcca0300a2b1a525bb9f2aedca91b9c68"
+    },
+    {
+      "relative_path": "repeat_2\\config.resolved.yaml",
+      "bytes": 1245,
+      "sha256": "a152fe316e2105a6ae37ed178de5d32d0e7f65caf44fd200b7019a7bd13cef35"
+    },
+    {
+      "relative_path": "repeat_2\\eligibility_report.json",
+      "bytes": 1475,
+      "sha256": "86e2507b420256f628b1a3638c31faa3f12cc4e843df48293b1eff93fb6d2179"
+    },
+    {
+      "relative_path": "repeat_2\\manifest.json",
+      "bytes": 3382,
+      "sha256": "49c9a67e574b3a2a8ea36329baa1350c8a0af6401467f60c8f4d8611d60f112f"
+    },
+    {
+      "relative_path": "repeat_2\\metrics.json",
+      "bytes": 580,
+      "sha256": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b"
+    },
+    {
+      "relative_path": "repeat_2\\policy_spec.json",
+      "bytes": 52,
+      "sha256": "9b2dcccaa27d8e7388400d986ee0e03d75bdef92ac87fe2e63b96b10bd7b95e8"
+    },
+    {
+      "relative_path": "repeat_2\\resume_index.json",
+      "bytes": 22501,
+      "sha256": "d116c84cc7d5260c9535fb5160dd6665f9bd3845215243c7f0944be35a6382f8"
+    },
+    {
+      "relative_path": "repeat_2\\validation.json",
+      "bytes": 684,
+      "sha256": "665b16103a022745d9fd24095dfa044fcca0300a2b1a525bb9f2aedca91b9c68"
+    },
+    {
+      "relative_path": "repeat_3\\config.resolved.yaml",
+      "bytes": 1245,
+      "sha256": "30efed03fb21a3dd516bec2a1e5143f5519049b89363a872a1bac256e59647f7"
+    },
+    {
+      "relative_path": "repeat_3\\eligibility_report.json",
+      "bytes": 1475,
+      "sha256": "65001a2ac662ac054df16c09bfd55b1ac8054ef11648391a5daac1a8c3be8a73"
+    },
+    {
+      "relative_path": "repeat_3\\manifest.json",
+      "bytes": 3382,
+      "sha256": "084724cb07bd5b5def42adec0962a61a1c6cb439d6e3c6f10261d92bb256b4dd"
+    },
+    {
+      "relative_path": "repeat_3\\metrics.json",
+      "bytes": 580,
+      "sha256": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b"
+    },
+    {
+      "relative_path": "repeat_3\\policy_spec.json",
+      "bytes": 52,
+      "sha256": "9b0259798dbb726903a177e1044250abb59aaa9c470a4a8ed6531ce33df33015"
+    },
+    {
+      "relative_path": "repeat_3\\resume_index.json",
+      "bytes": 22501,
+      "sha256": "ace7b3a474ab7fe0c40e013d87f0f82ed8657e40ccfbe5770078b49fbea2c681"
+    },
+    {
+      "relative_path": "repeat_3\\validation.json",
+      "bytes": 684,
+      "sha256": "665b16103a022745d9fd24095dfa044fcca0300a2b1a525bb9f2aedca91b9c68"
+    },
+    {
+      "relative_path": "repeat_4\\config.resolved.yaml",
+      "bytes": 1245,
+      "sha256": "c0cb995a43c86467b735c7167290d98d212632fae56901cd16971674c82eff2c"
+    },
+    {
+      "relative_path": "repeat_4\\eligibility_report.json",
+      "bytes": 1475,
+      "sha256": "ba717c5f6d02d1cd41de31553ac304fff63d9be2a4b4b42365427ca101546ee8"
+    },
+    {
+      "relative_path": "repeat_4\\manifest.json",
+      "bytes": 3382,
+      "sha256": "8ddf427b6e63afae9ef3e5724ab05de43b1fc857efbab28d001dac40c9d20ecd"
+    },
+    {
+      "relative_path": "repeat_4\\metrics.json",
+      "bytes": 580,
+      "sha256": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b"
+    },
+    {
+      "relative_path": "repeat_4\\policy_spec.json",
+      "bytes": 52,
+      "sha256": "d7dc74df798da66300401565d042090039cb4cb82b60662e4ef701dfc6b37fdc"
+    },
+    {
+      "relative_path": "repeat_4\\resume_index.json",
+      "bytes": 22501,
+      "sha256": "c002f69eca677637585d71d842f1646f6ddfbbd00c65b60b99388f8bd5fddc50"
+    },
+    {
+      "relative_path": "repeat_4\\validation.json",
+      "bytes": 684,
+      "sha256": "665b16103a022745d9fd24095dfa044fcca0300a2b1a525bb9f2aedca91b9c68"
+    },
+    {
+      "relative_path": "repeat_5\\config.resolved.yaml",
+      "bytes": 1245,
+      "sha256": "fb720f6dc5ded5331e45608ee444747a968bf9f106f030d1ff278b5dcfe61ba2"
+    },
+    {
+      "relative_path": "repeat_5\\eligibility_report.json",
+      "bytes": 1475,
+      "sha256": "56267ae1d998db5533c6cc8beb4c427d60ba0dd7a582150196a259562545abbc"
+    },
+    {
+      "relative_path": "repeat_5\\manifest.json",
+      "bytes": 3382,
+      "sha256": "eb46c3b147e8986d370fe371537a5b4178f06a4eaa2d4b27c59bac34f445c8bb"
+    },
+    {
+      "relative_path": "repeat_5\\metrics.json",
+      "bytes": 580,
+      "sha256": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b"
+    },
+    {
+      "relative_path": "repeat_5\\policy_spec.json",
+      "bytes": 52,
+      "sha256": "336028525612d6f4903d0fbe802adc4a32cbc2e7c5d86e410aaf6a5fd1b2ad0d"
+    },
+    {
+      "relative_path": "repeat_5\\resume_index.json",
+      "bytes": 22501,
+      "sha256": "ffc390d5cf88a67544e12c5b31b449384cbe75d2df7ebd61a43619a3f4855fdb"
+    },
+    {
+      "relative_path": "repeat_5\\validation.json",
+      "bytes": 684,
+      "sha256": "665b16103a022745d9fd24095dfa044fcca0300a2b1a525bb9f2aedca91b9c68"
+    }
+  ],
+  "skipped_large_files": []
+}

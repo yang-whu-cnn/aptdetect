@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "method": "terla_a4",
+  "source_config": "chapter2_region_detection/configs/formal_v3/methods/terla_a4.yaml",
+  "canonical_result": "outputs\\formal_v3\\table1\\terla_a4\\repeat_1",
+  "status": "PARTIAL_BLOCKED_ADMISSION",
+  "alias": false,
+  "note": "Catalog binding; do not edit to tune a result."
+}

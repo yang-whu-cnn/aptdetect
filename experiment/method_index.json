@@ -1,0 +1,1298 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-22T16:14:39.5369707Z",
+  "required_categories": [
+    "code",
+    "configs",
+    "launchers",
+    "manifests",
+    "results",
+    "docs"
+  ],
+  "methods": [
+    {
+      "table": "table1",
+      "method": "uamcts_cc4_adapted",
+      "source": "outputs\\formal_v3\\table1\\uamcts_cc4\\repeat_1_fresh_support_v1_retry1",
+      "status": "RUNNING_TEST_DO_NOT_MOVE",
+      "canonical": false,
+      "alias_of": null,
+      "missing_reason": "Active writer: source SHA sidecars intentionally deferred until the lock is released.",
+      "required_parts": {
+        "code": {
+          "present": true,
+          "file_count": 10,
+          "bytes": 70467
+        },
+        "configs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 342
+        },
+        "launchers": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 601
+        },
+        "manifests": {
+          "present": true,
+          "file_count": 4,
+          "bytes": 1180
+        },
+        "results": {
+          "present": true,
+          "file_count": 2,
+          "bytes": 928
+        },
+        "docs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 1142
+        }
+      },
+      "sha256": []
+    },
+    {
+      "table": "table1",
+      "method": "rsmbrl_cc4",
+      "source": "outputs\\formal_v3\\dependencies\\backups\\rsmbrl_repeat1_pass_20260921T230914Z_v2",
+      "status": "PROVISIONAL_REPEAT1_PASS",
+      "canonical": true,
+      "alias_of": null,
+      "missing_reason": "",
+      "required_parts": {
+        "code": {
+          "present": true,
+          "file_count": 18,
+          "bytes": 144496
+        },
+        "configs": {
+          "present": true,
+          "file_count": 2,
+          "bytes": 1022
+        },
+        "launchers": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 593
+        },
+        "manifests": {
+          "present": true,
+          "file_count": 14,
+          "bytes": 112449
+        },
+        "results": {
+          "present": true,
+          "file_count": 12,
+          "bytes": 129612
+        },
+        "docs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 1112
+        }
+      },
+      "sha256": [
+        {
+          "relative_path": "backup_manifest_v2.json",
+          "bytes": 37645,
+          "sha256": "c35fb2eb6b526cd0c0da8786cfe3f9652917326e32145ecc4fcc7c1a25828b36"
+        },
+        {
+          "relative_path": "backup_manifest_v2.sha256",
+          "bytes": 65,
+          "sha256": "9755413d5aebb77fa6f304753e9ad7aaf745d88f62f8e735874b40d53f447698"
+        },
+        {
+          "relative_path": "backup_manifest.json",
+          "bytes": 37501,
+          "sha256": "16c25910e9bee2c08adea9e00e77e3a61390ecb4b5449842dca768c9704aad78"
+        },
+        {
+          "relative_path": "backup_manifest.sha256",
+          "bytes": 65,
+          "sha256": "22c0cf286e45d9f5089c42c91105eafcce1b0003a3c0ff936f1f2468582d0b22"
+        },
+        {
+          "relative_path": "config.resolved.yaml",
+          "bytes": 1739,
+          "sha256": "61ef011695d4559db6b811a48cde5b056a7889c2f78b42f067c42b06a417f414"
+        },
+        {
+          "relative_path": "eligibility_report.json",
+          "bytes": 1557,
+          "sha256": "14cd387139544d098149265b9552e2138a8fc44b7d936259aa124b99d3129b8d"
+        },
+        {
+          "relative_path": "manifest.json",
+          "bytes": 4877,
+          "sha256": "475ad51b3c3c07b21cd7ceee0442a7c098690ceb1c5f763bc181caf43c62c3c7"
+        },
+        {
+          "relative_path": "metrics.json",
+          "bytes": 580,
+          "sha256": "249ec6fb26089e35d8a5f8a3632db727532ed4ce230497fcbe996a5b3d0d63d5"
+        },
+        {
+          "relative_path": "policy_spec.json",
+          "bytes": 55,
+          "sha256": "1e72ce81d4c1622289ab6fdcb554f35ea620f64f48404c95dcaffb0614b1e079"
+        },
+        {
+          "relative_path": "resume_index.json",
+          "bytes": 23125,
+          "sha256": "ff5b9d60ea36f3a3aed3f84c7fa909f8f5e4d98af2c5d6e1be7a7b33534dd4f8"
+        },
+        {
+          "relative_path": "validation.json",
+          "bytes": 684,
+          "sha256": "0ed8a7565a1419afb730c45659c2a60bd42a07406f76d4844d5061615db35939"
+        }
+      ]
+    },
+    {
+      "table": "table1",
+      "method": "carl_cc4_adapted",
+      "source": "outputs\\formal_v3\\table1\\carl_cc4\\repeat_1_retry2_scientific_fix",
+      "status": "PROVISIONAL_REPEAT1_PASS",
+      "canonical": true,
+      "alias_of": null,
+      "missing_reason": "",
+      "required_parts": {
+        "code": {
+          "present": true,
+          "file_count": 8,
+          "bytes": 25000
+        },
+        "configs": {
+          "present": true,
+          "file_count": 2,
+          "bytes": 1302
+        },
+        "launchers": {
+          "present": true,
+          "file_count": 2,
+          "bytes": 24578
+        },
+        "manifests": {
+          "present": true,
+          "file_count": 12,
+          "bytes": 73363
+        },
+        "results": {
+          "present": true,
+          "file_count": 10,
+          "bytes": 91024
+        },
+        "docs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 1111
+        }
+      },
+      "sha256": [
+        {
+          "relative_path": "config.resolved.yaml",
+          "bytes": 1246,
+          "sha256": "ae15b8a65a3493e0de2b89b1e9e80639370324391a5129c8607f795945a99d86"
+        },
+        {
+          "relative_path": "eligibility_report.json",
+          "bytes": 2057,
+          "sha256": "e9204d25e05479a8a85556b429a3ec31f655dbd6f300bfd2db1fd3f05a8eb609"
+        },
+        {
+          "relative_path": "manifest.json",
+          "bytes": 18665,
+          "sha256": "87c7f809732da6a072f93fc6561a3f176548b403258b4e84c8f0e29b8b348e77"
+        },
+        {
+          "relative_path": "metrics.json",
+          "bytes": 585,
+          "sha256": "35fa2a2e131ef64286c536b5b93c913344b14f66a91f88498dcc926106bd65c5"
+        },
+        {
+          "relative_path": "policy_spec.json",
+          "bytes": 247,
+          "sha256": "b240626a735a17c5bb8754ff12e8941fc283903605682fa2d811f8b3b308a069"
+        },
+        {
+          "relative_path": "resume_index.json",
+          "bytes": 22502,
+          "sha256": "e0df4e8250980065cc7bf6baa747b82591502eb81525361db101e886b77a5c41"
+        },
+        {
+          "relative_path": "training_manifest.json",
+          "bytes": 5310,
+          "sha256": "4317e4eda27a820501fe39afecdc4fe236159f876e4ffb02f32da8ff89fa43de"
+        },
+        {
+          "relative_path": "validation_selection.json",
+          "bytes": 18214,
+          "sha256": "38ab430090a9de99cadc23eeacf094d551448e9842a0c19661656c6f6ae2ee21"
+        },
+        {
+          "relative_path": "validation.json",
+          "bytes": 689,
+          "sha256": "3dae80c104e9092f36d571748e77e4f9ba0537b82cfd8f3503a7203e0268ecb4"
+        }
+      ]
+    },
+    {
+      "table": "table1",
+      "method": "dca_cc4_adapted",
+      "source": "outputs\\formal_v3\\table1\\dca_cc4",
+      "status": "FORMAL_FIVE_REPEAT_PASS_IMMUTABLE",
+      "canonical": true,
+      "alias_of": null,
+      "missing_reason": "",
+      "required_parts": {
+        "code": {
+          "present": true,
+          "file_count": 6,
+          "bytes": 21899
+        },
+        "configs": {
+          "present": true,
+          "file_count": 2,
+          "bytes": 1023
+        },
+        "launchers": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 598
+        },
+        "manifests": {
+          "present": true,
+          "file_count": 38,
+          "bytes": 162604
+        },
+        "results": {
+          "present": true,
+          "file_count": 36,
+          "bytes": 264104
+        },
+        "docs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 1100
+        }
+      },
+      "sha256": [
+        {
+          "relative_path": "repeat_1\\config.resolved.yaml",
+          "bytes": 1245,
+          "sha256": "c525a2e5115bd6f514f27f459e7bb464b7254dacb95a13f9ce8f1fe1ff9fa871"
+        },
+        {
+          "relative_path": "repeat_1\\eligibility_report.json",
+          "bytes": 1475,
+          "sha256": "5f3bf244dfe03193fff5ff4376abc94bb642ec6044b98d7c4a23ae087a7965dd"
+        },
+        {
+          "relative_path": "repeat_1\\manifest.json",
+          "bytes": 3382,
+          "sha256": "7dfea71a239e217db16e2908ff2482133f4c23125c22750e40aa66ac972d90a2"
+        },
+        {
+          "relative_path": "repeat_1\\metrics.json",
+          "bytes": 580,
+          "sha256": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b"
+        },
+        {
+          "relative_path": "repeat_1\\policy_spec.json",
+          "bytes": 52,
+          "sha256": "6227a092ca4a5f2ebbb9946fefb828c630a71f8a0c78336e7f989bfef02708e4"
+        },
+        {
+          "relative_path": "repeat_1\\resume_index.json",
+          "bytes": 22501,
+          "sha256": "0e7642ea521defcccf6c3a808226fe2ac4ad4cbc6ddebfacdb90bd7d3aaa0367"
+        },
+        {
+          "relative_path": "repeat_1\\validation.json",
+          "bytes": 684,
+          "sha256": "665b16103a022745d9fd24095dfa044fcca0300a2b1a525bb9f2aedca91b9c68"
+        },
+        {
+          "relative_path": "repeat_2\\config.resolved.yaml",
+          "bytes": 1245,
+          "sha256": "a152fe316e2105a6ae37ed178de5d32d0e7f65caf44fd200b7019a7bd13cef35"
+        },
+        {
+          "relative_path": "repeat_2\\eligibility_report.json",
+          "bytes": 1475,
+          "sha256": "86e2507b420256f628b1a3638c31faa3f12cc4e843df48293b1eff93fb6d2179"
+        },
+        {
+          "relative_path": "repeat_2\\manifest.json",
+          "bytes": 3382,
+          "sha256": "49c9a67e574b3a2a8ea36329baa1350c8a0af6401467f60c8f4d8611d60f112f"
+        },
+        {
+          "relative_path": "repeat_2\\metrics.json",
+          "bytes": 580,
+          "sha256": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b"
+        },
+        {
+          "relative_path": "repeat_2\\policy_spec.json",
+          "bytes": 52,
+          "sha256": "9b2dcccaa27d8e7388400d986ee0e03d75bdef92ac87fe2e63b96b10bd7b95e8"
+        },
+        {
+          "relative_path": "repeat_2\\resume_index.json",
+          "bytes": 22501,
+          "sha256": "d116c84cc7d5260c9535fb5160dd6665f9bd3845215243c7f0944be35a6382f8"
+        },
+        {
+          "relative_path": "repeat_2\\validation.json",
+          "bytes": 684,
+          "sha256": "665b16103a022745d9fd24095dfa044fcca0300a2b1a525bb9f2aedca91b9c68"
+        },
+        {
+          "relative_path": "repeat_3\\config.resolved.yaml",
+          "bytes": 1245,
+          "sha256": "30efed03fb21a3dd516bec2a1e5143f5519049b89363a872a1bac256e59647f7"
+        },
+        {
+          "relative_path": "repeat_3\\eligibility_report.json",
+          "bytes": 1475,
+          "sha256": "65001a2ac662ac054df16c09bfd55b1ac8054ef11648391a5daac1a8c3be8a73"
+        },
+        {
+          "relative_path": "repeat_3\\manifest.json",
+          "bytes": 3382,
+          "sha256": "084724cb07bd5b5def42adec0962a61a1c6cb439d6e3c6f10261d92bb256b4dd"
+        },
+        {
+          "relative_path": "repeat_3\\metrics.json",
+          "bytes": 580,
+          "sha256": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b"
+        },
+        {
+          "relative_path": "repeat_3\\policy_spec.json",
+          "bytes": 52,
+          "sha256": "9b0259798dbb726903a177e1044250abb59aaa9c470a4a8ed6531ce33df33015"
+        },
+        {
+          "relative_path": "repeat_3\\resume_index.json",
+          "bytes": 22501,
+          "sha256": "ace7b3a474ab7fe0c40e013d87f0f82ed8657e40ccfbe5770078b49fbea2c681"
+        },
+        {
+          "relative_path": "repeat_3\\validation.json",
+          "bytes": 684,
+          "sha256": "665b16103a022745d9fd24095dfa044fcca0300a2b1a525bb9f2aedca91b9c68"
+        },
+        {
+          "relative_path": "repeat_4\\config.resolved.yaml",
+          "bytes": 1245,
+          "sha256": "c0cb995a43c86467b735c7167290d98d212632fae56901cd16971674c82eff2c"
+        },
+        {
+          "relative_path": "repeat_4\\eligibility_report.json",
+          "bytes": 1475,
+          "sha256": "ba717c5f6d02d1cd41de31553ac304fff63d9be2a4b4b42365427ca101546ee8"
+        },
+        {
+          "relative_path": "repeat_4\\manifest.json",
+          "bytes": 3382,
+          "sha256": "8ddf427b6e63afae9ef3e5724ab05de43b1fc857efbab28d001dac40c9d20ecd"
+        },
+        {
+          "relative_path": "repeat_4\\metrics.json",
+          "bytes": 580,
+          "sha256": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b"
+        },
+        {
+          "relative_path": "repeat_4\\policy_spec.json",
+          "bytes": 52,
+          "sha256": "d7dc74df798da66300401565d042090039cb4cb82b60662e4ef701dfc6b37fdc"
+        },
+        {
+          "relative_path": "repeat_4\\resume_index.json",
+          "bytes": 22501,
+          "sha256": "c002f69eca677637585d71d842f1646f6ddfbbd00c65b60b99388f8bd5fddc50"
+        },
+        {
+          "relative_path": "repeat_4\\validation.json",
+          "bytes": 684,
+          "sha256": "665b16103a022745d9fd24095dfa044fcca0300a2b1a525bb9f2aedca91b9c68"
+        },
+        {
+          "relative_path": "repeat_5\\config.resolved.yaml",
+          "bytes": 1245,
+          "sha256": "fb720f6dc5ded5331e45608ee444747a968bf9f106f030d1ff278b5dcfe61ba2"
+        },
+        {
+          "relative_path": "repeat_5\\eligibility_report.json",
+          "bytes": 1475,
+          "sha256": "56267ae1d998db5533c6cc8beb4c427d60ba0dd7a582150196a259562545abbc"
+        },
+        {
+          "relative_path": "repeat_5\\manifest.json",
+          "bytes": 3382,
+          "sha256": "eb46c3b147e8986d370fe371537a5b4178f06a4eaa2d4b27c59bac34f445c8bb"
+        },
+        {
+          "relative_path": "repeat_5\\metrics.json",
+          "bytes": 580,
+          "sha256": "10e57981d1ced590bc6b35d6ef6d97fefea14c55929b572abdbe623ab91d5c7b"
+        },
+        {
+          "relative_path": "repeat_5\\policy_spec.json",
+          "bytes": 52,
+          "sha256": "336028525612d6f4903d0fbe802adc4a32cbc2e7c5d86e410aaf6a5fd1b2ad0d"
+        },
+        {
+          "relative_path": "repeat_5\\resume_index.json",
+          "bytes": 22501,
+          "sha256": "ffc390d5cf88a67544e12c5b31b449384cbe75d2df7ebd61a43619a3f4855fdb"
+        },
+        {
+          "relative_path": "repeat_5\\validation.json",
+          "bytes": 684,
+          "sha256": "665b16103a022745d9fd24095dfa044fcca0300a2b1a525bb9f2aedca91b9c68"
+        }
+      ]
+    },
+    {
+      "table": "table1",
+      "method": "priorrl_ppo_cc4",
+      "source": "outputs\\formal_v3\\table1\\priorrl_ppo_cc4\\repeat_1",
+      "status": "PROVISIONAL_REPEAT1_PASS",
+      "canonical": true,
+      "alias_of": null,
+      "missing_reason": "",
+      "required_parts": {
+        "code": {
+          "present": true,
+          "file_count": 12,
+          "bytes": 118733
+        },
+        "configs": {
+          "present": true,
+          "file_count": 2,
+          "bytes": 1544
+        },
+        "launchers": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 598
+        },
+        "manifests": {
+          "present": true,
+          "file_count": 10,
+          "bytes": 33904
+        },
+        "results": {
+          "present": true,
+          "file_count": 8,
+          "bytes": 52148
+        },
+        "docs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 1112
+        }
+      },
+      "sha256": [
+        {
+          "relative_path": "config.resolved.yaml",
+          "bytes": 1253,
+          "sha256": "479201b09133f2464cba26500674f7324d3db677d1429b2c09190dd95749f77a"
+        },
+        {
+          "relative_path": "eligibility_report.json",
+          "bytes": 1655,
+          "sha256": "c1d754fc7860e3e06a454dd9ae0a695c7c468a7b62e59efbc738f2609ea110a3"
+        },
+        {
+          "relative_path": "manifest.json",
+          "bytes": 3967,
+          "sha256": "3ff96ecd36cbc595841d44521b90b6c0e6a13222d4cd6b3adc749c126c8d9a1b"
+        },
+        {
+          "relative_path": "metrics.json",
+          "bytes": 578,
+          "sha256": "66f0abb4a326ed8ad77708cb77031266906766ba4f96ec86d368b907fef99f5b"
+        },
+        {
+          "relative_path": "policy_spec.json",
+          "bytes": 152,
+          "sha256": "84b4fdcfd5a9cd5217473ebb605ca6d095262a5fd3c31ed843e83e8c65440be0"
+        },
+        {
+          "relative_path": "resume_index.json",
+          "bytes": 22509,
+          "sha256": "c92780c0ad1260d280d019e0771e215bd05bbf3c520bf06af44a524fe29e72a6"
+        },
+        {
+          "relative_path": "validation.json",
+          "bytes": 682,
+          "sha256": "13a04d3bd199d2378d8a4d337c0151a804d914b78a3f09b44090d3dd42a1c624"
+        }
+      ]
+    },
+    {
+      "table": "table1",
+      "method": "terla_a4",
+      "source": "outputs\\formal_v3\\table1\\terla_a4\\repeat_1",
+      "status": "PARTIAL_BLOCKED_ADMISSION",
+      "canonical": false,
+      "alias_of": null,
+      "missing_reason": "",
+      "required_parts": {
+        "code": {
+          "present": true,
+          "file_count": 12,
+          "bytes": 55497
+        },
+        "configs": {
+          "present": true,
+          "file_count": 2,
+          "bytes": 1345
+        },
+        "launchers": {
+          "present": true,
+          "file_count": 2,
+          "bytes": 17565
+        },
+        "manifests": {
+          "present": true,
+          "file_count": 11,
+          "bytes": 30495
+        },
+        "results": {
+          "present": true,
+          "file_count": 9,
+          "bytes": 28742
+        },
+        "docs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 1132
+        }
+      },
+      "sha256": [
+        {
+          "relative_path": "config.resolved.yaml",
+          "bytes": 2119,
+          "sha256": "b110d23e0f7fcd9e2d8dd98bd30f05f36a3c66705ea35b2f8f07a417c6de7620"
+        },
+        {
+          "relative_path": "eligibility_report.json",
+          "bytes": 2077,
+          "sha256": "907661a7a12013a720322c0ef4daa08026a9dcef65a211b9932c6bc3089cc79d"
+        },
+        {
+          "relative_path": "evaluation_manifest.json",
+          "bytes": 5779,
+          "sha256": "29a7d56e07e563d6ddadb4d260bb9c04abb7461a16e6a17ca3220025019f30de"
+        },
+        {
+          "relative_path": "manifest.json",
+          "bytes": 2927,
+          "sha256": "68ead04be527699af33a8f32214434979d3aa1ea78972353a63dbf5db67d5668"
+        },
+        {
+          "relative_path": "metrics.json",
+          "bytes": 507,
+          "sha256": "b30dd78fdd764aa1dc667bf51003bdea17ea0a5f5d1c14c121b1bd5410516465"
+        },
+        {
+          "relative_path": "stage_state.json",
+          "bytes": 5663,
+          "sha256": "505f462fa43fefd47e56c6e7c3ae7e75fa27c397ad4f611a7e5b8a762ac540d1"
+        },
+        {
+          "relative_path": "training_manifest.json",
+          "bytes": 7887,
+          "sha256": "a54ba4e6df63a7f7b03e78044e192240d77242fc239fc0db1cb8f38eaf915921"
+        },
+        {
+          "relative_path": "writer_lease.json",
+          "bytes": 96,
+          "sha256": "23b0d08e6e03e809b07f77ddf077d2b98a1209c031fa1c589f0a614a8b3d639f"
+        }
+      ]
+    },
+    {
+      "table": "table2",
+      "method": "rl_only",
+      "source": "outputs\\formal_v3\\table2\\rl_only_trueppo_v2\\repeat_1",
+      "status": "PROVISIONAL_REPEAT1_PASS",
+      "canonical": true,
+      "alias_of": null,
+      "missing_reason": "",
+      "required_parts": {
+        "code": {
+          "present": true,
+          "file_count": 10,
+          "bytes": 162895
+        },
+        "configs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 315
+        },
+        "launchers": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 590
+        },
+        "manifests": {
+          "present": true,
+          "file_count": 15,
+          "bytes": 263669
+        },
+        "results": {
+          "present": true,
+          "file_count": 13,
+          "bytes": 266862
+        },
+        "docs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 1088
+        }
+      },
+      "sha256": [
+        {
+          "relative_path": ".true_ppo_writer.lock.json",
+          "bytes": 387,
+          "sha256": "209e987d954466c4afc908d3dbbabeaabb721ca4aa7b7c8ee7c688fd182e16e6"
+        },
+        {
+          "relative_path": "aggregate.json",
+          "bytes": 268,
+          "sha256": "8758cbe891d307d7ff70d683524ab44b06047744b0ca3fde33a8c7f6810ecf47"
+        },
+        {
+          "relative_path": "calibration_manifest.json",
+          "bytes": 3137,
+          "sha256": "fe0a7eb95b1fc5ff02775b85b05135f3be8555118880d68a1d0dd1db14c356d9"
+        },
+        {
+          "relative_path": "eligibility_report.json",
+          "bytes": 7040,
+          "sha256": "62d6a18d3d08d4e20a351d73648152245245bccb3a929873e9aabc651621dd12"
+        },
+        {
+          "relative_path": "journal_index.json",
+          "bytes": 89580,
+          "sha256": "ae775f6cccb70d7457537ba2af89451ebf569971f34db639f3bdf7048eec9614"
+        },
+        {
+          "relative_path": "manifest.json",
+          "bytes": 7241,
+          "sha256": "7e1ddd80266aeb3461f83b7213226cb49e7873886ef160d3b31921a0fa020806"
+        },
+        {
+          "relative_path": "metrics.json",
+          "bytes": 70026,
+          "sha256": "c09bc89625e823516c5d6cf21f427fc0403580dd8f869340fd8386f04b2d35d0"
+        },
+        {
+          "relative_path": "normalizer.json",
+          "bytes": 1686,
+          "sha256": "5db617635c77ed0b08a5fd5d6c74425a301dee55d2e6929e734a77ccab4f1f4f"
+        },
+        {
+          "relative_path": "prepare_test_authorization.json",
+          "bytes": 3108,
+          "sha256": "2ed279e9a54c8bfed1982ebfbb5f60379a471aa48d5d8d76adace39f213bb823"
+        },
+        {
+          "relative_path": "resume_state.json",
+          "bytes": 69006,
+          "sha256": "c149fd0cb7786bef3037dd0491b9977847996bc6463cb392a4f63476507caa91"
+        },
+        {
+          "relative_path": "train_summary.json",
+          "bytes": 4120,
+          "sha256": "6bee019dd423dec80b0051922ca8d33b2ed713dfcc3bbbf21220f13b1b9fa112"
+        },
+        {
+          "relative_path": "validation_records.json",
+          "bytes": 3049,
+          "sha256": "8012822251d0b9b1a14b90176d991c776119245498bc611f6a8bc9f0b81f4b48"
+        }
+      ]
+    },
+    {
+      "table": "table2",
+      "method": "llm_rl",
+      "source": "outputs\\formal_v3\\table2\\llm_rl_trueppo_20260922_repeat1\\repeat_1",
+      "status": "PROVISIONAL_REPEAT1_PASS",
+      "canonical": true,
+      "alias_of": null,
+      "missing_reason": "",
+      "required_parts": {
+        "code": {
+          "present": true,
+          "file_count": 10,
+          "bytes": 162895
+        },
+        "configs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 327
+        },
+        "launchers": {
+          "present": true,
+          "file_count": 2,
+          "bytes": 18655
+        },
+        "manifests": {
+          "present": true,
+          "file_count": 14,
+          "bytes": 2631846
+        },
+        "results": {
+          "present": true,
+          "file_count": 12,
+          "bytes": 2635242
+        },
+        "docs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 1087
+        }
+      },
+      "sha256": [
+        {
+          "relative_path": ".true_ppo_writer.lock.json",
+          "bytes": 386,
+          "sha256": "13b26ba1db579f90849d435eaf11263aa541a53032e0dc34c171d5d522b19474"
+        },
+        {
+          "relative_path": "aggregate.json",
+          "bytes": 268,
+          "sha256": "0d8655afc639379b3f55a485637135b9f5a5ca008ed546619e9683d082e62d8d"
+        },
+        {
+          "relative_path": "calibration_manifest.json",
+          "bytes": 3150,
+          "sha256": "8b16d4d4d903135cddd411f39f8824549e3dedef7372db675ffda1c924ac1d98"
+        },
+        {
+          "relative_path": "eligibility_report.json",
+          "bytes": 7288,
+          "sha256": "5a76940b24cb1cd0056173375f993afc714f6bb82ead92cde1a7faef5b00cb76"
+        },
+        {
+          "relative_path": "manifest.json",
+          "bytes": 261765,
+          "sha256": "574c04a6ae5cdc76cd52587eb4d637bedfb1bc85da7cb15182f3da296ace2dcc"
+        },
+        {
+          "relative_path": "metrics.json",
+          "bytes": 70677,
+          "sha256": "f8317ba006566a79f2c67f74e93756dcbc04486629d54b8201fa13ea4438005d"
+        },
+        {
+          "relative_path": "normalizer.json",
+          "bytes": 1686,
+          "sha256": "e50df37c17cf7c49d2c3127800144a948a1a709c5a8396e773d2fb71f8765025"
+        },
+        {
+          "relative_path": "prepare_test_authorization.json",
+          "bytes": 3159,
+          "sha256": "3c59ea608b98561427da9a006cc02567257aacf05ec930b6fc51a7944c4c8d5d"
+        },
+        {
+          "relative_path": "resume_state.json",
+          "bytes": 1182363,
+          "sha256": "bae21a37eb27eefa9794e7b499701c1cfa5585c93557b80ba909ddd08db3f52c"
+        },
+        {
+          "relative_path": "train_summary.json",
+          "bytes": 1093142,
+          "sha256": "5de36294749d2376959692aeb278ec80e7ab3b932fb9301b8cab9c2e072cd893"
+        },
+        {
+          "relative_path": "validation_records.json",
+          "bytes": 3053,
+          "sha256": "17a4259fa75a843620d315050425950a2ac91f62d02c17dcb012c60909f5a901"
+        }
+      ]
+    },
+    {
+      "table": "table2",
+      "method": "wm_rl",
+      "source": "outputs\\formal_v3\\table2\\wm_rl_trueppo_20260922_repeat1\\repeat_1",
+      "status": "RUNNING_TEST_DO_NOT_MOVE",
+      "canonical": false,
+      "alias_of": null,
+      "missing_reason": "Active writer: source SHA sidecars intentionally deferred until the lock is released.",
+      "required_parts": {
+        "code": {
+          "present": true,
+          "file_count": 10,
+          "bytes": 162895
+        },
+        "configs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 325
+        },
+        "launchers": {
+          "present": true,
+          "file_count": 2,
+          "bytes": 17945
+        },
+        "manifests": {
+          "present": true,
+          "file_count": 4,
+          "bytes": 1151
+        },
+        "results": {
+          "present": true,
+          "file_count": 2,
+          "bytes": 907
+        },
+        "docs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 1116
+        }
+      },
+      "sha256": []
+    },
+    {
+      "table": "table2",
+      "method": "lwm_rl",
+      "source": "outputs\\formal_v3\\table2\\lwm_rl_trueppo_v3\\repeat_1",
+      "status": "PROVISIONAL_REPEAT1_PASS",
+      "canonical": true,
+      "alias_of": null,
+      "missing_reason": "",
+      "required_parts": {
+        "code": {
+          "present": true,
+          "file_count": 10,
+          "bytes": 162895
+        },
+        "configs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 313
+        },
+        "launchers": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 589
+        },
+        "manifests": {
+          "present": true,
+          "file_count": 14,
+          "bytes": 1936521
+        },
+        "results": {
+          "present": true,
+          "file_count": 12,
+          "bytes": 1939947
+        },
+        "docs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 1087
+        }
+      },
+      "sha256": [
+        {
+          "relative_path": ".true_ppo_writer.lock.json",
+          "bytes": 386,
+          "sha256": "f56e39be94457859972c166bb7c766a25684168c730b93b536e8443a86ead7b0"
+        },
+        {
+          "relative_path": "aggregate.json",
+          "bytes": 268,
+          "sha256": "dc3c5356499a015f4fbd72a46c4dba6df5321c393722fae84bbb0ce02496dc60"
+        },
+        {
+          "relative_path": "calibration_manifest.json",
+          "bytes": 3150,
+          "sha256": "8b16d4d4d903135cddd411f39f8824549e3dedef7372db675ffda1c924ac1d98"
+        },
+        {
+          "relative_path": "eligibility_report.json",
+          "bytes": 9236,
+          "sha256": "da1a184345d46a71d9f931bf07deba16910b8bec180ae4f2e718f21cc05310f0"
+        },
+        {
+          "relative_path": "manifest.json",
+          "bytes": 29857,
+          "sha256": "098cf0029f603c79d7e96a3d7328549b288181294a521bae3ac780f2dc938f74"
+        },
+        {
+          "relative_path": "metrics.json",
+          "bytes": 69878,
+          "sha256": "e031bd722e753ba8fc27af50b57f289d8595e641851dea4ffba9220db17e7dd5"
+        },
+        {
+          "relative_path": "normalizer.json",
+          "bytes": 1686,
+          "sha256": "e50df37c17cf7c49d2c3127800144a948a1a709c5a8396e773d2fb71f8765025"
+        },
+        {
+          "relative_path": "prepare_test_authorization.json",
+          "bytes": 3107,
+          "sha256": "f5f14a3915925ca56dde89e920cc5d7182a49ddc25aefded5a6ff3db53d12fed"
+        },
+        {
+          "relative_path": "resume_state.json",
+          "bytes": 950112,
+          "sha256": "45113490b232fd3b477989a66876fcf79fe7b18db70126e31a01f658478e0563"
+        },
+        {
+          "relative_path": "train_summary.json",
+          "bytes": 860925,
+          "sha256": "35ac168d5a23a0f080b8109ec6b094210ae9a0f768362ade775deec43c730aa6"
+        },
+        {
+          "relative_path": "validation_records.json",
+          "bytes": 3055,
+          "sha256": "98054670da7d8f6022e521b1da8cf6bde66d347de68645400f0f6ce5fa16dcf9"
+        }
+      ]
+    },
+    {
+      "table": "table3",
+      "method": "delay_only",
+      "source": "outputs\\formal_v3\\table3\\delay_only_trueppo_20260922_repeat1",
+      "status": "RUNNING_VALIDATION_DO_NOT_MOVE",
+      "canonical": false,
+      "alias_of": null,
+      "missing_reason": "Active writer: source SHA sidecars intentionally deferred until the lock is released.",
+      "required_parts": {
+        "code": {
+          "present": true,
+          "file_count": 10,
+          "bytes": 162895
+        },
+        "configs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 331
+        },
+        "launchers": {
+          "present": true,
+          "file_count": 2,
+          "bytes": 14922
+        },
+        "manifests": {
+          "present": true,
+          "file_count": 4,
+          "bytes": 1142
+        },
+        "results": {
+          "present": true,
+          "file_count": 2,
+          "bytes": 928
+        },
+        "docs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 1140
+        }
+      },
+      "sha256": []
+    },
+    {
+      "table": "table3",
+      "method": "fail_only",
+      "source": "outputs\\formal_v3\\table3\\fail_only_trueppo_20260922_repeat1",
+      "status": "PROVISIONAL_REPEAT1_PASS",
+      "canonical": true,
+      "alias_of": null,
+      "missing_reason": "",
+      "required_parts": {
+        "code": {
+          "present": true,
+          "file_count": 10,
+          "bytes": 162895
+        },
+        "configs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 323
+        },
+        "launchers": {
+          "present": true,
+          "file_count": 2,
+          "bytes": 15521
+        },
+        "manifests": {
+          "present": true,
+          "file_count": 14,
+          "bytes": 2510901
+        },
+        "results": {
+          "present": true,
+          "file_count": 12,
+          "bytes": 2514385
+        },
+        "docs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 1167
+        }
+      },
+      "sha256": [
+        {
+          "relative_path": ".true_ppo_writer.lock.json",
+          "bytes": 384,
+          "sha256": "8c93a07cd8e18ad99f941b51f0724e9e871745fbfa00f839c372a155e3fbe49b"
+        },
+        {
+          "relative_path": "aggregate.json",
+          "bytes": 268,
+          "sha256": "ae0fc489dc7d8190035bad3f900bbd5ba0661e637a70115ffbbe4b01a1245763"
+        },
+        {
+          "relative_path": "calibration_manifest.json",
+          "bytes": 3150,
+          "sha256": "8b16d4d4d903135cddd411f39f8824549e3dedef7372db675ffda1c924ac1d98"
+        },
+        {
+          "relative_path": "eligibility_report.json",
+          "bytes": 9358,
+          "sha256": "3e9e31b79cfb6d5ea20ef7a4dc16eaa0dd2d80f5491c2a847fe3459165bd5c70"
+        },
+        {
+          "relative_path": "manifest.json",
+          "bytes": 221788,
+          "sha256": "7990eac2e54497eefcf0cde714460cf3a11c8ae9f495fb3d5147e7085f14ef22"
+        },
+        {
+          "relative_path": "metrics.json",
+          "bytes": 66261,
+          "sha256": "5fe09a1f49a07283c48b1fc42ff03652d1dde110b1ad4542ccbcf7489f926f8c"
+        },
+        {
+          "relative_path": "normalizer.json",
+          "bytes": 1686,
+          "sha256": "e50df37c17cf7c49d2c3127800144a948a1a709c5a8396e773d2fb71f8765025"
+        },
+        {
+          "relative_path": "prepare_test_authorization.json",
+          "bytes": 3161,
+          "sha256": "5c7c5ee1d4cafa733a67928e779012958641adea4ffd1e41d88d7d5405cf9fec"
+        },
+        {
+          "relative_path": "resume_state.json",
+          "bytes": 1143087,
+          "sha256": "3f1ecc74e166f652e672d772d39b0c82187b3ef68973e8b719bdafe594d1f734"
+        },
+        {
+          "relative_path": "train_summary.json",
+          "bytes": 1053830,
+          "sha256": "e5f333aeb88a37903b366d1d230861bf909d39f89f0ea78545a4b7d01fb71d48"
+        },
+        {
+          "relative_path": "validation_records.json",
+          "bytes": 3037,
+          "sha256": "b0422723d9e332f4793998ca6b2bda526a638ce1debbeb51ee521581866dd751"
+        }
+      ]
+    },
+    {
+      "table": "table1",
+      "method": "lwm_rl",
+      "source": "outputs\\formal_v3\\table2\\lwm_rl_trueppo_v3\\repeat_1",
+      "status": "PROVISIONAL_ALIAS",
+      "canonical": false,
+      "alias_of": "..\\..\\table2\\lwm_rl",
+      "missing_reason": "",
+      "required_parts": {
+        "code": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 115
+        },
+        "configs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 346
+        },
+        "launchers": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 334
+        },
+        "manifests": {
+          "present": true,
+          "file_count": 13,
+          "bytes": 1934254
+        },
+        "results": {
+          "present": true,
+          "file_count": 12,
+          "bytes": 1939995
+        },
+        "docs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 1214
+        }
+      },
+      "sha256": [
+        {
+          "relative_path": ".true_ppo_writer.lock.json",
+          "bytes": 386,
+          "sha256": "f56e39be94457859972c166bb7c766a25684168c730b93b536e8443a86ead7b0"
+        },
+        {
+          "relative_path": "aggregate.json",
+          "bytes": 268,
+          "sha256": "dc3c5356499a015f4fbd72a46c4dba6df5321c393722fae84bbb0ce02496dc60"
+        },
+        {
+          "relative_path": "calibration_manifest.json",
+          "bytes": 3150,
+          "sha256": "8b16d4d4d903135cddd411f39f8824549e3dedef7372db675ffda1c924ac1d98"
+        },
+        {
+          "relative_path": "eligibility_report.json",
+          "bytes": 9236,
+          "sha256": "da1a184345d46a71d9f931bf07deba16910b8bec180ae4f2e718f21cc05310f0"
+        },
+        {
+          "relative_path": "manifest.json",
+          "bytes": 29857,
+          "sha256": "098cf0029f603c79d7e96a3d7328549b288181294a521bae3ac780f2dc938f74"
+        },
+        {
+          "relative_path": "metrics.json",
+          "bytes": 69878,
+          "sha256": "e031bd722e753ba8fc27af50b57f289d8595e641851dea4ffba9220db17e7dd5"
+        },
+        {
+          "relative_path": "normalizer.json",
+          "bytes": 1686,
+          "sha256": "e50df37c17cf7c49d2c3127800144a948a1a709c5a8396e773d2fb71f8765025"
+        },
+        {
+          "relative_path": "prepare_test_authorization.json",
+          "bytes": 3107,
+          "sha256": "f5f14a3915925ca56dde89e920cc5d7182a49ddc25aefded5a6ff3db53d12fed"
+        },
+        {
+          "relative_path": "resume_state.json",
+          "bytes": 950112,
+          "sha256": "45113490b232fd3b477989a66876fcf79fe7b18db70126e31a01f658478e0563"
+        },
+        {
+          "relative_path": "train_summary.json",
+          "bytes": 860925,
+          "sha256": "35ac168d5a23a0f080b8109ec6b094210ae9a0f768362ade775deec43c730aa6"
+        },
+        {
+          "relative_path": "validation_records.json",
+          "bytes": 3055,
+          "sha256": "98054670da7d8f6022e521b1da8cf6bde66d347de68645400f0f6ce5fa16dcf9"
+        }
+      ]
+    },
+    {
+      "table": "table3",
+      "method": "full_reward_alias",
+      "source": "outputs\\formal_v3\\table2\\lwm_rl_trueppo_v3\\repeat_1",
+      "status": "PROVISIONAL_ALIAS",
+      "canonical": false,
+      "alias_of": "..\\..\\table2\\lwm_rl",
+      "missing_reason": "",
+      "required_parts": {
+        "code": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 115
+        },
+        "configs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 357
+        },
+        "launchers": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 334
+        },
+        "manifests": {
+          "present": true,
+          "file_count": 13,
+          "bytes": 1934265
+        },
+        "results": {
+          "present": true,
+          "file_count": 12,
+          "bytes": 1940012
+        },
+        "docs": {
+          "present": true,
+          "file_count": 1,
+          "bytes": 1242
+        }
+      },
+      "sha256": [
+        {
+          "relative_path": ".true_ppo_writer.lock.json",
+          "bytes": 386,
+          "sha256": "f56e39be94457859972c166bb7c766a25684168c730b93b536e8443a86ead7b0"
+        },
+        {
+          "relative_path": "aggregate.json",
+          "bytes": 268,
+          "sha256": "dc3c5356499a015f4fbd72a46c4dba6df5321c393722fae84bbb0ce02496dc60"
+        },
+        {
+          "relative_path": "calibration_manifest.json",
+          "bytes": 3150,
+          "sha256": "8b16d4d4d903135cddd411f39f8824549e3dedef7372db675ffda1c924ac1d98"
+        },
+        {
+          "relative_path": "eligibility_report.json",
+          "bytes": 9236,
+          "sha256": "da1a184345d46a71d9f931bf07deba16910b8bec180ae4f2e718f21cc05310f0"
+        },
+        {
+          "relative_path": "manifest.json",
+          "bytes": 29857,
+          "sha256": "098cf0029f603c79d7e96a3d7328549b288181294a521bae3ac780f2dc938f74"
+        },
+        {
+          "relative_path": "metrics.json",
+          "bytes": 69878,
+          "sha256": "e031bd722e753ba8fc27af50b57f289d8595e641851dea4ffba9220db17e7dd5"
+        },
+        {
+          "relative_path": "normalizer.json",
+          "bytes": 1686,
+          "sha256": "e50df37c17cf7c49d2c3127800144a948a1a709c5a8396e773d2fb71f8765025"
+        },
+        {
+          "relative_path": "prepare_test_authorization.json",
+          "bytes": 3107,
+          "sha256": "f5f14a3915925ca56dde89e920cc5d7182a49ddc25aefded5a6ff3db53d12fed"
+        },
+        {
+          "relative_path": "resume_state.json",
+          "bytes": 950112,
+          "sha256": "45113490b232fd3b477989a66876fcf79fe7b18db70126e31a01f658478e0563"
+        },
+        {
+          "relative_path": "train_summary.json",
+          "bytes": 860925,
+          "sha256": "35ac168d5a23a0f080b8109ec6b094210ae9a0f768362ade775deec43c730aa6"
+        },
+        {
+          "relative_path": "validation_records.json",
+          "bytes": 3055,
+          "sha256": "98054670da7d8f6022e521b1da8cf6bde66d347de68645400f0f6ce5fa16dcf9"
+        }
+      ]
+    }
+  ]
+}

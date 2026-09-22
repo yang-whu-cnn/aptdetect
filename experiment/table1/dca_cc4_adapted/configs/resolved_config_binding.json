@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "method": "dca_cc4_adapted",
+  "source_config": "chapter2_region_detection/configs/formal_v3/methods/dca_cc4.yaml",
+  "canonical_result": "outputs\\formal_v3\\table1\\dca_cc4",
+  "status": "FORMAL_FIVE_REPEAT_PASS_IMMUTABLE",
+  "alias": false,
+  "note": "Catalog binding; do not edit to tune a result."
+}

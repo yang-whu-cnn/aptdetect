@@ -1,0 +1,12 @@
+{
+  "domain_sha256": "045fd1d0c060f8a5b7111b098a86e706be925d8a5f7769a08a447f7422bc9c90",
+  "pid": 22836,
+  "policy_seed": 51001,
+  "released_at": "2026-09-21T23:26:19.486529Z",
+  "reward_mode": "Full-Reward",
+  "schema": "cc4_v3_true_ppo_writer_lock_v1",
+  "stage": "aggregate",
+  "started_at": "2026-09-21T23:26:13.095303Z",
+  "status": "RELEASED",
+  "variant": "llm_rl"
+}

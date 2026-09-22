@@ -1,102 +1,14 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-22T10:27:31.8383972Z",
-  "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table1\\uamcts_cc4\\repeat_1",
+  "generated_at": "2026-09-22T16:14:36.1397655Z",
+  "source": "D:\\paper\\github-me\\aptdetect\\chapter2_region_detection\\outputs\\formal_v3\\table1\\uamcts_cc4\\repeat_1_fresh_support_v1_retry1",
   "source_exists": true,
-  "status": "BLOCKED_SUPPORT_DOMAIN",
+  "status": "RUNNING_TEST_DO_NOT_MOVE",
   "canonical": false,
   "alias_of": "",
-  "note": "Frozen support-domain/radius miss; fallback recovery is evidence only.",
-  "file_count": 22,
-  "total_bytes": 12321299,
-  "files": [
-    {
-      "relative_path": "config.resolved.yaml",
-      "bytes": 6275
-    },
-    {
-      "relative_path": "policy_spec.json",
-      "bytes": 44
-    },
-    {
-      "relative_path": "preflight_snapshot.json",
-      "bytes": 3763
-    },
-    {
-      "relative_path": "resume_index.json",
-      "bytes": 7113
-    },
-    {
-      "relative_path": "episode_parts\\decisions_4000.jsonl",
-      "bytes": 918039
-    },
-    {
-      "relative_path": "episode_parts\\decisions_4001.jsonl",
-      "bytes": 986769
-    },
-    {
-      "relative_path": "episode_parts\\decisions_4002.jsonl",
-      "bytes": 963566
-    },
-    {
-      "relative_path": "episode_parts\\decisions_4003.jsonl",
-      "bytes": 949616
-    },
-    {
-      "relative_path": "episode_parts\\decisions_4004.jsonl",
-      "bytes": 914588
-    },
-    {
-      "relative_path": "episode_parts\\decisions_4005.jsonl",
-      "bytes": 944958
-    },
-    {
-      "relative_path": "episode_parts\\decisions_4006.jsonl",
-      "bytes": 899883
-    },
-    {
-      "relative_path": "episode_parts\\decisions_4007.jsonl",
-      "bytes": 965028
-    },
-    {
-      "relative_path": "episode_parts\\decisions_4008.jsonl",
-      "bytes": 924778
-    },
-    {
-      "relative_path": "episode_parts\\episode_4000.json",
-      "bytes": 422269
-    },
-    {
-      "relative_path": "episode_parts\\episode_4001.json",
-      "bytes": 454246
-    },
-    {
-      "relative_path": "episode_parts\\episode_4002.json",
-      "bytes": 387976
-    },
-    {
-      "relative_path": "episode_parts\\episode_4003.json",
-      "bytes": 446478
-    },
-    {
-      "relative_path": "episode_parts\\episode_4004.json",
-      "bytes": 365623
-    },
-    {
-      "relative_path": "episode_parts\\episode_4005.json",
-      "bytes": 490458
-    },
-    {
-      "relative_path": "episode_parts\\episode_4006.json",
-      "bytes": 390327
-    },
-    {
-      "relative_path": "episode_parts\\episode_4007.json",
-      "bytes": 421230
-    },
-    {
-      "relative_path": "episode_parts\\episode_4008.json",
-      "bytes": 458272
-    }
-  ]
+  "note": "Fresh-support retry1 is actively writing; old failed v1 is retained as audit evidence.",
+  "file_count": 0,
+  "total_bytes": 0,
+  "files": [],
+  "inventory_note": "Inventory intentionally omitted while canonical writer is active."
 }

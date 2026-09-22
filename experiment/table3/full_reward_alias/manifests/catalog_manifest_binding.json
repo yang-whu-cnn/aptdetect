@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "method": "full_reward_alias",
+  "source": "outputs\\formal_v3\\table2\\lwm_rl_trueppo_v3\\repeat_1",
+  "status": "PROVISIONAL_ALIAS",
+  "canonical": false,
+  "alias_of": "..\\..\\table2\\lwm_rl",
+  "raw_artifacts": "retained at canonical source; only compact sidecars are copied here"
+}

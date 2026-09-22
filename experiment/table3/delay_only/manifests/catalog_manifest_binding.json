@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "method": "delay_only",
+  "source": "outputs\\formal_v3\\table3\\delay_only_trueppo_20260922_repeat1",
+  "status": "RUNNING_VALIDATION_DO_NOT_MOVE",
+  "canonical": false,
+  "alias_of": null,
+  "raw_artifacts": "retained at canonical source; only compact sidecars are copied here"
+}

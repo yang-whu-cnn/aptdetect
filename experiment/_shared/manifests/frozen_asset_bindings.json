@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-22T16:14:35.8988352Z",
+  "reward_model_manifest": "chapter2_region_detection/docs/FINAL_REWARD_MODEL_MANIFEST.json",
+  "replay_manifest": "chapter2_region_detection/docs/FINAL_REWARD_REPLAY_MANIFEST.json",
+  "prior_prototypes": "chapter2_region_detection/outputs/priorrl_cc4/prototypes/frozen_prototypes.json",
+  "prior_coverage": "chapter2_region_detection/outputs/priorrl_cc4/prototypes/frozen_prototype_coverage.json",
+  "prior_provenance": "chapter2_region_detection/outputs/priorrl_cc4/prototypes/frozen_prototype_provenance.json",
+  "world_model": "chapter2_region_detection/outputs/world_model_final_20260917/a4_5b/world_model_absolute.pt",
+  "note": "Bindings only; large model and replay payloads remain at canonical paths."
+}

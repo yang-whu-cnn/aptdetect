@@ -1,0 +1,34 @@
+{
+  "eligibility": "PASS",
+  "errors": [],
+  "formal": true,
+  "input_sha256": {
+    "checkpoint.pt": "a018b472e39fe21dcc2883c84a84cf0c6ff0b61c092d72faeeb7f318d8abd3bc",
+    "config.resolved.yaml": "ae15b8a65a3493e0de2b89b1e9e80639370324391a5129c8607f795945a99d86",
+    "decisions.jsonl": "23cf6b8670d1be094236bc68057049dab08ad011ca9ad5f0323c99f7293d74f0",
+    "episodes.jsonl": "f1add132f9c6ecd3778b5f96324a73a0567e8d05ee97542fee89a6a12ac373b4",
+    "manifest.json": "87c7f809732da6a072f93fc6561a3f176548b403258b4e84c8f0e29b8b348e77",
+    "metrics.json": "35fa2a2e131ef64286c536b5b93c913344b14f66a91f88498dcc926106bd65c5",
+    "policy_spec.json": "b240626a735a17c5bb8754ff12e8941fc283903605682fa2d811f8b3b308a069",
+    "training_manifest.json": "4317e4eda27a820501fe39afecdc4fe236159f876e4ffb02f32da8ff89fa43de",
+    "validation_selection.json": "38ab430090a9de99cadc23eeacf094d551448e9842a0c19661656c6f6ae2ee21"
+  },
+  "passed": true,
+  "schema": "cc4_v3_eligibility_report_v1",
+  "schema_version": 1,
+  "status": "PASS",
+  "validated_input_sha256": {
+    "checkpoint.pt": "a018b472e39fe21dcc2883c84a84cf0c6ff0b61c092d72faeeb7f318d8abd3bc",
+    "config.resolved.yaml": "ae15b8a65a3493e0de2b89b1e9e80639370324391a5129c8607f795945a99d86",
+    "decisions.jsonl": "23cf6b8670d1be094236bc68057049dab08ad011ca9ad5f0323c99f7293d74f0",
+    "episodes.jsonl": "f1add132f9c6ecd3778b5f96324a73a0567e8d05ee97542fee89a6a12ac373b4",
+    "manifest.json": "87c7f809732da6a072f93fc6561a3f176548b403258b4e84c8f0e29b8b348e77",
+    "metrics.json": "35fa2a2e131ef64286c536b5b93c913344b14f66a91f88498dcc926106bd65c5",
+    "policy_spec.json": "b240626a735a17c5bb8754ff12e8941fc283903605682fa2d811f8b3b308a069",
+    "training_manifest.json": "4317e4eda27a820501fe39afecdc4fe236159f876e4ffb02f32da8ff89fa43de",
+    "validation_selection.json": "38ab430090a9de99cadc23eeacf094d551448e9842a0c19661656c6f6ae2ee21"
+  },
+  "validator": "formal_experiments.evaluation.validate_formal_run",
+  "validator_version": "formal_integrity_v2",
+  "warnings": []
+}
