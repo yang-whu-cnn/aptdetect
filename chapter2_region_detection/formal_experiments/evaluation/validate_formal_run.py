@@ -59,6 +59,40 @@ def validate_run_directory(path: str | Path, *, formal: bool = True) -> dict[str
     errors: list[str] = []
     warnings: list[str] = []
     manifest_path = root / "manifest.json"
+    # Never run the legacy writer against a true-PPO source: doing so would
+    # overwrite its runner-owned eligibility_report.json.  A derived bridge has
+    # its own read-only validator and is safe to admit here.
+    if manifest_path.is_file():
+        try:
+            preview = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            preview = None
+        if isinstance(preview, dict):
+            from formal_experiments.evaluation.true_ppo_admission import (
+                AdmissionError,
+                BRIDGE_SCHEMA,
+                SOURCE_MANIFEST_SCHEMA,
+                validate_admission_directory,
+            )
+            if preview.get("schema") == SOURCE_MANIFEST_SCHEMA:
+                return {
+                    "passed": False,
+                    "errors": [
+                        "raw true-PPO source is read-only; create and validate an admission_derived bridge"
+                    ],
+                    "warnings": [],
+                    "metrics": None,
+                }
+            if preview.get("schema") == BRIDGE_SCHEMA:
+                try:
+                    return validate_admission_directory(root)
+                except AdmissionError as exc:
+                    return {
+                        "passed": False,
+                        "errors": [str(exc)],
+                        "warnings": [],
+                        "metrics": None,
+                    }
     episodes_path = root / "episodes.jsonl"
     if not manifest_path.is_file():
         errors.append("missing manifest.json")

@@ -704,6 +704,149 @@ def _safe_json(path: Path, description: str) -> dict[str, Any]:
     return value
 
 
+def _true_ppo_pass_proof(source: Path) -> dict[str, Any]:
+    """Audit a completed runner-owned true-PPO result without writing it.
+
+    The true-PPO runner deliberately does not emit the generic ``run_status``
+    file.  Its read-only admission audit is the source of truth for this
+    narrow compatibility path.  Keep the adapter here (rather than inventing
+    a source ``run_status.json``) and require the writer lock to be explicitly
+    released before accepting the result as PASS.
+    """
+
+    try:
+        from formal_experiments.evaluation.true_ppo_admission import (
+            AdmissionError,
+            SOURCE_AGGREGATE_SCHEMA,
+            SOURCE_ELIGIBILITY_SCHEMA,
+            SOURCE_MANIFEST_SCHEMA,
+            audit_true_ppo_source,
+        )
+    except ImportError as exc:  # pragma: no cover - package wiring failure
+        raise BackupError(f"true-PPO proof adapter is unavailable: {exc}") from exc
+
+    manifest_path = source / "manifest.json"
+    eligibility_path = source / "eligibility_report.json"
+    aggregate_path = source / "aggregate.json"
+    lock_path = source / ".true_ppo_writer.lock.json"
+    manifest = _safe_json(manifest_path, "true-PPO manifest.json")
+    eligibility = _safe_json(eligibility_path, "true-PPO eligibility_report.json")
+    aggregate = _safe_json(aggregate_path, "true-PPO aggregate.json")
+    lock = _safe_json(lock_path, "true-PPO writer lock")
+    if manifest.get("schema") != SOURCE_MANIFEST_SCHEMA:
+        raise BackupError("true-PPO proof adapter requires the frozen manifest schema")
+    if eligibility.get("schema") != SOURCE_ELIGIBILITY_SCHEMA:
+        raise BackupError("true-PPO proof adapter requires the frozen eligibility schema")
+    if aggregate.get("schema") != SOURCE_AGGREGATE_SCHEMA:
+        raise BackupError("true-PPO proof adapter requires the frozen aggregate schema")
+    if aggregate.get("status") != "PASS":
+        raise BackupError("true-PPO proof adapter requires aggregate status PASS")
+    if lock.get("schema") != "cc4_v3_true_ppo_writer_lock_v1" or lock.get("status") != "RELEASED":
+        raise BackupError("true-PPO proof adapter requires a RELEASED writer lock")
+    try:
+        audit = audit_true_ppo_source(source)
+    except AdmissionError as exc:
+        raise BackupError(f"true-PPO formal PASS proof failed: {exc}") from exc
+    except Exception as exc:
+        raise BackupError(f"true-PPO formal PASS proof raised unexpectedly: {exc}") from exc
+    return {
+        "status": "PASS",
+        "proof_adapter": "true_ppo_audit_true_ppo_source",
+        "proof_schema": SOURCE_AGGREGATE_SCHEMA,
+        "manifest_sha256": audit["source_sha256"]["manifest.json"],
+        "eligibility_sha256": audit["source_sha256"]["eligibility_report.json"],
+        "aggregate_sha256": _hash_file(aggregate_path)[1],
+        "writer_lock_sha256": _hash_file(lock_path)[1],
+    }
+
+
+def _generic_formal_pass_proof(source: Path) -> dict[str, Any]:
+    """Run the generic formal validator while keeping the source read-only."""
+
+    report_path = source / "eligibility_report.json"
+    manifest_path = source / "manifest.json"
+    before_report = report_path.read_bytes() if report_path.is_file() else None
+    try:
+        from formal_experiments.evaluation import validate_formal_run
+    except ImportError as exc:  # pragma: no cover - package wiring failure
+        raise BackupError(f"generic formal proof adapter is unavailable: {exc}") from exc
+
+    # ``validate_run_directory`` historically refreshes eligibility_report.json
+    # as a side effect.  The backup protocol is read-only with respect to the
+    # source, so suppress only that writer for this audited call and verify the
+    # existing report remains byte-identical.
+    writer = validate_formal_run._write_eligibility
+    try:
+        validate_formal_run._write_eligibility = lambda *args, **kwargs: None
+        try:
+            result = validate_formal_run.validate_run_directory(source, formal=True)
+        except Exception as exc:
+            raise BackupError(f"generic formal validator raised unexpectedly: {exc}") from exc
+    finally:
+        validate_formal_run._write_eligibility = writer
+    after_report = report_path.read_bytes() if report_path.is_file() else None
+    if before_report is None or after_report != before_report:
+        raise BackupError("generic formal validator changed the source eligibility report")
+    if result.get("passed") is not True or result.get("errors"):
+        errors = result.get("errors") or ["generic formal validator returned FAIL"]
+        raise BackupError(f"generic formal PASS proof failed: {errors[0]}")
+
+    manifest = _safe_json(manifest_path, "generic manifest.json")
+    report = _safe_json(report_path, "generic eligibility_report.json")
+    if (
+        manifest.get("schema") is not None
+        or manifest.get("schema_version") != 1
+        or manifest.get("protocol_version") != "cc4_v3_20260917"
+    ):
+        raise BackupError("generic PASS requires the frozen generic manifest schema")
+    if manifest.get("formal_result_eligible") is not True or manifest.get("run_mode") != "formal":
+        raise BackupError("generic PASS requires a formal eligible manifest")
+    if manifest.get("episode_ticks") != 500 or manifest.get("test_episode_seeds") != list(range(4000, 4100)):
+        raise BackupError("generic PASS requires the frozen 100x500 test contract")
+    if (
+        report.get("schema") != "cc4_v3_eligibility_report_v1"
+        or report.get("passed") is not True
+        or report.get("status") != "PASS"
+        or report.get("eligibility") != "PASS"
+    ):
+        raise BackupError("generic PASS requires eligibility schema/status/eligibility triple PASS")
+    input_sha = report.get("input_sha256")
+    validated_sha = report.get("validated_input_sha256")
+    if not isinstance(input_sha, dict) or input_sha != validated_sha or not input_sha:
+        raise BackupError("generic PASS requires matching eligibility SHA bindings")
+    for relative, expected in input_sha.items():
+        if not isinstance(relative, str) or not relative or Path(relative).is_absolute() or ".." in Path(relative).parts:
+            raise BackupError(f"generic eligibility has unsafe SHA-bound path: {relative!r}")
+        target = source / relative
+        if not target.is_file() or _hash_file(target)[1] != expected:
+            raise BackupError(f"generic eligibility SHA binding mismatch: {relative}")
+    return {
+        "status": "PASS",
+        "proof_adapter": "generic_validate_run_directory",
+        "proof_schema": report["schema"],
+        "manifest_sha256": _hash_file(manifest_path)[1],
+        "eligibility_sha256": _hash_file(report_path)[1],
+        "bound_file_count": len(input_sha),
+    }
+
+
+def _read_completed_formal_pass_adapter(source: Path) -> dict[str, Any] | None:
+    """Return a strict PASS proof for a recognized runner-owned source."""
+
+    manifest_path = source / "manifest.json"
+    if not manifest_path.is_file() or _is_reparse(manifest_path):
+        return None
+    manifest = _safe_json(manifest_path, "manifest.json")
+    if manifest.get("schema") == "cc4_v3_true_ppo_manifest_v1":
+        return _true_ppo_pass_proof(source)
+    # Generic formal runs use the legacy validator's manifest contract.  A
+    # formal eligible marker is enough to select this adapter; the validator
+    # and the triple PASS/hash checks above decide acceptance.
+    if manifest.get("formal_result_eligible") is True:
+        return _generic_formal_pass_proof(source)
+    return None
+
+
 def _read_run_status(source: Path, expected: str | None = None) -> tuple[dict[str, Any], str]:
     path = source / "run_status.json"
     if path.is_file() and not _is_reparse(path):
@@ -712,6 +855,16 @@ def _read_run_status(source: Path, expected: str | None = None) -> tuple[dict[st
         if not isinstance(status, str) or status not in {"STOPPED", "PARTIAL", "PASS"}:
             raise BackupError("run_status.json status must be exactly STOPPED, PARTIAL, or PASS")
     else:
+        # Runner-owned completed formal outputs intentionally omit run_status.
+        # Admit only the two strict, read-only proof adapters; never synthesize
+        # a run_status.json in the source directory.
+        if not path.exists() and not path.is_symlink():
+            adapter = _read_completed_formal_pass_adapter(source)
+            if adapter is not None:
+                status = "PASS"
+                if expected is not None and status != expected:
+                    raise BackupError(f"run status {status} does not match --expect-status {expected}")
+                return adapter, status
         # Table 2/3 train-only orchestration intentionally stops before formal
         # validation/test and therefore emits an orchestrator report instead
         # of run_status.json.  Accept only the exact audited safe-stop shape;

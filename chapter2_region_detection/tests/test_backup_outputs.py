@@ -42,6 +42,66 @@ class BackupOutputTests(unittest.TestCase):
             json.dumps({"passed": passed}), encoding="utf-8"
         )
 
+    def write_true_ppo_proof(self, *, lock_status="RELEASED", include_aggregate=True):
+        (self.source / "manifest.json").write_text(
+            json.dumps({
+                "schema": "cc4_v3_true_ppo_manifest_v1",
+                "formal_result_eligible": True,
+            }),
+            encoding="utf-8",
+        )
+        (self.source / "eligibility_report.json").write_text(
+            json.dumps({
+                "schema": "cc4_v3_true_ppo_eligibility_v1",
+                "passed": True,
+            }),
+            encoding="utf-8",
+        )
+        if include_aggregate:
+            (self.source / "aggregate.json").write_text(
+                json.dumps({
+                    "schema": "cc4_v3_true_ppo_aggregate_v1",
+                    "status": "PASS",
+                }),
+                encoding="utf-8",
+            )
+        (self.source / ".true_ppo_writer.lock.json").write_text(
+            json.dumps({
+                "schema": "cc4_v3_true_ppo_writer_lock_v1",
+                "status": lock_status,
+            }),
+            encoding="utf-8",
+        )
+
+    def write_generic_formal_proof(self):
+        manifest = {
+            "schema_version": 1,
+            "protocol_version": "cc4_v3_20260917",
+            "formal_result_eligible": True,
+            "run_mode": "formal",
+            "episode_ticks": 500,
+            "test_episode_seeds": list(range(4000, 4100)),
+        }
+        manifest_path = self.source / "manifest.json"
+        payload_path = self.source / "payload.bin"
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        payload_path.write_bytes(b"payload")
+        bound = {
+            "manifest.json": hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
+            "payload.bin": hashlib.sha256(payload_path.read_bytes()).hexdigest(),
+        }
+        (self.source / "eligibility_report.json").write_text(
+            json.dumps({
+                "schema": "cc4_v3_eligibility_report_v1",
+                "passed": True,
+                "status": "PASS",
+                "eligibility": "PASS",
+                "input_sha256": bound,
+                "validated_input_sha256": bound,
+            }),
+            encoding="utf-8",
+        )
+
     def make_partial(self):
         self.write_status("PARTIAL")
         (self.source / "result.bin").write_bytes(b"small result")
@@ -70,6 +130,83 @@ class BackupOutputTests(unittest.TestCase):
         (self.source / "run_status.json").unlink()
         with self.assertRaises(backups.BackupError):
             backups.dry_run(source=self.source, backup_root=self.backup_root)
+
+    def test_missing_status_accepts_only_audited_true_ppo_pass(self):
+        self.write_true_ppo_proof()
+        with mock.patch(
+            "formal_experiments.evaluation.true_ppo_admission.audit_true_ppo_source",
+            return_value={
+                "source_sha256": {
+                    "manifest.json": "a" * 64,
+                    "eligibility_report.json": "b" * 64,
+                }
+            },
+        ):
+            result = backups.dry_run(source=self.source, backup_root=self.backup_root)
+        self.assertEqual(result["status"], "PASS")
+        self.assertTrue(result["formal_result_eligible"])
+        self.assertEqual(result["run_status"]["proof_adapter"], "true_ppo_audit_true_ppo_source")
+        self.assertFalse((self.source / "run_status.json").exists())
+
+    def test_true_ppo_active_missing_aggregate_and_tamper_fail_closed(self):
+        self.write_true_ppo_proof(lock_status="ACTIVE")
+        with self.assertRaisesRegex(backups.BackupError, "RELEASED"):
+            backups.dry_run(source=self.source, backup_root=self.backup_root)
+
+        self.source.joinpath(".true_ppo_writer.lock.json").unlink()
+        self.write_true_ppo_proof(include_aggregate=False)
+        with self.assertRaises(backups.BackupError):
+            backups.dry_run(source=self.source, backup_root=self.backup_root)
+
+        self.write_true_ppo_proof()
+        from formal_experiments.evaluation.true_ppo_admission import AdmissionError
+
+        with mock.patch(
+            "formal_experiments.evaluation.true_ppo_admission.audit_true_ppo_source",
+            side_effect=AdmissionError("tampered source"),
+        ):
+            with self.assertRaisesRegex(backups.BackupError, "tampered source"):
+                backups.dry_run(source=self.source, backup_root=self.backup_root)
+
+    def test_missing_status_accepts_generic_validator_pass_without_source_write(self):
+        self.write_generic_formal_proof()
+        before = (self.source / "eligibility_report.json").read_bytes()
+        with mock.patch(
+            "formal_experiments.evaluation.validate_formal_run.validate_run_directory",
+            return_value={"passed": True, "errors": []},
+        ) as validator:
+            result = backups.dry_run(source=self.source, backup_root=self.backup_root)
+        validator.assert_called_once_with(self.source, formal=True)
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["run_status"]["proof_adapter"], "generic_validate_run_directory")
+        self.assertEqual(before, (self.source / "eligibility_report.json").read_bytes())
+
+    def test_generic_pass_rejects_eligibility_manifest_and_hash_drift(self):
+        self.write_generic_formal_proof()
+        with mock.patch(
+            "formal_experiments.evaluation.validate_formal_run.validate_run_directory",
+            return_value={"passed": True, "errors": []},
+        ):
+            report = json.loads((self.source / "eligibility_report.json").read_text())
+            report["input_sha256"]["payload.bin"] = "0" * 64
+            report["validated_input_sha256"] = dict(report["input_sha256"])
+            (self.source / "eligibility_report.json").write_text(json.dumps(report), encoding="utf-8")
+            with self.assertRaises(backups.BackupError):
+                backups.dry_run(source=self.source, backup_root=self.backup_root)
+
+            self.write_generic_formal_proof()
+            manifest = json.loads((self.source / "manifest.json").read_text())
+            manifest["formal_result_eligible"] = False
+            (self.source / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+            with self.assertRaises(backups.BackupError):
+                backups.dry_run(source=self.source, backup_root=self.backup_root)
+
+            self.write_generic_formal_proof()
+            report = json.loads((self.source / "eligibility_report.json").read_text())
+            report["status"] = "PARTIAL"
+            (self.source / "eligibility_report.json").write_text(json.dumps(report), encoding="utf-8")
+            with self.assertRaises(backups.BackupError):
+                backups.dry_run(source=self.source, backup_root=self.backup_root)
 
     def test_exact_train_only_orchestrator_safe_stop_is_accepted(self):
         (self.source / "orchestrator_report.json").write_text(

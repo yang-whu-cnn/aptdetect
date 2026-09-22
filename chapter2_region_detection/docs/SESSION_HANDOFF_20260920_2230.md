@@ -171,3 +171,57 @@ artifact 根的 train source/threshold SHA 也尚未与 candidate sidecars 自�
    旧 canonical 保持不动，正式 preflight PASS 前禁止训练。
 9. 每项有用产出先备份并核验文件数、bytes、manifest、逐 SHA，再进入下一阶段；任何 partial
    或 blocked 资产都不得提升为 paper result。
+
+## 9. 2026-09-20 23:35 增量状态（以后续状态为准）
+
+### 9.1 LWM-RL repeat 4 已完成并备份
+
+- 统一终端 session `76879` 已结束；launcher 外层退出正常，实验 `exit_code.txt=3`；
+- `32/32/32` journal / curve / checkpoints，train seeds `1000..1031` 连续且唯一；
+- 32 个 checkpoint SHA256 重算全部匹配；provider calls=0、online environment steps=0；
+- 无 validation/test/episode/eligibility/正式 manifest；
+- `STOPPED/PARTIAL`、`expected_safe_stop=true`、`formal_result_eligible=false`；
+- canonical 共 40 files、16,077,086 bytes；
+- 不可覆盖备份：
+  `C:\aptdetect_experiment_backups\repeat_4_20260920T152923.698103Z_817234b293a840f3bdf8ecc3792ff101.finalized`；
+- backup verify PASS：40 files、16,077,086 bytes；backup manifest SHA256
+  `8a387f09ebbc96bfbc93b38af95ed18cb9c0c19104513a69b8d8b3f9ab18b29`
+  （比较时大小写不敏感）。
+
+### 9.2 f144 resume 缺陷与正式处置
+
+主窗口复核确认：`f14472dd...` 的 callback 构造器会 glob 全部 32 个训练 checkpoint；train 阶段
+已完成时 stage runner 跳过 `train()`，因此恢复 validation 会错误评估 32 个 checkpoint，而不是
+train payload 冻结的 `0008/0016/0024/0032`。旧 repeat 1–4 的 commit/domain 又禁止用新代码直接
+续接；不得修改旧 resume state、放宽 domain、使用 wrapper/monkeypatch 或运行旧 validation launcher。
+
+因此：旧 repeat 1–4 继续作为已备份的 train-only dependency evidence，不能直接成为论文结果；
+prepared f144 repeat5 和三种 Table2 消融 launcher 也全部冻结，不再启动。为了最快获得可信正式结果，
+在修复通过独立审查后，先用新 commit fresh 运行尚不存在的 repeat 5，再由主窗口保留并归档旧
+canonical 后 fresh 重跑 repeat 1–4。不得覆盖或删除旧产出。
+
+修复候选位于 `D:\w\lwmres` commit
+`1498e4a99b5932f955b9e4dab25c136bff86a82c`，新增显式 candidate rehydration、逐路径/SHA/domain
+门和 validator provenance gate；固定 CC4 Python 3.11 定向测试 `26/26 PASS`。当前仍等待独立
+Luna xhigh 只读审查，审查通过前不得 cherry-pick 或启动新正式 run。
+
+### 9.3 资源与其他阻塞更新
+
+- repeat4 结束后无 Python writer；可用 RAM 约 4.94 GiB，GPU 约 26%、显存 1304/8188 MiB；
+- TERLA repeat4 的 launcher 已准备，但冻结硬门要求可用 RAM >=12 GiB，当前不启动；
+- RSMBRL 五个 seed4000 partial 虽逐 SHA 可恢复，但任务书要求 beta 由 validation 选择，而旧 bundle
+  声明 `paper_fixed_no_validation_tuning`；旧 partial 不得从 seed4001 继续成为正式结果。已派发
+  validation-only beta selection 与 fresh-test fail-closed 修复；
+- backup tool 的 verified-dependency 扩展候选 commit 为
+  `e52f1deee4392774df0ff0c68b689c67d796cb92`，固定 Python 3.11 测试 `33/33 PASS`（1 skip），
+  仍等待独立安全审查，审查通过前不合入、不对真实外部资产执行 dependency-create；
+- 原 heartbeat `cc4-lwm-repeat3` 已在 repeat4 完成和备份后暂停；启动下一项正式实验时只更新并
+  恢复这一个 heartbeat，不创建第二个监控。
+
+### 9.4 当前下一步顺序
+
+1. 等待并审核 `1498e4a...` 独立审查；通过后 cherry-pick 到已释放且 clean 的 3cf0 worktree；
+2. 用新 HEAD 重新生成、预检并主窗口审核 repeat5 launcher，fresh train-only 启动；
+3. 同时等待并审核 `e52f1dee...`，通过后备份 Table3 八资产及 PriorRL blocked candidate；
+4. 审核 RSMBRL beta-validation 实现；先只跑 validation 并冻结 beta，随后 fresh test，旧 partial 禁用；
+5. 所有新有用产出先不可覆盖备份并 verify，再进入下一阶段。

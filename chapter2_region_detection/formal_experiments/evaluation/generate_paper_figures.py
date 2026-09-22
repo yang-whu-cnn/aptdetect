@@ -259,6 +259,13 @@ def _bound_optional_jsonl(
 
 
 def discover_formal_runs(input_root: str | Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    from formal_experiments.evaluation.true_ppo_admission import (
+        AdmissionError,
+        BRIDGE_SCHEMA,
+        SOURCE_MANIFEST_SCHEMA,
+        validate_admission_directory,
+    )
+
     root = Path(input_root).resolve()
     accepted: list[dict[str, Any]] = []
     rejected: list[dict[str, Any]] = []
@@ -273,6 +280,63 @@ def discover_formal_runs(input_root: str | Path) -> tuple[list[dict[str, Any]], 
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             if not isinstance(manifest, Mapping):
                 raise FigureInputError("manifest must be an object")
+            if manifest.get("schema") == SOURCE_MANIFEST_SCHEMA:
+                # The runner-owned eligibility has a different schema and must
+                # never be replaced in place by the legacy validator.  Report it
+                # as source-only, without tainting an admitted derived candidate.
+                rejected.append({
+                    "manifest": str(manifest_path.relative_to(root)),
+                    "reason": "raw true-PPO source is read-only; admission_derived bridge required",
+                    "claimed_formal": False,
+                    "claimed_identity": None,
+                    "source_only": True,
+                })
+                continue
+            if manifest.get("schema") == BRIDGE_SCHEMA:
+                try:
+                    admission = validate_admission_directory(run_dir)
+                except AdmissionError as exc:
+                    normalized = manifest.get("normalized_manifest", {})
+                    if isinstance(normalized, Mapping):
+                        raw_table = str(normalized.get("table_id", "")).lower()
+                        raw_row = str(normalized.get("row_id", "")).lower()
+                        if raw_table in TABLE_ROWS and raw_row in TABLE_ROWS[raw_table]:
+                            claimed_identity = f"{raw_table}/{raw_row}"
+                    claimed_formal = True
+                    raise FigureInputError(str(exc)) from exc
+                normalized = admission["normalized_manifest"]
+                claimed_formal = True
+                table_id, row_id, reward_mode, component, reward_semantics = _table_identity(normalized)
+                claimed_identity = f"{table_id}/{row_id}"
+                curve_path = Path(admission["training_curve_path"])
+                source_dir = Path(admission["source_dir"])
+                bridge_report = Path(admission["admission_report_path"])
+                inputs = {
+                    str(manifest_path.relative_to(root)): _sha256(manifest_path),
+                    str(bridge_report.relative_to(root)): _sha256(bridge_report),
+                }
+                for name, digest in admission["source_sha256"].items():
+                    source_path = source_dir / name
+                    try:
+                        key = str(source_path.relative_to(root))
+                    except ValueError:
+                        key = f"external:{source_path}"
+                    inputs[key] = digest
+                accepted.append({
+                    "run_dir": run_dir,
+                    "manifest": dict(normalized),
+                    "episodes": admission["episodes"],
+                    "metrics": admission["metrics"],
+                    "training_curve_path": curve_path,
+                    "table_id": table_id,
+                    "row_id": row_id,
+                    "reward_mode": reward_mode,
+                    "component_variant": component,
+                    "reward_semantics": reward_semantics,
+                    "inputs": inputs,
+                    "admission_status": "PROVISIONAL",
+                })
+                continue
             claimed_formal = (
                 manifest.get("run_mode") == "formal"
                 and manifest.get("formal_result_eligible") is True
